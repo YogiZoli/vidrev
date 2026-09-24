@@ -88,3 +88,15 @@ The Phase 1 review adds owner questions Q-01 to Q-22 in [docs/SPEC-REVIEW.md](do
 2. `standard_monthly` price: not decided, configurable (D-37). The 04 PRD tiers (29/49/99 USD) are obsolete.
 3. Carried over from 02: exact DNS fingerprint of GHL custom domains (for stack detection in Audit my channel). See Q-22.
 4. Carried over from 02: "What does the legacy C2C Counter measure?" is moot for this codebase per D-30 and will not be investigated.
+
+## 5. Owner answers to the Phase 1 review (2026-09-25)
+
+| Question | Answer |
+| --- | --- |
+| Q-04 Inbound auth | **Accepted:** Bearer secret in a header plus idempotency on (event, external_id); HMAC verified when present. |
+| Q-16 Founding trial | **No.** The founding offer has no trial. The 14-day trial (D-37) applies to `standard_monthly`. |
+| Q-17 (a) Compliance timing | **Accepted:** Privacy/Terms drafts, OAuth verification pack and quota extension request move to right after Phase 5. |
+| Brand domain | The owner will buy the brand domain at Cloudflare (registrar and DNS). |
+| Q-15 Test domain | Pending. Not needed if D-38 (below) is accepted. |
+| D-38 (proposal) Tracked links without DNS | Pending owner approval: the reply links directly to the creator's own opt-in page with `c2c_tid` (no redirect, no user DNS, no Cloudflare for SaaS); clicks measured by an optional snippet on the opt-in page, otherwise shown as "not measured"; fallback `link.brand.tld` redirect plus hosted opt-in page. Would replace the CNAME mechanism of D-33 while keeping its goal. |
+| Q-05 Revenue source | Discussed: one revenue source per account removes double counting; recommendation pending confirmation. |

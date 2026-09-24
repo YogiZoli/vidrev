@@ -100,6 +100,8 @@ Proposed setup:
 
 Decision: Q-15.
 
+**Update 2026-09-25 (D-38, owner approved):** the CNAME route stays and is automated as far as possible: domain pre-filled from the destination URL or CRM, DNS provider detected by NS lookup, Domain Connect one-click where the provider supports it (GoDaddy, IONOS, Cloudflare, Squarespace Domains and about 20 others), otherwise a provider-specific guide plus automatic verification. Domain Connect templates must be onboarded per provider (Cloudflare: template PR to the Domain-Connect/Templates repo, then email to domain-connect@cloudflare.com; requests are signed with a key published as a TXT record on our domain), so it needs the final brand domain.
+
 **R-07 Link granularity and host binding (High).** SPEC gives one link per campaign and video, so `clicks.comment_id` can never be filled. Fix:
 - Two link kinds: `reply` (one short slug per sent reply, which gives exact comment-level data) and `static` (per campaign and video, for descriptions and pinned comments).
 - Slugs are globally unique, so any link host can resolve them.

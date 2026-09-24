@@ -1,7 +1,7 @@
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Client } from "pg";
-import { log } from "@/lib/log";
+import { errorFields, log } from "@/lib/log";
 
 // Both Railway services run this as their pre-deploy command, so an advisory
 // lock makes sure only one of them applies migrations at a time.
@@ -30,7 +30,7 @@ if (isEntrypoint) {
   runMigrations(url)
     .then(() => log("info", "migrations applied"))
     .catch((error) => {
-      log("error", "migration failed", { error: String(error) });
+      log("error", "migration failed", errorFields(error));
       process.exit(1);
     });
 }

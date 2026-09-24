@@ -32,4 +32,39 @@ TypeScript, Next.js (App Router), PostgreSQL, Drizzle ORM, pg-boss worker, Resen
 
 ## Local development
 
-Set up in Phase 2 (scaffold). Until then this repo contains documentation only.
+Requirements: Node.js 24 (see `.nvmrc`) and a Postgres database (a local server, or the public URL of a Railway Postgres dev database).
+
+```bash
+npm install
+cp .env.example .env        # then set DATABASE_URL
+npm run db:migrate          # apply migrations
+npm run dev                 # web on http://localhost:3000
+npm run dev:worker          # worker (second terminal)
+```
+
+Checks (the same ones CI runs):
+
+```bash
+npm run lint
+npm run typecheck
+npm test                    # DB integration tests run only when DATABASE_URL is set
+npm run build
+```
+
+Schema changes: edit `src/db/schema.ts`, then `npm run db:generate` and commit the new file in `drizzle/`.
+
+## Layout
+
+| Path | What |
+| --- | --- |
+| `src/app` | Next.js App Router pages and API routes (`/api/health`) |
+| `src/worker` | pg-boss worker process (all external API calls run here) |
+| `src/db` | Drizzle schema, client, queries |
+| `src/lib` | Shared code (env validation, health logic, logging) |
+| `src/scripts/migrate.ts` | Migration runner (Railway pre-deploy step, advisory-locked) |
+| `drizzle/` | Generated SQL migrations |
+| `scripts/start.mjs` | Start command for both Railway services (role from `RAILWAY_SERVICE_NAME`) |
+
+## Deployment
+
+Railway project `c2c-saas`, environment `production`: services `web`, `worker` and `Postgres`. Both app services deploy from `main` on GitHub with the shared `railway.json` (build, pre-deploy migrations, health check `/api/health`). Only code changes trigger a deploy (`watchPatterns`); documentation commits do not.

@@ -3,7 +3,7 @@ import { PgBoss } from "pg-boss";
 import { closeDb, getDb } from "@/db/client";
 import { recordHeartbeat } from "@/db/heartbeat";
 import { appVersion, env } from "@/lib/env";
-import { log } from "@/lib/log";
+import { errorFields, log } from "@/lib/log";
 
 const WORKER_ID = "worker";
 const HEARTBEAT_QUEUE = "system.heartbeat";
@@ -31,7 +31,7 @@ function startHealthServer(isReady: () => boolean): Server {
 
 async function main(): Promise<void> {
   const boss = new PgBoss({ connectionString: env().DATABASE_URL });
-  boss.on("error", (error) => log("error", "pg-boss error", { error: String(error) }));
+  boss.on("error", (error) => log("error", "pg-boss error", errorFields(error)));
 
   let ready = false;
   const server = startHealthServer(() => ready);
@@ -63,6 +63,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((error) => {
-  log("error", "worker failed to start", { error: String(error) });
+  log("error", "worker failed to start", errorFields(error));
   process.exit(1);
 });

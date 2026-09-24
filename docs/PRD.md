@@ -7,7 +7,7 @@ Source: Drive doc "04 C2C SaaS PRD és Roadmap", draft v1, 2026-09-24, translate
 > - "Base domain + Pro CNAME": the user's own domain is the default for everyone, go.brand.tld is only the fallback (D-33).
 > - "Built on the existing C2C app / Counter": new codebase, the legacy app is not a pattern (D-14, D-26, D-30).
 > - Adaptive polling timings: replaced by activity tiers (D-27).
-> - Pricing tiers: plans are data (B-05); the standard price is an open question.
+> - Pricing: the 29/49/99 USD tiers are obsolete (D-37). Plans are data (B-05); 14-day trial with card; no forever-free plan; standard monthly price not decided.
 
 ## 1. Summary
 
@@ -90,12 +90,24 @@ Engagement gates (subscribe or like requirements), mass or unsolicited commentin
 | Instant preview | The 3 strongest findings, real numbers only |
 | Opt-in | Full report by email |
 | Segmentation | By stack: GHL path or other path |
-| Trial | "Let's measure these comments for 7 days" |
+| Trial | "Let's measure these comments for 7 days" **[copy to align with the 14-day trial, D-37]** |
 | Re-audit | After 30 days, the change in the Comment Conversion Score as proof |
 
 Technical: API key, no OAuth, about 5 to 10 units per audit, separate GCP project, 24h cache, raw comments deleted within 30 days.
 
-## 7. Pricing (draft, to be validated) [superseded by B-05 for plan structure; standard price open]
+## 7. Pricing
+
+Valid pricing (updated in Drive 04 on 2026-09-25, D-37):
+
+- `founding`: 97 USD per year, renewal price locked for life, first 100 buyers (D-24).
+- `standard_monthly`: price not decided yet, configurable.
+- 14-day trial, card required.
+- No forever-free plan; the free entry point is Audit my channel.
+- `ghl_affiliate_free` (D-21).
+- `enterprise`: BYOK (D-32), price later.
+- No lifetime plan (D-20).
+
+**OBSOLETE, do not use (D-37):** the draft table below is kept only because it is still in the Drive source.
 
 | Plan | Price (owner model) | Content |
 | --- | --- | --- |
@@ -142,7 +154,7 @@ Durations are owner estimates.
 - Owner entity: **Wyoming LLC (D-13)**, not formed yet.
 - Product name, domain and link domain: name and domain open; link domain resolved (D-28, D-33).
 - Build on the legacy codebase, keep Railway? **Resolved: new codebase (D-14), Railway (D-29).**
-- Pricing: are 29/49/99 right, free plan, card for trial? **Open** (see DECISIONS open question 2).
+- Pricing: **resolved by D-37** (29/49/99 rejected, 14-day trial with card, no forever-free plan); standard monthly price still open.
 - Where do the first 3 beta customers come from inbound? **D-16.**
 - English only at launch? **Resolved: English UI (D-17, B-06).**
 - Do current legacy users move to the new app? **D-26:** legacy app frozen, then retired.

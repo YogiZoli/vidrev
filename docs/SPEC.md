@@ -107,7 +107,8 @@ All `*_enc` fields are encrypted with AES-256-GCM using `ENCRYPTION_KEY`. Emails
   - `ghl_affiliate_free` (D-21): free app access for users who subscribe to GHL through the owner's affiliate link; granted manually or by webhook.
   - `enterprise` (D-32): BYOK, the customer's own GCP project and OAuth client.
   - `internal`: owner accounts.
-  - No lifetime plan (D-20).
+  - No lifetime plan (D-20). No forever-free plan; the free entry point is Audit my channel (D-37).
+- Trial (D-37): 14 days, card required, run by GHL checkout. Provisioning of the trial: see SPEC-REVIEW R-13 / Q-16.
 - `POST /api/provisioning/ghl`: called by GHL workflows. Header `X-Signature` = HMAC-SHA256(body, `PROVISIONING_SECRET`). Idempotent on `external_id`.
   - `purchase` or `subscription_created`: create or activate account, assign plan, send magic link.
   - `subscription_cancelled`, `payment_failed`: suspend (data kept 30 days, then API data purged per policy).
@@ -229,6 +230,6 @@ Each opt-in emits outbound `opt_in` and applies tags where the connector support
 ## 18. Open decisions (owner)
 
 1. Product name and domains (env vars until decided). **Open.**
-2. Founding offer: **resolved** (D-24). Standard price: **open.**
+2. Founding offer: **resolved** (D-24). Pricing structure: **resolved** (D-37). Standard monthly price: **open**, configurable.
 3. Attribution rule default: **resolved**, last touch within 180 days (B-08).
 4. Whether the new SaaS replaces the legacy GHL Marketplace app: **resolved**, yes, legacy frozen then retired (D-26).

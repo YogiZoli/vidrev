@@ -4,7 +4,7 @@ Source of truth: Drive doc "02 C2C SaaS Döntési napló" (last updated 2026-09-
 
 Sections:
 
-1. Valid decisions D-01 to D-36 (owner decisions from 02)
+1. Valid decisions D-01 to D-37 (owner decisions from 02)
 2. Build brief decisions B-01 to B-09 (owner instructions given to Claude Code on 2026-09-25)
 3. Proposals CC-xx (picked by Claude Code where something was ambiguous; pending owner approval)
 4. Open questions
@@ -51,6 +51,7 @@ Status column: **valid** = applies as written; **refined** = still valid, a late
 | D-34 | Audit my channel gets its own separate GCP project (different use case). | | valid |
 | D-35 | Quota extension has no official deadline (reports range from days to months; a typical first approval is 50,000 to 100,000 units per day). The legacy app's 1-day approval was OAuth verification, not a quota extension. | | valid (planning fact) |
 | D-36 | Stack (approved 2026-09-25): TypeScript + Next.js + Postgres, no Redis. Speed: the UI never waits on an external API; every YouTube and GHL call runs in the worker. | | valid |
+| D-37 | Pricing: the 29/49/99 USD draft is rejected. 14-day trial with card required. No forever-free plan (the free entry point is Audit my channel). The standard monthly price is not decided yet and stays configurable. | | valid |
 
 ## 2. Build brief decisions (owner, 2026-09-25)
 
@@ -62,7 +63,7 @@ These come from the owner's build brief to Claude Code. They add detail to the 0
 | B-02 | Target: active owner-creators who already sell their own offer and upload regularly; entry segment GHL users in coaching, agency, real estate and fitness niches. |
 | B-03 | Stack details: Next.js App Router, Drizzle ORM, pg-boss worker, Resend, Vitest. Railway services `web` and `worker` plus Postgres. |
 | B-04 | Billing is not in the app. Checkout lives in GHL and calls a signed provisioning webhook (purchase: activate and send magic link; cancel or failed payment: suspend). |
-| B-05 | Plans are data: `standard_monthly` (price configurable), `founding` (annual, 97 USD/year, renewal locked for life, seat cap 100), `ghl_affiliate_free` (manual or by webhook), `enterprise` (BYOK), `internal`. No lifetime plan. |
+| B-05 | Plans are data: `standard_monthly` (price not decided, configurable), `founding` (annual, 97 USD/year, renewal locked for life, first 100 buyers), `ghl_affiliate_free` (manual or by webhook), `enterprise` (BYOK, price later), `internal`. 14-day trial with card (D-37). No forever-free plan, no lifetime plan. |
 | B-06 | Reply language cascade: the commenter's language only if an approved template exists in that language, else the creator's default language (set manually), else English. Never post an unapproved machine translation. UI in English only. |
 | B-07 | YouTube compliance: scopes `youtube.force-ssl` plus `openid email profile` only; reply only to explicit keyword comments; varied templates; per-video and per-hour limits; never require like or subscribe; store YouTube API data max 30 days or refresh every 30 days; never use Google user data for model training. |
 | B-08 | Attribution default: last touch within 180 days; refunds reduce revenue. (Resolves SPEC open decision 3.) |
@@ -81,7 +82,9 @@ These come from the owner's build brief to Claude Code. They add detail to the 0
 
 ## 4. Open questions
 
+The Phase 1 review adds owner questions Q-01 to Q-22 in [docs/SPEC-REVIEW.md](docs/SPEC-REVIEW.md) section 3. Accepted answers are recorded here as decisions at the start of Phase 2.
+
 1. Product name and domains (env vars until decided; D-23 naming limits apply).
-2. `standard_monthly` price. The 04 PRD tiers (Starter 29, Pro 49, Scale 99 USD per channel per month) predate the plan list in B-05; to be reconciled in the Phase 1 review.
-3. Carried over from 02: exact DNS fingerprint of GHL custom domains (for stack detection in Audit my channel).
+2. `standard_monthly` price: not decided, configurable (D-37). The 04 PRD tiers (29/49/99 USD) are obsolete.
+3. Carried over from 02: exact DNS fingerprint of GHL custom domains (for stack detection in Audit my channel). See Q-22.
 4. Carried over from 02: "What does the legacy C2C Counter measure?" is moot for this codebase per D-30 and will not be investigated.

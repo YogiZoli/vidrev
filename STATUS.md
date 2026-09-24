@@ -11,8 +11,8 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 | # | Phase | Status |
 | --- | --- | --- |
 | 0 | Bootstrap: repo docs, decisions, PRD, SPEC, .gitignore, .env.example | **DONE** (2026-09-25) |
-| 1 | SPEC review: gaps, risks, owner decisions, proposed fixes | next, waiting for owner approval ("mehet") |
-| 2 | Scaffold and deploy: app skeleton, Postgres, migrations, health check, CI, Railway project `c2c-saas`, first deploy | not started |
+| 1 | SPEC review: gaps, risks, owner decisions, proposed fixes | **DONE** (2026-09-25), answers to Q-01 to Q-22 pending |
+| 2 | Scaffold and deploy: app skeleton, Postgres, migrations, health check, CI, Railway project `c2c-saas`, first deploy | next, waiting for owner approval ("mehet") |
 | 3 | Accounts: magic-link login, provisioning webhook, plans and seeds, OAuth connect with encrypted tokens | not started |
 | 4 | Comment engine: channel polling tiers, PubSubHubbub, keyword rules, AI drafts, templates, approval queue, quota-budget scheduling, transparent queue, manual fallback, quota ledger | not started |
 | 5 | Tracked links on the user's own domain: CNAME onboarding, DNS check, Cloudflare for SaaS TLS, fallback domain, click ids, mapping | not started |
@@ -24,25 +24,24 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 | 11 | Enterprise BYOK | not started |
 | 12 | Compliance and launch readiness | not started |
 
-## Phase 0: what was built
+Proposed phase plan changes (Q-17, pending): compliance pack and quota extension request right after Phase 5; the retention job in Phase 4; one GHL Marketplace app created in Phase 6 and listed publicly in Phase 10; a Cloudflare for SaaS spike in Phase 2 if a test domain exists.
 
-- `README.md`: product in one paragraph, file map, stack, ground rules.
-- `DECISIONS.md`: all valid decisions D-01 to D-36 from Drive doc 02 (translated, with valid/refined/superseded status), build brief decisions B-01 to B-09, proposals CC-01 to CC-06, open questions.
-- `docs/PRD.md`: Drive doc 04 translated; superseded points flagged inline, not rewritten.
-- `docs/SPEC.md`: Drive doc 05 with every UPDATE and APPROVED note merged into the text it overrides; the WITHDRAWN Python stack proposal removed.
-- `.gitignore`, `.env.example` (every env var from the SPEC plus the CC-01, CC-03, CC-06 additions).
+## Phase 1: what was built
+
+- `docs/SPEC-REVIEW.md`: 8 top findings, 30+ findings (R-xx) with severity and proposed fix, 22 owner questions (Q-01 to Q-22) each with a recommendation, and the verified external facts used.
+- D-37 (pricing: 29/49/99 rejected, 14-day trial with card, no forever-free plan, standard price configurable) merged into `DECISIONS.md`, `docs/PRD.md` and `docs/SPEC.md`.
+- `docs/SPEC.md` is otherwise unchanged; accepted fixes are merged into it at the start of Phase 2.
 
 ## How to test
 
-Documentation only. Read `DECISIONS.md` section 3 (proposals) and check the flagged points in `docs/PRD.md`.
+Documentation only. Read `docs/SPEC-REVIEW.md` sections 1 and 3.
 
 ## Open issues
 
-- Proposals CC-01 to CC-06 in `DECISIONS.md` are pending owner approval.
-- Drive doc 00 Index still says "decisions D-01...D-12"; 02 goes up to D-36 (Drive housekeeping, not a code issue).
-- In Drive doc 02, decisions D-13 to D-36 sit inside the "Open questions" list rather than the decisions table; treated as valid decisions here.
-- 04 PRD pricing (Starter/Pro/Scale) versus the plan list in the build brief: to reconcile in Phase 1.
+- Owner answers to Q-01 to Q-22 (docs/SPEC-REVIEW.md section 3). Input needed on Q-01 (name and domain, before Phase 5 go-live), Q-15 (test domain), Q-16 (founding trial), Q-22 (GHL DNS fingerprint).
+- Proposals CC-01 to CC-06 in `DECISIONS.md` still pending.
+- Drive doc 00 Index still says "decisions D-01...D-12" (Drive housekeeping). In Drive 02, D-13 onwards stays a bullet list on purpose (owner, 2026-09-25: Drive tables format badly).
 
 ## Next phase
 
-Phase 1: critical SPEC review (gaps, risks, every owner decision needed, proposed fixes). Starts only after "mehet".
+Phase 2: scaffold and deploy. Starts only after "mehet". Needs: Railway CLI logged in on this machine.

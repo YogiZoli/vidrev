@@ -18,7 +18,6 @@
   },
   "deploy": {
     "startCommand": "npm start",
-    "preDeployCommand": "npm run db:migrate:prod",
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 120,
     "restartPolicyType": "ON_FAILURE",

@@ -61,10 +61,10 @@ Schema changes: edit `src/db/schema.ts`, then `npm run db:generate` and commit t
 | `src/worker` | pg-boss worker process (all external API calls run here) |
 | `src/db` | Drizzle schema, client, queries |
 | `src/lib` | Shared code (env validation, health logic, logging) |
-| `src/scripts/migrate.ts` | Migration runner (Railway pre-deploy step, advisory-locked) |
+| `src/scripts/migrate.ts` | Migration runner (runs on every service start, advisory-locked) |
 | `drizzle/` | Generated SQL migrations |
 | `scripts/start.mjs` | Start command for both Railway services (role from `RAILWAY_SERVICE_NAME`) |
 
 ## Deployment
 
-Railway project `c2c-saas`, environment `production`: services `web`, `worker` and `Postgres`. Both app services deploy from `main` on GitHub with the shared `railway.json` (build, pre-deploy migrations, health check `/api/health`). Only code changes trigger a deploy (`watchPatterns`); documentation commits do not.
+Railway project `c2c-saas`, environment `production`: services `web`, `worker` and `Postgres`. Both app services deploy from `main` on GitHub with the shared `railway.json`; migrations run at service start (advisory-locked). Only code changes trigger a deploy (`watchPatterns`); documentation commits do not.

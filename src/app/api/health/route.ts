@@ -14,8 +14,9 @@ export async function GET(): Promise<Response> {
   try {
     const db = getDb();
     await db.execute(sql`select 1`);
-    dbOk = true;
+    // A missing table (migrations not applied) must surface as unhealthy.
     lastBeatAt = await latestHeartbeat(db);
+    dbOk = true;
   } catch (error) {
     console.error(JSON.stringify({ level: "error", msg: "health check failed", error: String(error) }));
   }

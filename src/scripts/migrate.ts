@@ -3,7 +3,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { Client } from "pg";
 import { errorFields, log } from "@/lib/log";
 
-// Both Railway services run this as their pre-deploy command, so an advisory
+// Both Railway services run this on start (scripts/start.mjs), so an advisory
 // lock makes sure only one of them applies migrations at a time.
 const MIGRATION_LOCK_ID = 727_001;
 

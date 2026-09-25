@@ -1,10 +1,11 @@
 import type { PgBoss } from "pg-boss";
 import { getDb } from "@/db/client";
-import { type ChannelJob, QUEUES, QUEUE_OPTIONS, type SendEmailJob } from "@/jobs/queues";
+import { type ChannelJob, type CommentJob, QUEUES, QUEUE_OPTIONS, type SendEmailJob } from "@/jobs/queues";
 import { appBaseUrl, env } from "@/lib/env";
 import { errorFields, log } from "@/lib/log";
 import { type ChannelDeps, disconnectChannel, syncChannel } from "./channels";
 import { EmailSendError, senderAddress, sendWithResend } from "./email";
+import { createDraft } from "./drafts";
 import { checkRss, type EngineDeps, engineTick, pollChannel, renewWebsub } from "./polling";
 
 async function sendEmail(job: SendEmailJob): Promise<void> {
@@ -81,6 +82,23 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
   // checks every minute; push leases are renewed hourly.
   await boss.work<ChannelJob>(QUEUES.channelPoll, withEngineDeps(boss, (deps, data: ChannelJob) => pollChannel(deps, data.channelId)));
   await boss.work<ChannelJob>(QUEUES.channelRss, withEngineDeps(boss, (deps, data: ChannelJob) => checkRss(deps, data.channelId)));
+  await boss.work<CommentJob>(QUEUES.replyDraft, async ([job]) => {
+    const { ENCRYPTION_KEY, GEMINI_PLATFORM_API_KEY, AI_PLATFORM_MODEL, PRODUCT_NAME } = env();
+    await createDraft(
+      {
+        db: getDb(),
+        fetch,
+        encryptionKey: ENCRYPTION_KEY,
+        platformAi: { apiKey: GEMINI_PLATFORM_API_KEY, model: AI_PLATFORM_MODEL },
+        appBaseUrl: appBaseUrl(),
+        productName: PRODUCT_NAME,
+        enqueue: async (queue, data, options) => {
+          await boss.send(queue, data as object, options ?? {});
+        },
+      },
+      job!.data.commentId,
+    );
+  });
   await boss.createQueue(QUEUES.engineTick);
   await boss.schedule(QUEUES.engineTick, "* * * * *");
   await boss.work(QUEUES.engineTick, async () => {

@@ -7,6 +7,7 @@ export const UNIT_COSTS = {
   "commentThreads.list": 1,
   "comments.list": 1,
   "channels.list": 1,
+  "playlistItems.list": 1,
   "videos.list": 1,
   "comments.insert": 50,
 } as const;

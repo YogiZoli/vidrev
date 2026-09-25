@@ -71,6 +71,13 @@
       "when": 1790359622592,
       "tag": "0009_contacts",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790361982622,
+      "tag": "0010_audits",
+      "breakpoints": true
     }
   ]
 }

@@ -21,6 +21,7 @@ export const QUEUES = {
   stripeSync: "stripe.sync",
   reportRefresh: "report.refresh",
   reportHourly: "report.hourly",
+  auditRun: "audit.run",
 } as const;
 
 export interface SendEmailJob {
@@ -64,6 +65,10 @@ export interface GhlEventJob {
   payload: Record<string, unknown>;
 }
 
+export interface AuditJob {
+  auditId: string;
+}
+
 export interface JobPayloads {
   [QUEUES.sendEmail]: SendEmailJob;
   [QUEUES.channelSync]: ChannelJob;
@@ -80,6 +85,7 @@ export interface JobPayloads {
   [QUEUES.ghlEvent]: GhlEventJob;
   [QUEUES.stripeSync]: GhlIntegrationJob;
   [QUEUES.reportRefresh]: AccountJob;
+  [QUEUES.auditRun]: AuditJob;
 }
 
 // Email jobs carry magic links, so they are removed soon after completion.
@@ -108,4 +114,7 @@ export const QUEUE_OPTIONS = {
   // Attribution and report snapshots (Phase 7): one queued plus one running
   // per account (singletonKey = account id); the tick queues dirty accounts.
   [QUEUES.reportRefresh]: { policy: "stately", retryLimit: 2, retryDelay: 60, expireInSeconds: 600 },
+  // Audit my channel (Phase 9): quota is charged as the run goes, so a run is
+  // never retried; a stuck row is failed by the engine tick.
+  [QUEUES.auditRun]: { retryLimit: 0, expireInSeconds: 600 },
 } as const;

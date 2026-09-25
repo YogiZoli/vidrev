@@ -793,3 +793,36 @@ export const reportSnapshots = pgTable(
   },
   (t) => [primaryKey({ columns: [t.accountId, t.period] })],
 );
+
+// Audit my channel (SPEC section 13, DECISIONS section 16). One row per
+// request; `id` is the unguessable token in the result URL. `result` holds
+// counts and derived numbers only. Everything that came from the YouTube API
+// (`youtube_channel_id`, `examples`) is wiped 30 days after `fetched_at`.
+export const audits = pgTable(
+  "audits",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // Normalised lookup key of the channel ("handle:name", "id:UC...") for the 24h cache.
+    channelKey: text("channel_key").notNull(),
+    // What the visitor typed, trimmed.
+    channelInput: text("channel_input").notNull(),
+    status: text("status").notNull().default("queued"),
+    failureReason: text("failure_reason"),
+    youtubeChannelId: text("youtube_channel_id"),
+    result: jsonb("result").$type<import("@/lib/audit/result").AuditResult>(),
+    examples: jsonb("examples").$type<import("@/lib/audit/result").AuditExamples>(),
+    // When the YouTube data was read; a cache hit keeps the original time.
+    fetchedAt: timestamp("fetched_at", { withTimezone: true }),
+    apiDataScrubbedAt: timestamp("api_data_scrubbed_at", { withTimezone: true }),
+    requesterEmail: text("requester_email"),
+    consentMarketing: boolean("consent_marketing"),
+    consentAt: timestamp("consent_at", { withTimezone: true }),
+    reportSentAt: timestamp("report_sent_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("audits_channel_idx").on(t.channelKey, t.createdAt),
+    index("audits_email_idx").on(t.requesterEmail, t.reportSentAt),
+    index("audits_fetched_idx").on(t.fetchedAt),
+  ],
+);

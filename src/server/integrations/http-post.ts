@@ -8,7 +8,7 @@ export type PostFn = (url: string, body: string, headers: Record<string, string>
 // Resolves the host and refuses any private address at connect time, so a DNS
 // record that changes after the URL was saved (rebinding) cannot reach our
 // network. All returned addresses must be public.
-const safeLookup: NonNullable<https.RequestOptions["lookup"]> = (hostname, options, callback) => {
+export const safeLookup: NonNullable<https.RequestOptions["lookup"]> = (hostname, options, callback) => {
   dns.lookup(hostname, { ...options, all: true }, (error, addresses) => {
     if (error) return callback(error, "", 4);
     if (addresses.length === 0 || addresses.some((a) => isPrivateAddress(a.address))) {

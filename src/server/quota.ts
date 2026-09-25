@@ -24,22 +24,35 @@ export async function dayUsage(db: DbOrTx, datePt: string, gcpProject = "app"): 
 // Charges the units BEFORE the API call (YouTube charges failed calls too).
 // Returns false, without charging, when the call does not fit today's budget:
 // reads never touch the reply reserve, replies may use all that is left.
+//
+// `gcpProject` "audit" is the separate Audit my channel project (D-34): it has
+// its own day and no reply reserve, so reads may use all of its limit.
 export async function reserveUnits(
   db: Db,
-  input: { method: QuotaMethod; accountId: string | null; limit: number; calls?: number },
+  input: { method: QuotaMethod; accountId: string | null; limit: number; calls?: number; gcpProject?: string },
   now = new Date(),
 ): Promise<boolean> {
   const units = UNIT_COSTS[input.method] * (input.calls ?? 1);
   const datePt = pacificDate(now);
+  const gcpProject = input.gcpProject ?? "app";
   return db.transaction(async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(${QUOTA_LOCK_ID})`);
-    const usage = await dayUsage(tx, datePt);
+    const usage = await dayUsage(tx, datePt, gcpProject);
     const fits =
-      input.method === REPLY_METHOD
-        ? canSpendOnReply(usage, input.limit)
-        : canSpendOnRead(usage, input.limit, await getNumberSetting(tx, "reply_reserve_pct"), units);
+      gcpProject !== "app"
+        ? usage.reads + usage.replies + units <= input.limit
+        : input.method === REPLY_METHOD
+          ? canSpendOnReply(usage, input.limit)
+          : canSpendOnRead(usage, input.limit, await getNumberSetting(tx, "reply_reserve_pct"), units);
     if (!fits) return false;
-    await tx.insert(quotaLedger).values({ gcpProject: "app", datePt, method: input.method, units, accountId: input.accountId });
+    await tx.insert(quotaLedger).values({ gcpProject, datePt, method: input.method, units, accountId: input.accountId });
     return true;
   });
+}
+
+// Units still free today in the audit project (used by the public page to say
+// "busy" before a request is queued).
+export async function auditUnitsLeft(db: DbOrTx, limit: number, now = new Date()): Promise<number> {
+  const usage = await dayUsage(db, pacificDate(now), "audit");
+  return Math.max(0, limit - usage.reads - usage.replies);
 }

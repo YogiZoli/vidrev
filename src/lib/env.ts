@@ -45,6 +45,12 @@ const envSchema = z.object({
   // PEM of HighLevel's webhook signing key, only if HighLevel rotates it.
   GHL_WEBHOOK_PUBLIC_KEY: optional,
   QUOTA_DAILY_LIMIT: z.coerce.number().int().positive().default(10000),
+  // Audit my channel (Phase 9): its own GCP project and API key (D-34), no OAuth.
+  YT_API_KEY_AUDIT: optional,
+  AUDIT_DAILY_LIMIT: z.coerce.number().int().positive().default(10000),
+  // Optional Cloudflare Turnstile on the public audit form; enforced only when both are set.
+  TURNSTILE_SITE_KEY: optional,
+  TURNSTILE_SECRET_KEY: optional,
   RAILWAY_GIT_COMMIT_SHA: optional,
 });
 

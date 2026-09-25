@@ -1,11 +1,11 @@
 {
   "providerId": "vidrev.app",
-  "providerName": "VidRev",
+  "providerName": "vidrev",
   "serviceId": "links",
   "serviceName": "Tracked comment links",
   "version": 1,
   "logoUrl": "https://vidrev.app/logo.png",
-  "description": "Points one subdomain (for example go.yourdomain.com) at VidRev so reply links run on your own domain. Your website and email are not touched.",
+  "description": "Points one subdomain (for example go.yourdomain.com) at vidrev so reply links run on your own domain. Your website and email are not touched.",
   "variableDescription": "No variables. The subdomain is chosen with the host parameter.",
   "syncBlock": false,
   "sharedProviderName": false,

@@ -1,4 +1,4 @@
-import { and, eq, ne } from "drizzle-orm";
+import { and, count, eq, ne } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import { customDomains } from "@/db/schema";
 import { cookieDomain, isApex, normalizeHostname } from "@/lib/links";
@@ -6,7 +6,7 @@ import { cookieDomain, isApex, normalizeHostname } from "@/lib/links";
 // Creator actions on the custom link domain. Every external call (DNS,
 // Cloudflare) runs in the worker (D-36); these only touch the database.
 
-export type DomainResult = { ok: true; id: string } | { ok: false; error: string };
+export type DomainResult = { ok: true; id: string } | { ok: false; error: string; capReached?: true };
 
 export async function liveDomain(db: Db, accountId: string) {
   const [row] = await db
@@ -31,12 +31,17 @@ export function reservedDomains(urls: (string | undefined)[]): Set<string> {
   return out;
 }
 
-export async function addDomain(db: Db, accountId: string, input: string, reserved: Set<string>): Promise<DomainResult> {
+export async function addDomain(db: Db, accountId: string, input: string, reserved: Set<string>, limit = Infinity): Promise<DomainResult> {
   const hostname = normalizeHostname(input);
   if (!hostname) return { ok: false, error: "Enter a subdomain such as go.yourdomain.com." };
   if (isApex(hostname)) return { ok: false, error: "Use a subdomain such as go." + hostname + ", not the main domain." };
   if (reserved.has(cookieDomain(hostname) ?? "")) return { ok: false, error: "That domain belongs to this product. Use your own domain." };
   if (await liveDomain(db, accountId)) return { ok: false, error: "Remove your current link domain first." };
+  // Spend cap on Cloudflare custom hostnames (P5-11).
+  const [{ n }] = await db.select({ n: count() }).from(customDomains).where(ne(customDomains.status, "removed"));
+  if (n >= limit) {
+    return { ok: false, capReached: true, error: "Own link domains are at capacity right now. Your replies keep working on the default link host; we will email you when a slot opens." };
+  }
   const [row] = await db.insert(customDomains).values({ accountId, hostname }).onConflictDoNothing().returning({ id: customDomains.id });
   if (!row) return { ok: false, error: "This domain is already used by another account." };
   return { ok: true, id: row.id };

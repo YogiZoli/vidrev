@@ -24,39 +24,27 @@ SSL/TLS > Overview > set encryption mode to **Full (strict)**. Railway serves a 
 
 SSL/TLS > Custom Hostnames > **Enable Cloudflare for SaaS** (Cloudflare may ask for a payment method; the first 100 hostnames are free). Then set **Fallback Origin** to `proxy-fallback.vidrev.app` and wait until it shows Active.
 
-## 4. Origin rule (Host header to Railway)
+## 4. Worker instead of rules (Free plan)
 
-Rules > Overview > Create rule > **Origin Rule**.
+The Free plan cannot rewrite the Host header in an Origin Rule (Enterprise only), so a Worker does it.
 
-- Name: `Link hosts to Railway`
-- If incoming requests match: Custom filter expression, click **Edit expression** and paste:
+1. Workers & Pages > Create > **Start with Hello World!** > Deploy.
+2. **Edit code**, replace everything with [workers/vidrev-links.js](../workers/vidrev-links.js), **Deploy**.
+3. vidrev.app > **Workers Routes** > **Add route**: Route `*/*`, Worker: the Worker from step 1 > Save.
 
-  ```text
-  (http.host ne "app.vidrev.app" and http.host ne "vidrev.app" and http.host ne "www.vidrev.app")
-  ```
+Live since 2026-09-25 as `steep-cake-5ab6vidrev-links`. Check: `https://go.vidrev.app/abcdefg` shows "This link does not exist."
 
-- Host Header: **Rewrite to** `web-production-7b0e1f.up.railway.app`
-- Deploy.
+No Origin Rule and no Transform Rule are needed.
 
-## 5. Transform rule (keep the original host)
+## 5. API token
 
-Rules > Overview > Create rule > **Request Header Transform Rule**.
-
-- Name: `X-Original-Host`
-- Same expression as step 4.
-- Modify request header: **Set dynamic**, header name `X-Original-Host`, value `http.host`
-- Deploy.
-
-## 6. API token and zone id
-
-1. Zone id: vidrev.app > Overview, right column "API", copy **Zone ID**.
-2. Token: https://dash.cloudflare.com/profile/api-tokens > Create Token > Create Custom Token.
+Token (done 2026-09-25): https://dash.cloudflare.com/profile/api-tokens > Create Token > Create Custom Token.
    - Name: `c2c-saas custom hostnames`
-   - Permissions: Zone > **SSL and Certificates** > **Edit**
+   - Permissions: Zone > **SSL and Certificates** > **Edit**, and Zone > **Zone** > **Read** (the script finds the zone id with it)
    - Zone Resources: Include > Specific zone > `vidrev.app`
    - Continue to summary > Create Token, copy it (shown once).
 
-## 7. Railway variables
+## 6. Railway variables
 
 From the repo root in PowerShell:
 
@@ -65,9 +53,9 @@ cd C:/Users/gdp/repos/c2c-saas
 powershell -ExecutionPolicy Bypass -File scripts/set-secrets.ps1 -BrandDomain vidrev.app
 ```
 
-It sets `BRAND_BASE_URL`, `LINK_FALLBACK_BASE_URL=https://go.vidrev.app`, `CUSTOM_HOSTNAME_CNAME_TARGET=customers.vidrev.app` and asks for the token and zone id. Then redeploy both services (Railway dashboard > service > Deployments > Redeploy).
+It sets `BRAND_BASE_URL`, `LINK_FALLBACK_BASE_URL=https://go.vidrev.app`, `CUSTOM_HOSTNAME_CNAME_TARGET=customers.vidrev.app` and asks for the token; the zone id is looked up with it. Then redeploy both services (Railway dashboard > service > Deployments > Redeploy).
 
-## 8. Test
+## 7. Test
 
 1. `https://go.vidrev.app/abcdefg` shows "This link does not exist." (the route works; a 5xx or Railway page means steps 4 or 5 are off).
 2. On `/app/campaigns` each keyword now shows a `https://go.vidrev.app/...` link. Open it: you land on your opt-in page with `c2c_tid=` and `utm_*` in the address.

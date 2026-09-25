@@ -140,6 +140,12 @@ describe.skipIf(!hasDb)("custom link domains (integration)", () => {
     expect(await addDomain(getDb(), a.id, `link.${randomUUID().slice(0, 8)}.com`, reserved)).toMatchObject({ ok: true });
   });
 
+  it("refuses new domains once the spend cap is reached", async () => {
+    const a = await account();
+    expect(await addDomain(getDb(), a.id, `go.${randomUUID().slice(0, 8)}.com`, reserved, 0)).toMatchObject({ ok: false, capReached: true });
+    expect(await addDomain(getDb(), a.id, `go.${randomUUID().slice(0, 8)}.com`, reserved, 1_000_000)).toMatchObject({ ok: true });
+  });
+
   it("records a clear error when Cloudflare is not configured", async () => {
     const a = await account();
     const added = await addDomain(getDb(), a.id, `go.${randomUUID().slice(0, 8)}.com`, reserved);

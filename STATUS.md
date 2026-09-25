@@ -1,6 +1,6 @@
 # STATUS
 
-Last updated: 2026-09-26 (Phase 7)
+Last updated: 2026-09-26 (Contacts and Phase 8)
 
 ## End goal
 
@@ -19,12 +19,26 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 | 5b | Compliance pack (Q-17 a): Privacy/Terms drafts, OAuth verification pack, quota extension request | **Prepared** (2026-09-25), [docs/compliance/](docs/compliance/README.md); submission waits for the LLC (EIN not needed) |
 | 6 | Integrations: outbound HMAC webhooks and tags, GHL OAuth, inbound opt-in and purchase webhooks | **DONE** (2026-09-25), PRs #13 to #15; GHL connected live on 2026-09-25 (Sub-account YTC2C, first syncs without errors) |
 | 7 | Attribution and reporting | **DONE** (2026-09-26), PRs #17 to #19; waits for the first real purchase to show numbers |
-| 8 | Stripe revenue ingestion (read-only; Stripe App or restricted key, Q-17 e) | not started |
+| 7c | Contact identity (Q-23): one person is one Contact, journey per Contact, reports by people | **DONE** (2026-09-26), PRs #21 to #23; DECISIONS section 13 |
+| 8 | Stripe revenue ingestion (read-only, creator-provided restricted key) | **DONE** (2026-09-26), PR #24; waits for the first real Stripe key |
 | 9 | Audit my channel | not started |
 | 10 | GHL Marketplace connector | not started |
 | 12 | Compliance and launch readiness | not started |
 
 Phase plan changes (all accepted): compliance pack and quota extension request right after Phase 5 (Q-17 a); one GHL Marketplace app created Private in Phase 6 and made Public in Phase 10 (Q-17 b); retention job in Phase 4 (Q-17 c, done); Cloudflare for SaaS spike once the brand domain exists (Q-17 d).
+
+## Contacts (Q-23): what was built
+
+- One person is one Contact per account (`contacts`, `contact_identities`, `contact_merges`, `contact_id` on replies, clicks, subscribers, purchases; `drizzle/0009`). A single resolver (`src/server/contacts.ts`) is the only place Contacts are created: keyword comment (worker), click (from the reply), opt-in, purchase, GHL sync, Stripe sync. Keys: YouTube channel id, email, GHL contact id, Stripe customer id, tid through its click. Recognised means enriched, never duplicated; two Contacts found by one event are merged into the older one and logged. Race-safe (per-account advisory lock plus a unique key).
+- The same commenter on another video is the same Contact; an opt-in through the tracked link updates the commenter Contact with the email (no new Contact); a second email of the same person is an alias. Idempotent backfill for older rows runs at worker start and hourly (`src/server/contacts-backfill.ts`).
+- Reports count people once (`src/lib/report.ts`): new Commenters and New commenters, Subscribers and Buyers are distinct Contacts; attribution follows the Contact whatever email was used. Outbound events carry an opaque `contact_id`.
+- 30 day rule kept intact (Q-24): the commenter's channel id is confirmed with YouTube every 30 days (comments.list by id, 1 unit per 50, from 5 days before it is due) or deleted; wiped at disconnect; never leaves the app. A legal way to recognise people longer is parked as L-01 for a later review. Privacy draft updated.
+- Not built yet: a Contact page with the timeline in the app, the merge undo tool (the data for it is logged), open questions O-1 to O-6 (defaults are built).
+
+## Phase 8: what was built
+
+- Stripe (`src/lib/stripe.ts`, `src/server/stripe/`, `src/worker/stripe.ts`): the creator pastes a restricted read-only `rk_live_` key on `/app/integrations` (secret and test keys refused, stored encrypted, only the last 4 shown). The worker reads successful charges every 5 minutes with a pinned API version (`2024-06-20`), records refunds and subscription renewals, resolves buyers to Contacts by email, tid and Stripe customer id, imports 730 days quietly (no events for sales older than 3 days), and Stripe is the canonical source when a sale also arrives from GHL or a webhook. A refused key sets the connection to error and emails the creator once.
+- Creator guide: [docs/SETUP-STRIPE.md](docs/SETUP-STRIPE.md). Choices P8-01 to P8-09 in `DECISIONS.md` section 15. No owner setup exists for Stripe.
 
 ## Phase 7: what was built
 
@@ -57,7 +71,7 @@ Phase plan changes (all accepted): compliance pack and quota extension request r
 1. Owner setup below, then open `https://go.vidrev.app/abcdefg`: "This link does not exist." means routing works.
 2. `/app/campaigns` shows a `go.vidrev.app/...` link per keyword; opening it lands on the opt-in page with `c2c_tid` and `utm_*`.
 3. `/app/domain`: add a subdomain of another domain you own, add the CNAME; within minutes "Live" plus an email; new replies use it.
-4. Automated: 313 tests (Postgres integration included) pass in CI.
+4. Automated: 356 tests (Postgres integration included) pass in CI.
 5. Phase 6: `/app/integrations`: add an endpoint (for example a webhook.site address), Send test event, click a tracked link and see `link_clicked` arrive; POST to `/api/hooks/optin` with the token and a `c2c_tid` from a click; connect GoHighLevel after the owner setup.
 6. Phase 7: open `/app/reports`; the snapshot appears within a minute. Click a tracked link, POST an opt-in with that `c2c_tid` and a purchase with the same email to `/api/hooks/purchase` (see docs/INTEGRATIONS.md): within a minute the funnel shows the click, subscriber, buyer and revenue on the right video and keyword, and the first-click email arrives.
 
@@ -85,8 +99,11 @@ Still deferred from Phase 4 (no billing yet): platform Gemini key and `WEBSUB_SE
 - `BILLING_PORTAL_URL` (GHL customer portal) is not set yet; `/app/cancel` then tells creators to use their receipt email.
 - Weekly and milestone emails go through Resend; the sending domain is still to be set up (see below).
 - Outbound `link_clicked` volume is unbounded per click; add a per-endpoint rate cap if a creator's endpoint struggles.
+- Owner questions O-1 to O-6 on Contacts (DECISIONS 13.12) and the parked review L-01 (13.13); the recommended defaults are built.
+- Stripe: the connector is tested against a fake Stripe only. What a real payment must confirm: a restricted key with read on Charges, Customers and Invoices can list charges with the two expansions, and whether it may read `/v1/account` (the name; optional).
+- The Contact page (timeline) and the merge undo tool are not built; a report shows people counts only.
 - Still open: Q-01 (name and domain). GHL merge field names in the provisioning guide must be checked when the workflows are built.
-- Proposals CC-01 to CC-06, P3-01 to P3-07, P4-01 to P4-11 and P5-01 to P5-12 and P6-01 to P6-14 and P7-01 to P7-14 in `DECISIONS.md` await owner review (P4-10 accepted 2026-09-25; owner data principle in DECISIONS section 8).
+- Proposals P8-01 to P8-09, P8-C-01 to P8-C-05 and CC-01 to CC-06, P3-01 to P3-07, P4-01 to P4-11 and P5-01 to P5-12 and P6-01 to P6-14 and P7-01 to P7-14 in `DECISIONS.md` await owner review (P4-10 accepted 2026-09-25; owner data principle in DECISIONS section 8).
 - Poll jobs run one at a time per worker; fine for the founding cohort, revisit with many channels.
 - Railway did not run the config-as-code pre-deploy command; migrations run at service start instead.
 - `drizzle-kit` pulls a dev-only dependency with a moderate npm audit advisory; not shipped.
@@ -94,4 +111,4 @@ Still deferred from Phase 4 (no billing yet): platform Gemini key and `WEBSUB_SE
 
 ## Next phase
 
-Phase 8: Stripe revenue ingestion, read-only (a Stripe App or a creator-provided restricted key, Q-17 e; decided at the start of the phase). Purchases land in the same `purchases` table, so attribution and reports need no change. Starts only after "mehet". In parallel, once the LLC exists: fill the compliance placeholders and submit (docs/compliance/README.md).
+Phase 9: Audit my channel (public page, own separate GCP project and API key, 24h cache, IP rate limit, real numbers only, email opt-in for the full report, stack detection). Starts only after "mehet". In parallel, once the LLC exists: fill the compliance placeholders and submit (docs/compliance/README.md).

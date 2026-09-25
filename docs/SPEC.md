@@ -198,6 +198,7 @@ Each opt-in emits outbound `opt_in` and applies tags where the connector support
 - Matching: normalized email to subscriber. If the purchase carries a `c2c_tid`, prefer it.
 - Attribution rule (default, configurable per account): **last touch** before the purchase within a 180-day window (B-08). Refunds reduce revenue.
 - Metrics: buyers = unique purchasing emails; revenue = sum of net amounts.
+- Phase 7 (DECISIONS section 12, P7-01 to P7-04): duplicates across sources link to one canonical purchase (same buyer, currency and amount within 72 hours); the purchase's own `c2c_tid` first, else the latest attributed opt-in of the email, within 180 days; renewals follow the first payment of the subscription for life (Q-07); the whole account is recomputed by the worker after new data.
 
 ## 11. Outbound webhooks
 
@@ -213,6 +214,7 @@ Each opt-in emits outbound `opt_in` and applies tags where the connector support
 - Also (R-35): clicks and buyers per reply template and per keyword intent (HOT, WARM, COLD); approval time vs conversion; a weekly email with the week's attributed revenue; a permanent ROI line; instant milestone notifications (first click, subscriber, buyer).
 - Date filters (this month, last 30/90 days, all time). All numbers derived from stored events; no estimates. Dashboards read precomputed aggregates.
 - UI vocabulary: Comment, Subscriber, Buyer, Revenue (B-01).
+- Phase 7 (DECISIONS section 12, P7-05 to P7-13): `report_snapshots` per account and period (this month, last 7, 30, 90 days, all time) in the account's time zone, rebuilt by the worker; `/app/reports`; headline on `/app`; weekly email, milestone emails, renewal recap, `/app/cancel`. Plans carry `price_cents` and `price_currency`; env addition `BILLING_PORTAL_URL`.
 
 ## 13. Audit my channel
 

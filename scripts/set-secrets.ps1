@@ -13,7 +13,7 @@
 # Tracked links (Phase 5, docs/SETUP-CLOUDFLARE.md) once Cloudflare is set up:
 #   powershell -ExecutionPolicy Bypass -File scripts/set-secrets.ps1 -BrandDomain vidrev.app
 # sets BRAND_BASE_URL, LINK_FALLBACK_BASE_URL (go.) and CUSTOM_HOSTNAME_CNAME_TARGET
-# (customers.) and asks for CLOUDFLARE_API_TOKEN and CLOUDFLARE_ZONE_ID.
+# (customers.), asks for CLOUDFLARE_API_TOKEN and looks up CLOUDFLARE_ZONE_ID with it.
 
 param([string]$GoogleJson = "", [string]$BrandDomain = "")
 
@@ -53,10 +53,16 @@ if ($BrandDomain) {
     Set-OnAllServices "BRAND_BASE_URL" "https://$domain"
     Set-OnAllServices "LINK_FALLBACK_BASE_URL" "https://go.$domain"
     Set-OnAllServices "CUSTOM_HOSTNAME_CNAME_TARGET" "customers.$domain"
-    foreach ($name in @("CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ZONE_ID")) {
-        $secure = Read-Host "Paste $name (Enter to keep the current value)" -AsSecureString
-        $plain = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure))
-        if ($plain) { Set-OnAllServices $name $plain.Trim() } else { Write-Host "kept $name" }
+    $secure = Read-Host "Paste CLOUDFLARE_API_TOKEN (Enter to keep the current value)" -AsSecureString
+    $token = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)).Trim()
+    if ($token) {
+        # The zone id is looked up with the token itself, so it never has to be copied by hand.
+        $zones = Invoke-RestMethod -Uri "https://api.cloudflare.com/client/v4/zones?name=$domain" -Headers @{ Authorization = "Bearer $token" }
+        if (-not $zones.success -or $zones.result.Count -eq 0) { throw "The token cannot see the zone $domain. Check its Zone Resources." }
+        Set-OnAllServices "CLOUDFLARE_API_TOKEN" $token
+        Set-OnAllServices "CLOUDFLARE_ZONE_ID" $zones.result[0].id
+    } else {
+        Write-Host "kept CLOUDFLARE_API_TOKEN and CLOUDFLARE_ZONE_ID"
     }
     Write-Host "Done. Railway redeploys with the next push to main, or redeploy both services now in the Railway dashboard."
     exit 0

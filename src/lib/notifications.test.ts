@@ -8,7 +8,7 @@ function report(totals: Partial<Report["totals"]>): Report {
     fromDay: null,
     toDay: "2026-09-28",
     currency: "USD",
-    totals: { comments: 0, replies: 0, clicks: 0, subscribers: 0, buyers: 0, revenueCents: 0, recurringCents: 0, buyersWithoutAmount: 0, otherCurrencies: [], ...totals },
+    totals: { comments: 0, commenters: 0, newCommenters: 0, replies: 0, clicks: 0, subscribers: 0, buyers: 0, revenueCents: 0, recurringCents: 0, buyersWithoutAmount: 0, otherCurrencies: [], ...totals },
     byVideo: [],
     byKeyword: [],
     byTemplate: [],

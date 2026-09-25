@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lte } from "drizzle-orm";
+import { and, desc, eq, gte, lte, or } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import { accounts, campaigns, clicks, inboundHookSecrets, purchases, subscribers, type PurchaseSource, type SubscriberSource } from "@/db/schema";
 import { decryptSecret, encryptSecret, randomToken, sha256Hex } from "@/lib/crypto";
@@ -83,12 +83,14 @@ export async function resolveTid(db: Db, accountId: string, tid: string): Promis
 // The most recent attributed opt-in of this email in the 180 days before `at`.
 // Enriches the outbound purchase event only; reports use the full rules in
 // src/lib/attribution.ts, recomputed by the worker.
-export async function latestTouchByEmail(db: Db, accountId: string, emailNorm: string, at: Date): Promise<Touch | null> {
+export async function latestTouchByPerson(db: Db, accountId: string, person: { contactId: string | null; emailNorm: string | null }, at: Date): Promise<Touch | null> {
   const since = new Date(at.getTime() - ATTRIBUTION_WINDOW_DAYS * 86_400_000);
+  const who = [person.contactId ? eq(subscribers.contactId, person.contactId) : undefined, person.emailNorm ? eq(subscribers.emailNorm, person.emailNorm) : undefined].filter((c) => c !== undefined);
+  if (who.length === 0) return null;
   const touches = await db
     .select()
     .from(subscribers)
-    .where(and(eq(subscribers.accountId, accountId), eq(subscribers.emailNorm, emailNorm), gte(subscribers.occurredAt, since), lte(subscribers.occurredAt, at)))
+    .where(and(eq(subscribers.accountId, accountId), or(...who), gte(subscribers.occurredAt, since), lte(subscribers.occurredAt, at)))
     .orderBy(desc(subscribers.occurredAt))
     .limit(20);
   const hit = touches.find((s) => s.campaignId || s.keyword);
@@ -263,7 +265,7 @@ export async function recordPurchase(
     return { id: existing!.id, created: false, refundUpdated: "refundedCents" in fill };
   }
 
-  const touch = tidTouch ?? (input.email ? await latestTouchByEmail(db, accountId, input.email, input.occurredAt) : null);
+  const touch = tidTouch ?? (await latestTouchByPerson(db, accountId, { contactId: person?.contactId ?? null, emailNorm: input.email }, input.occurredAt));
   const campaign = await campaignInfo(db, touch?.campaignId ?? null);
   await options.emit({
     accountId,

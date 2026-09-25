@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNotNull, isNull, lte } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull, lte, type SQL } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import { accounts, campaigns, clicks, links, purchases, replies, subscribers } from "@/db/schema";
 import { attributePurchases, type AttributionResult, type PurchaseFact, type Touch } from "@/lib/attribution";
@@ -40,7 +40,7 @@ function chunks<T>(items: T[]): T[][] {
   return out;
 }
 
-async function loadTouches(db: Db, accountId: string, tids: string[], emails: string[]) {
+async function loadTouches(db: Db, accountId: string, tids: string[], emails: string[], contactIds: string[]) {
   const clickByTid = new Map<string, Touch>();
   for (const part of chunks(tids)) {
     const rows = await db
@@ -62,31 +62,38 @@ async function loadTouches(db: Db, accountId: string, tids: string[], emails: st
     }
   }
 
+  // Opt-ins of the buyers' emails and of their Contacts (an opt-in under a
+  // second email of the same person still counts, DECISIONS section 13).
   const optInsByEmail = new Map<string, Touch[]>();
-  for (const part of chunks(emails)) {
-    const rows = await db
+  const optInsByContact = new Map<string, Touch[]>();
+  const seen = new Set<string>();
+  const load = (match: SQL) =>
+    db
       .select({ s: subscribers, replyIntent: replies.intent, campaignIntent: campaigns.intent })
       .from(subscribers)
       .leftJoin(replies, eq(replies.id, subscribers.replyId))
       .leftJoin(campaigns, eq(campaigns.id, subscribers.campaignId))
       // Only opt-ins traced to a comment are touches.
-      .where(and(eq(subscribers.accountId, accountId), isNotNull(subscribers.keyword), inArray(subscribers.emailNorm, part)));
-    for (const { s, replyIntent, campaignIntent } of rows) {
-      const list = optInsByEmail.get(s.emailNorm) ?? [];
-      list.push({
-        at: s.occurredAt,
-        clickId: s.clickId,
-        replyId: s.replyId,
-        campaignId: s.campaignId,
-        videoId: s.youtubeVideoId,
-        keyword: s.keyword!,
-        intent: replyIntent ?? campaignIntent ?? null,
-        subscriberId: s.id,
-      });
-      optInsByEmail.set(s.emailNorm, list);
-    }
-  }
-  return { clickByTid, optInsByEmail };
+      .where(and(eq(subscribers.accountId, accountId), isNotNull(subscribers.keyword), match));
+  const add = ({ s, replyIntent, campaignIntent }: Awaited<ReturnType<typeof load>>[number]) => {
+    if (seen.has(s.id)) return;
+    seen.add(s.id);
+    const touch: Touch = {
+      at: s.occurredAt,
+      clickId: s.clickId,
+      replyId: s.replyId,
+      campaignId: s.campaignId,
+      videoId: s.youtubeVideoId,
+      keyword: s.keyword!,
+      intent: replyIntent ?? campaignIntent ?? null,
+      subscriberId: s.id,
+    };
+    optInsByEmail.set(s.emailNorm, [...(optInsByEmail.get(s.emailNorm) ?? []), touch]);
+    if (s.contactId) optInsByContact.set(s.contactId, [...(optInsByContact.get(s.contactId) ?? []), touch]);
+  };
+  for (const part of chunks(emails)) for (const row of await load(inArray(subscribers.emailNorm, part))) add(row);
+  for (const part of chunks(contactIds)) for (const row of await load(inArray(subscribers.contactId, part))) add(row);
+  return { clickByTid, optInsByEmail, optInsByContact };
 }
 
 type PurchaseRow = typeof purchases.$inferSelect;
@@ -121,13 +128,15 @@ export async function runAttribution(db: Db, accountId: string, now = new Date()
   if (rows.length === 0) return { purchases: 0, changed: 0 };
   const tids = [...new Set(rows.map((r) => r.tid).filter((v): v is string => Boolean(v)))];
   const emails = [...new Set(rows.map((r) => r.emailNorm).filter((v): v is string => Boolean(v)))];
-  const lookup = await loadTouches(db, accountId, tids, emails);
+  const contactIds = [...new Set(rows.map((r) => r.contactId).filter((v): v is string => Boolean(v)))];
+  const lookup = await loadTouches(db, accountId, tids, emails, contactIds);
 
   const facts: PurchaseFact[] = rows.map((r) => ({
     id: r.id,
     source: r.source,
     kind: r.kind,
     emailNorm: r.emailNorm,
+    contactId: r.contactId,
     tid: r.tid,
     amountCents: r.amountCents,
     currency: r.currency,

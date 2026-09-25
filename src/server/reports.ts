@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import type { Db } from "@/db/client";
-import { accounts, campaigns, channels, clicks, links, purchases, replies, reportSnapshots, subscribers, templates, videos } from "@/db/schema";
+import { accounts, campaigns, channels, clicks, contacts, links, purchases, replies, reportSnapshots, subscribers, templates, videos } from "@/db/schema";
 import { buildReport, type Period, PERIODS, type Report, type ReportInput, STATIC_KEY, templateKeyOf } from "@/lib/report";
 
 // Builds and stores the report snapshots of one account (Phase 7). Reads only
@@ -12,7 +12,7 @@ const SENT: ("sent" | "sent_manually")[] = ["sent", "sent_manually"];
 
 async function loadInput(db: Db, accountId: string, timeZone: string): Promise<ReportInput> {
   const replyRows = await db
-    .select({ id: replies.id, youtubeVideoId: replies.youtubeVideoId, keyword: replies.keyword, intent: replies.intent, draftSource: replies.draftSource, templateId: replies.templateId, status: replies.status, createdAt: replies.createdAt, sentAt: replies.sentAt })
+    .select({ id: replies.id, contactId: replies.contactId, youtubeVideoId: replies.youtubeVideoId, keyword: replies.keyword, intent: replies.intent, draftSource: replies.draftSource, templateId: replies.templateId, status: replies.status, createdAt: replies.createdAt, sentAt: replies.sentAt })
     .from(replies)
     .where(eq(replies.accountId, accountId));
   const replyById = new Map(replyRows.map((r) => [r.id, r]));
@@ -46,9 +46,16 @@ async function loadInput(db: Db, accountId: string, timeZone: string): Promise<R
     // Canonical rows only: a duplicate of the same sale never counts twice.
     .where(and(eq(purchases.accountId, accountId), sql`${purchases.canonicalPurchaseId} = ${purchases.id}`));
 
+  const firstComments = await db
+    .select({ at: contacts.firstCommentSeenAt })
+    .from(contacts)
+    .where(and(eq(contacts.accountId, accountId), sql`${contacts.mergedIntoId} is null`, isNotNull(contacts.firstCommentSeenAt)));
+
   return {
+    firstCommentDates: firstComments.map((c) => c.at!),
     replies: replyRows.map((r) => ({
       id: r.id,
+      person: r.contactId ?? r.id,
       videoId: r.youtubeVideoId,
       keyword: r.keyword,
       intent: r.intent,
@@ -67,6 +74,7 @@ async function loadInput(db: Db, accountId: string, timeZone: string): Promise<R
     })),
     subscribers: subscriberRows.map(({ s, campaignIntent }) => ({
       email: s.emailNorm,
+      person: s.contactId ?? s.emailNorm,
       replyId: s.replyId,
       videoId: s.youtubeVideoId,
       keyword: s.keyword,
@@ -75,7 +83,7 @@ async function loadInput(db: Db, accountId: string, timeZone: string): Promise<R
       occurredAt: s.occurredAt,
     })),
     purchases: purchaseRows.map((p) => ({
-      buyer: p.emailNorm ?? p.tid ?? p.id,
+      buyer: p.contactId ?? p.emailNorm ?? p.tid ?? p.id,
       replyId: p.attributedReplyId,
       attributed: p.attributionMethod !== null,
       netCents: p.netCents,

@@ -61,6 +61,36 @@ describe("buildReport", () => {
     expect(report.totals.otherCurrencies).toEqual([{ currency: "EUR", revenueCents: 5000 }]);
   });
 
+  it("counts people once: one commenter on two videos, one subscriber with two emails, one buyer with two emails (Q-23)", () => {
+    const twoVideos = buildReport(
+      input({
+        replies: [
+          { ...dims(), id: "r1", person: "c1", createdAt: d("2026-09-20T08:00:00Z"), sentAt: null },
+          { ...dims({ videoId: "vidB" }), id: "r2", person: "c1", createdAt: d("2026-09-21T08:00:00Z"), sentAt: null },
+          { ...dims(), id: "r3", person: "c2", createdAt: d("2026-09-22T08:00:00Z"), sentAt: null },
+        ],
+        subscribers: [
+          { ...dims(), email: "home@example.com", person: "c1", replyId: "r1", occurredAt: d("2026-09-20T09:00:00Z") },
+          { ...dims(), email: "work@example.com", person: "c1", replyId: "r1", occurredAt: d("2026-09-20T09:05:00Z") },
+        ],
+        purchases: [purchase({ buyer: "c1" }), purchase({ buyer: "c1", occurredAt: d("2026-09-22T10:00:00Z"), netCents: 500 })],
+        firstCommentDates: [d("2026-09-20T08:00:00Z"), d("2026-09-22T08:00:00Z"), d("2026-08-01T08:00:00Z")],
+      }),
+      { period: "this_month", now: NOW, timeZone: "UTC", currency: "USD" },
+    );
+    expect(twoVideos.totals).toMatchObject({ comments: 3, commenters: 2, newCommenters: 2, subscribers: 1, buyers: 1, revenueCents: 10200 });
+    // The commenter appears on each video they commented on.
+    expect(twoVideos.byVideo.find((r) => r.key === "vidA")).toMatchObject({ comments: 2, commenters: 2 });
+    expect(twoVideos.byVideo.find((r) => r.key === "vidB")).toMatchObject({ comments: 1, commenters: 1 });
+    const all = buildReport(input({ replies: [{ ...dims(), id: "r1", person: "c1", createdAt: d("2026-08-20T08:00:00Z"), sentAt: null }, { ...dims(), id: "r2", person: "c1", createdAt: d("2026-09-21T08:00:00Z"), sentAt: null }] }), {
+      period: "all_time",
+      now: NOW,
+      timeZone: "UTC",
+      currency: "USD",
+    });
+    expect(all.totals).toMatchObject({ comments: 2, commenters: 1 });
+  });
+
   it("splits by video, keyword with intent, template and intent", () => {
     expect(report.byVideo.map((r) => [r.key, r.revenueCents, r.buyers])).toEqual([
       ["vidA", 11700, 2],

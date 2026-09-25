@@ -48,7 +48,6 @@ Phase 7 - Attribution and reporting: opt-in and purchase matching (email + track
 Phase 8 - Stripe revenue ingestion (read-only via Stripe Connect OAuth). Stop.
 Phase 9 - Audit my channel: public page, API key from its own separate GCP project, 24h cache, IP rate limit, real numbers only, email opt-in for the full report, stack detection by following description links. Stop.
 Phase 10 - GHL Marketplace connector: free Marketplace app for one-click connection (location OAuth), creates the c2c_tid field and tags, optional workflow trigger and action. Stop.
-Phase 11 - Enterprise BYOK: per-account Google OAuth client and GCP project, separate quota ledger. Stop.
 Phase 12 - Compliance and launch readiness: Privacy Policy and Terms drafts for BRAND_BASE_URL (YouTube API Services disclosure, Google Privacy Policy link, Limited Use statement, revocation steps), 30-day retention job, Google OAuth verification checklist and demo video script, quota extension request draft sized to real usage. Stop.
 
 ## Working style

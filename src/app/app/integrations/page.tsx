@@ -1,7 +1,11 @@
+import { and, eq, ne } from "drizzle-orm";
 import { getDb } from "@/db/client";
+import { integrations } from "@/db/schema";
 import { appBaseUrl, requireEnv } from "@/lib/env";
 import { EVENT_NAMES } from "@/lib/webhooks";
 import { requireSession } from "@/server/auth/current";
+import { ghlConfigured } from "@/server/ghl/config";
+import { readGhlConfig } from "@/server/ghl/tokens";
 import { ensureHookToken } from "@/server/integrations/inbound";
 import { listEndpoints, MAX_ENDPOINTS, readConfig, recentDeliveries } from "@/server/integrations/outbound";
 import { Notice, styles } from "../../ui";
@@ -29,6 +33,11 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
   const configs = await Promise.all(endpoints.map((endpoint) => readConfig(endpoint, key)));
   const deliveries = await recentDeliveries(db, account.id);
   const hookToken = await ensureHookToken(db, key, account.id);
+  const [ghl] = await db
+    .select()
+    .from(integrations)
+    .where(and(eq(integrations.accountId, account.id), eq(integrations.type, "ghl"), ne(integrations.status, "removed")));
+  const ghlConfig = ghl?.configEnc ? readGhlConfig(ghl.configEnc, key) : null;
 
   return (
     <main style={styles.main}>
@@ -45,6 +54,84 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
       {params.tested ? <Notice tone="info">Test event queued. It shows up under Recent deliveries in a moment.</Notice> : null}
       {params.rotated ? <Notice tone="info">New signing secret created. Update it in the receiving system.</Notice> : null}
       {params.removed ? <Notice tone="info">Endpoint removed.</Notice> : null}
+
+      {params.ghl_connected ? <Notice tone="info">GoHighLevel connected. We are setting up the tracking field and reading your contacts.</Notice> : null}
+      {params.ghl_disconnected ? <Notice tone="info">GoHighLevel disconnected. Remove the app in GoHighLevel too if you no longer want it there.</Notice> : null}
+      {params.ghl_sync ? <Notice tone="info">Sync queued. It runs within a minute.</Notice> : null}
+      {params.ghl_saved ? <Notice tone="info">Saved.</Notice> : null}
+
+      <section style={styles.card}>
+        <h2 style={{ marginTop: 0 }}>GoHighLevel</h2>
+        {!ghl ? (
+          <>
+            <p style={styles.muted}>
+              Connect your GoHighLevel sub-account. Subscribers from your comments get tagged in GoHighLevel, and buyers and payments come back
+              here, so each video shows what it earned.
+            </p>
+            {ghlConfigured() ? (
+              <p>
+                <a href="/api/oauth/ghl/start" style={{ ...styles.button, display: "inline-block", textDecoration: "none" }}>
+                  Connect GoHighLevel
+                </a>
+              </p>
+            ) : (
+              <p style={styles.muted}>Connecting GoHighLevel is not available yet.</p>
+            )}
+          </>
+        ) : (
+          <>
+            <p>
+              <strong>{ghlConfig?.locationName ?? "GoHighLevel"}</strong>{" "}
+              <span style={styles.muted}>
+                {ghl.status === "active"
+                  ? ghl.syncState.setup === "done"
+                    ? "connected"
+                    : "setting up"
+                  : ghl.statusReason === "reauthorize"
+                    ? "needs to be reconnected"
+                    : ghl.status}
+              </span>
+              <br />
+              <span style={{ ...styles.muted, fontSize: 13 }}>
+                Last sync {when(ghl.lastSyncedAt)}
+                {ghl.lastError ? ` · ${ghl.lastError}` : ""}
+              </span>
+            </p>
+            {ghl.status === "error" && ghlConfigured() ? (
+              <p>
+                <a href="/api/oauth/ghl/start" style={{ ...styles.button, display: "inline-block", textDecoration: "none" }}>
+                  Reconnect
+                </a>
+              </p>
+            ) : null}
+            <form method="post" action="/api/integrations" style={{ display: "grid", gap: 8, maxWidth: 420 }}>
+              <input type="hidden" name="action" value="ghl_buyer_tag" />
+              <input type="hidden" name="id" value={ghl.id} />
+              <label>
+                Buyer tag
+                <input name="buyerTag" style={styles.input} defaultValue={ghlConfig?.buyerTag ?? ""} placeholder="c2c_buyer" />
+              </label>
+              <span style={{ ...styles.muted, fontSize: 13 }}>
+                A contact with this tag counts as a buyer (revenue not reported). Real payments and won opportunities are read automatically.
+              </span>
+              <button type="submit" style={styles.secondary}>
+                Save
+              </button>
+            </form>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+              {(["ghl_sync", "ghl_disconnect"] as const).map((action) => (
+                <form key={action} method="post" action="/api/integrations">
+                  <input type="hidden" name="action" value={action} />
+                  <input type="hidden" name="id" value={ghl.id} />
+                  <button type="submit" style={styles.secondary}>
+                    {action === "ghl_sync" ? "Sync now" : "Disconnect"}
+                  </button>
+                </form>
+              ))}
+            </div>
+          </>
+        )}
+      </section>
 
       <section style={styles.card}>
         <h2 style={{ marginTop: 0 }}>Webhook endpoints</h2>

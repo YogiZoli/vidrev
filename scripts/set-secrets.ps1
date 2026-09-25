@@ -15,7 +15,12 @@
 # sets BRAND_BASE_URL, LINK_FALLBACK_BASE_URL (go.) and CUSTOM_HOSTNAME_CNAME_TARGET
 # (customers.), asks for CLOUDFLARE_API_TOKEN and looks up CLOUDFLARE_ZONE_ID with it.
 
-param([string]$GoogleJson = "", [string]$BrandDomain = "")
+#
+# GoHighLevel connector (Phase 6, docs/SETUP-GHL.md) once the Private Marketplace app exists:
+#   powershell -ExecutionPolicy Bypass -File scripts/set-secrets.ps1 -Ghl
+# asks for GHL_CLIENT_ID and GHL_CLIENT_SECRET (Enter keeps the current value).
+
+param([string]$GoogleJson = "", [string]$BrandDomain = "", [switch]$Ghl)
 
 $ErrorActionPreference = "Stop"
 $services = @("web", "worker")
@@ -63,6 +68,16 @@ if ($BrandDomain) {
         Set-OnAllServices "CLOUDFLARE_ZONE_ID" $zones.result[0].id
     } else {
         Write-Host "kept CLOUDFLARE_API_TOKEN and CLOUDFLARE_ZONE_ID"
+    }
+    Write-Host "Done. Railway redeploys with the next push to main, or redeploy both services now in the Railway dashboard."
+    exit 0
+}
+
+if ($Ghl) {
+    foreach ($name in @("GHL_CLIENT_ID", "GHL_CLIENT_SECRET")) {
+        $secure = Read-Host "Paste $name (Enter to keep the current value)" -AsSecureString
+        $plain = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)).Trim()
+        if ($plain) { Set-OnAllServices $name $plain } else { Write-Host "kept $name" }
     }
     Write-Host "Done. Railway redeploys with the next push to main, or redeploy both services now in the Railway dashboard."
     exit 0

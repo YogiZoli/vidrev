@@ -4,12 +4,16 @@ import { integrations, outboundDeliveries } from "@/db/schema";
 import { log } from "@/lib/log";
 import { nextAttemptAt, signBody } from "@/lib/webhooks";
 import type { PostFn } from "@/server/integrations/http-post";
+import { GhlApiError } from "@/server/ghl/api";
+import { GhlReauthError } from "@/server/ghl/tokens";
 import { readConfig } from "@/server/integrations/outbound";
+import { deliverToGhl, type GhlWorkerDeps } from "./ghl";
 
 export interface WebhookDeps {
   db: Db;
   encryptionKey: string;
   post: PostFn;
+  ghl?: GhlWorkerDeps | null;
   now?: () => Date;
 }
 
@@ -37,8 +41,9 @@ export async function deliver(deps: WebhookDeps, deliveryId: string): Promise<vo
   if (!claimed) return;
 
   const [endpoint] = await deps.db.select().from(integrations).where(eq(integrations.id, claimed.integrationId));
-  const config = endpoint && endpoint.status === "active" ? await readConfig(endpoint, deps.encryptionKey) : null;
-  if (!endpoint || !config) {
+  const config = endpoint && endpoint.status === "active" && endpoint.type === "outbound_webhook" ? await readConfig(endpoint, deps.encryptionKey) : null;
+  const usable = endpoint && endpoint.status === "active" && (endpoint.type === "ghl" || config);
+  if (!endpoint || !usable) {
     // A disabled or removed endpoint gets nothing; its queued events are dropped.
     await deps.db
       .update(outboundDeliveries)
@@ -47,33 +52,46 @@ export async function deliver(deps: WebhookDeps, deliveryId: string): Promise<vo
     return;
   }
 
-  const body = JSON.stringify(claimed.payload);
   const attempts = claimed.attempt + 1;
   let responseStatus: number | null = null;
   let error: string | null = null;
-  try {
-    const result = await deps.post(
-      config.url,
-      body,
-      {
-        "content-type": "application/json",
-        "user-agent": "c2c-webhooks/1",
-        "x-signature": signBody(body, config.secret),
-        "x-event-id": claimed.eventId,
-        "x-event-name": claimed.event,
-      },
-      10_000,
-    );
-    responseStatus = result.status;
-    if (result.status < 200 || result.status >= 300) error = `http_${result.status}`;
-  } catch (cause) {
-    error = shorten(cause instanceof Error ? cause.message : String(cause));
+  let skipped: string | null = null;
+  if (endpoint.type === "ghl") {
+    // GoHighLevel is a target of the same outbox: contact, field and tags.
+    if (!deps.ghl) error = "ghl_not_configured";
+    else {
+      try {
+        skipped = (await deliverToGhl(deps.ghl, endpoint.id, claimed.payload)).skipped;
+      } catch (cause) {
+        error = cause instanceof GhlReauthError ? "reauthorize" : cause instanceof GhlApiError ? `ghl_http_${cause.status}` : shorten(cause instanceof Error ? cause.message : String(cause));
+      }
+    }
+  } else if (config) {
+    const body = JSON.stringify(claimed.payload);
+    try {
+      const result = await deps.post(
+        config.url,
+        body,
+        {
+          "content-type": "application/json",
+          "user-agent": "c2c-webhooks/1",
+          "x-signature": signBody(body, config.secret),
+          "x-event-id": claimed.eventId,
+          "x-event-name": claimed.event,
+        },
+        10_000,
+      );
+      responseStatus = result.status;
+      if (result.status < 200 || result.status >= 300) error = `http_${result.status}`;
+    } catch (cause) {
+      error = shorten(cause instanceof Error ? cause.message : String(cause));
+    }
   }
 
   if (!error) {
     await deps.db
       .update(outboundDeliveries)
-      .set({ status: "delivered", attempt: attempts, responseStatus, lastError: null, deliveredAt: now, updatedAt: now })
+      .set({ status: "delivered", attempt: attempts, responseStatus, lastError: skipped, deliveredAt: now, updatedAt: now })
       .where(eq(outboundDeliveries.id, claimed.id));
     await deps.db.update(integrations).set({ lastSuccessAt: now, lastError: null, updatedAt: now }).where(eq(integrations.id, endpoint.id));
     return;

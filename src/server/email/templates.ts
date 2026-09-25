@@ -45,3 +45,17 @@ export function draftsWaitingEmail(input: { to: string; count: number; url: stri
     html: layout(input.productName, paragraphs, { label: "Review replies", url: input.url }),
   };
 }
+
+// The GoHighLevel connection was refused (app removed or access revoked).
+export function ghlReconnectEmail(input: { to: string; url: string; productName: string }): SendEmailJob {
+  const paragraphs = [
+    "The connection to your GoHighLevel account stopped working, so new subscribers and buyers are no longer synced.",
+    "Reconnect it in a minute. Nothing that was already recorded is lost.",
+  ];
+  return {
+    to: input.to,
+    subject: `Reconnect GoHighLevel - ${input.productName}`,
+    text: `${paragraphs.join("\n")}\n\nReconnect: ${input.url}\n`,
+    html: layout(input.productName, paragraphs, { label: "Reconnect", url: input.url }),
+  };
+}

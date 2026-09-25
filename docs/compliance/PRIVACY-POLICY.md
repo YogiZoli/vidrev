@@ -30,7 +30,7 @@ You can revoke vidrev's access to your Google account at any time at https://mya
 **First-party data we create:**
 - Replies you approved (text, keyword, language, time of approval and sending).
 - Clicks on your tracked links: time, link, keyword, video id, a daily-changing one-way hash of the IP address (the IP itself is not stored), browser type, country, referring site. Automated clicks (bots) are marked.
-- Later features: opt-ins and purchases your own systems send us, used to show you which video and keyword brought them.
+- Opt-ins and purchases your own systems send us (through our inbound webhooks or a connected GoHighLevel account): email address, name if you send it, the tracking id, order id, amount, currency, refunds and time. We use them only to show you which video and keyword brought them. If you connect GoHighLevel we also store its access tokens, encrypted, and read the contacts, won opportunities and payments of the one sub-account you connect.
 
 ## 4. Data retention (YouTube API data: 30 days)
 
@@ -71,6 +71,10 @@ To draft a reply, the comment text and your approved templates are sent to an AI
 | Resend | Sending emails | United States |
 | Google (Gemini API) | AI drafts (default) | United States |
 | Anthropic, OpenAI | AI drafts, only with your own key | United States |
+
+### Data we send to systems you choose
+
+If you add a webhook endpoint or connect GoHighLevel, we send events to it: that a keyword comment was matched, a reply was posted, a link was clicked, a subscriber opted in, a buyer purchased (with the keyword, video id, tracking id and, for subscribers and buyers, the email address and amount you gave us). We never send comment text, commenter names or commenter ids, and we never send YouTube API data to a third party other than the system you connected. In GoHighLevel we add tags (`c2c`, the keyword, the video id, `c2c_buyer`) and a tracking id field to contacts that came from your comments. You can remove an endpoint or disconnect GoHighLevel at any time; we then delete the stored tokens and signing secret and stop sending. Delivery logs are kept for 30 days.
 
 ## 10. Viewers who click links or comment
 

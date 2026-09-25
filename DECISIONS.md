@@ -4,7 +4,7 @@ Source of truth: Drive doc "02 C2C SaaS Döntési napló" (last updated 2026-09-
 
 Sections:
 
-Later sections 5 to 12 record owner answers and the implementation choices of each phase.
+Later sections 5 to 13 record owner answers and the implementation choices of each phase.
 
 1. Valid decisions D-01 to D-37 (owner decisions from 02)
 2. Build brief decisions B-01 to B-09 (owner instructions given to Claude Code on 2026-09-25)
@@ -109,7 +109,7 @@ The Phase 1 review adds owner questions Q-01 to Q-22 in [docs/SPEC-REVIEW.md](do
 | Tracking id capture (proposal CC-07) | Pending: the redirect appends `c2c_tid` plus standard UTM parameters (`utm_source=c2c`, `utm_medium=comment`, `utm_campaign=<keyword>`, `utm_content=<tid>`) so any form tool or CRM that stores UTMs captures the id without extra setup; a hidden `c2c_tid` field remains the universal fallback. Platform independent, not GHL specific. |
 | Q-12 Bulk approval | **Owner decision: no.** No "approve selected" or any batch approval; every reply is approved individually (spam risk and Google review risk). |
 | Q-13 AI providers | **Owner: Gemini (including the free tier) must be supported; it is the cheapest option.** Anthropic and OpenAI supported as well. Open point: free-tier Gemini terms allow Google to use submitted content to improve its products, which is a risk for the Google OAuth / YouTube API compliance review (Limited Use). Re-check before the verification submission (after Phase 5). |
-| Q-14 Commenter dedupe | **Owner decision: no dedupe of commenters.** Returning commenters are likely buyers; every new keyword comment gets its own draft. No commenter hash is stored. The approval queue may show "already replied to this person on this video" as information only (within the 30-day data window), never as a block. |
+| Q-14 Commenter dedupe | **Partly superseded by Q-23 (section 13): commenters are now recognised and kept as one Contact. The drafting rule below stays.** **Owner decision: no dedupe of commenters.** Returning commenters are likely buyers; every new keyword comment gets its own draft. No commenter hash is stored. The approval queue may show "already replied to this person on this video" as information only (within the 30-day data window), never as a block. |
 | Q-20 Founding seat cap | **Accepted:** GHL stops selling at 100; the app never rejects a paid purchase and emails the owner at 90 and at 100. |
 | Q-21 Owner admin | **Accepted:** `/admin`, limited to the emails in `ADMIN_EMAILS` (grant `ghl_affiliate_free`, suspend accounts, view quota). |
 | Q-10 Keyword match (2026-09-25) | **Owner decision:** a comment matches when it contains the keyword anywhere, as a whole word, case-insensitive (after normalization). No "starts with" or "short comment" rule. False positives ("this guide was useless") are filtered by the creator in the approval queue. Open: handling of comments that contain several keywords (proposal: one reply per comment, see below). |
@@ -227,3 +227,188 @@ Brand domain: **vidrev.app** (owner, 2026-09-25), on Cloudflare. Brand site `vid
 | P7-12 | Emails: weekly summary on Mondays from 9:00 local time with the last 7 days, skipped for weeks without any activity, opt-out in report settings; milestone emails for the first click, subscriber and buyer, each recorded before it is sent (only the highest one when several are reached at once); renewal recap for yearly plans in the week that starts 14 days before the renewal, the renewal being a year after the latest paid provisioning event. Suspended accounts get none. | R-35 items 3 and 4. |
 | P7-13 | `/app/cancel` shows attributed revenue and says that links keep working while measurement stops; it links to `BILLING_PORTAL_URL` when set (cancelling happens in the checkout, B-04). | R-35 item 4. |
 | P7-14 | Not built in Phase 7: the hosted opt-in fallback (P6-13) stays open until a creator without a CRM appears. Video titles show only while stored (30-day rule), otherwise the video id with a watch link. | Scope; YouTube data rule. |
+
+## 13. Contact identity and customer journey (owner, 2026-09-26)
+
+This section is an **owner requirement, marked very important**. It applies to every phase from now on: Phase 8 (Stripe), the GHL connector, the inbound webhooks, reporting and everything later. If any other section, the SPEC or the code disagrees with it, this section wins, except where it says a question is still open.
+
+### 13.1 The requirement, in the owner's words (translated)
+
+In the earlier system a person who was only a Commenter (no email yet) and who then opted in through the tracked link, or who commented on a second video, **created a new Contact every time**. That must never happen again:
+
+- A Commenter with no email is a Contact. When the comment is answered, that is measured (Commenter +1).
+- When that person receives the branded, tracked link, clicks, and gives an email on the opt-in page, the **same Contact is updated** with the email (Subscriber +1, the "lead counter"). No new Contact is created.
+- When the same commenter (recognised by the YouTube comment or author identity, or by any other stable key we have) comments on **another video**, they are **the same Contact**. No new Contact, no duplicate. We identify that the two comments belong to one person.
+- Later, one Contact must tell the whole story: "this person watched 3 videos and left 3 comments, at these times, on these videos". The exact customer journey is drawn from it, and later it allows analysis such as response times.
+- No duplication on purchases (already covered by Q-05 and P7-01) **and none at Contact level**. Both are required. They are separate mechanisms: P7-01 keeps one payment from being counted twice; this section keeps one person from being two people.
+
+### 13.2 Invariants (hard rules, each one is tested)
+
+| ID | Rule |
+| --- | --- |
+| I-1 | Within one account, **one person is exactly one Contact for the whole life of the account**. The Contact id never changes (a merge keeps the older id, 13.6). |
+| I-2 | A Contact is created only when **no existing Contact can be recognised** from any key the event carries. If one can be recognised, it is enriched, never duplicated. |
+| I-3 | Every event that carries a person attaches to a Contact through the same single resolver: keyword comment, reply, click, opt-in, purchase (any source), refund, CRM sync. There is no second code path that creates Contacts. |
+| I-4 | If one event carries keys that point to **two different Contacts**, the two are **merged** into one (13.6). Merging is preferred to leaving a duplicate. Every merge is logged and reversible. |
+| I-5 | Contacts are per account. The same email under two creators' accounts is two Contacts, one in each account (accounts never see each other's people). |
+| I-6 | The journey is **append-only first-party history**. Nothing that happened to a Contact is overwritten when the Contact is enriched or merged; events only gain a Contact pointer. |
+| I-7 | A repeat event never raises a counter it already raised for the same Contact (13.4). Comments and clicks are events and count every time; Commenters, Subscribers and Buyers are people and count once per period. |
+| I-8 | Resolution is **idempotent and race-safe**: the same event processed twice, or two workers processing two events for the same person at the same moment, yield one Contact. Guaranteed by unique keys in the database, not only by application code (13.7). |
+| I-9 | Nothing about a Contact is estimated. A field that is not known stays empty. |
+
+### 13.3 Lifecycle stages
+
+The stage is derived from real events and only moves forward (a refund does not turn a Buyer back into a Subscriber; the refund is its own event).
+
+| Stage | UI word (B-01) | Reached when | Counter effect |
+| --- | --- | --- | --- |
+| Commenter | Commenter | The first keyword comment of this person is matched in this account. The Contact exists from this moment, with no email. | Commenters +1 (unique people) |
+| Replied | (a fact on the Contact, not a stage) | A reply to their comment is posted (API or by hand). | Replies +1 (event) |
+| Clicked | (a fact) | A non-bot click on a tracked link that was minted for this Contact's reply. A click on a static link carries no person until an opt-in ties it. | Clicks +1 (event) |
+| Subscriber | Subscriber | The Contact receives its first email through an attributed opt-in (tid, or the email matches). | Subscribers +1 (unique people), once per Contact |
+| Buyer | Buyer | The first purchase (canonical payment or buyer marker, any source) matched to this Contact. | Buyers +1 (unique people), once per Contact; revenue follows P7-01, P7-03 |
+
+The owner's terms "lead" and "lead counter" map to Subscriber in the UI (B-01 keeps "lead" out of the UI).
+
+### 13.4 Definitions that change (amends P7-07)
+
+- **Comments** stays an event count: every matched comment, including repeats (unchanged).
+- **Commenters** is new: distinct Contacts with at least one matched comment in the period. A returning commenter counts once per period, and once in "all time". A separate "new commenters" figure counts Contacts created in the period.
+- **Subscribers**: distinct Contacts that received an attributed opt-in in the period (was: distinct emails). A person who opts in twice with two lead magnets, or with two email addresses, is one Subscriber.
+- **Buyers**: distinct Contacts with an attributed canonical purchase (was: email, else tid). A person who buys twice is one Buyer.
+- **Revenue**: unchanged (P7-01, P7-03, P7-08).
+- The funnel becomes Comments, Commenters, Replies, Clicks, Subscribers, Buyers, Revenue.
+- Per video and per keyword tables keep using the attributed touch (last touch within 180 days, B-08). A Contact who commented on three videos appears as a Commenter on each of the three videos (one row per video), and as one Subscriber and one Buyer under the touch attribution picks.
+
+### 13.5 Identity model and resolution
+
+**Tables (schema proposal, built in the first implementation PR):**
+
+- `contacts`: `id`, `account_id`, `stage` (commenter, subscriber, buyer; denormalised for fast queries), `primary_email_norm` (nullable), `display_name` (nullable, only what the person themselves gave in an opt-in or purchase, never a YouTube display name), `first_seen_at`, `last_seen_at`, `first_comment_seen_at`, `subscribed_at`, `first_purchase_at`, `merged_into_id` (nullable, set on the loser of a merge), `created_via` (comment, opt_in, purchase, crm_sync, backfill), `created_at`, `updated_at`.
+- `contact_identities`: `id`, `account_id`, `contact_id`, `kind`, `value`, `first_seen_at`, `source`, and for the YouTube kind `refresh_due_at`. **Unique on (`account_id`, `kind`, `value`)**, so one key can point to only one Contact, by construction.
+- `contact_merges`: `id`, `account_id`, `winner_id`, `loser_id`, `reason` (the identity that joined them), `event_ref`, `moved` (jsonb counts), `created_at`. This is the audit log and the basis for undo.
+- Foreign key `contact_id` (nullable, indexed) on `replies`, `clicks`, `subscribers`, `purchases`. These tables are first-party and kept while the account is active, so the journey survives the 30 day deletion of YouTube data.
+
+**Identity kinds and how they are normalised:**
+
+| Kind | Value | Strength | Notes |
+| --- | --- | --- | --- |
+| `youtube_channel` | YouTube channel id of the commenter (`UC...`) | strong | YouTube API data: see 13.9. Stable across display name changes. One person may have several channels, so a Contact may hold several. |
+| `email` | trimmed, lowercased email | strong | First-party (the person gave it). Only trimmed and lowercased: no removal of dots or plus tags (that could merge two different people). A Contact may hold several emails (rule M-3). |
+| tid (not an identity row) | click id | a **pointer**, not a key | The click row already points to link, reply and therefore Contact (`clicks.contact_id`). A tid resolves to its Contact through the click. |
+| `ghl_contact` | GHL contact id (per location) | strong | So a GHL sync never re-creates the Contact. |
+| `stripe_customer` | Stripe customer id | strong | Phase 8. A customer keeps one id across all their payments. |
+| `comment` | YouTube comment id | fallback only | Used only when a comment has no author channel id (rare). One Contact per such comment, so it can never wrongly merge two people. |
+
+**Resolution, in order.** The resolver receives an event with every key it has and returns one Contact (creating one only as the last step):
+
+1. Collect all keys of the event: tid (through its click, to reply and Contact), author channel id, email, GHL contact id, Stripe customer id, comment id fallback.
+2. Look every key up in `contact_identities` (and the tid through `clicks.contact_id`). Follow `merged_into_id` to the winner if a Contact was merged away.
+3. **No Contact found**: create one, attach every key as an identity, set `created_via`.
+4. **Exactly one Contact found**: use it. Attach every key of the event that the Contact does not have yet (this is the "update with the email" step). Update `last_seen_at`, the stage if it moved forward, and the derived fields.
+5. **Two or more Contacts found**: merge them (13.6), then continue as in step 4.
+
+Scenario table (each row is an integration test):
+
+| Scenario | Result |
+| --- | --- |
+| A new commenter writes a keyword comment | New Contact, identity `youtube_channel`, stage commenter, Commenters +1 |
+| The same commenter writes a keyword comment on **another video** | **Same Contact**. A new reply row on it. Comments +1, Commenters unchanged in the "all time" view. No new Contact |
+| The same commenter writes a second keyword comment on the **same video** | Same Contact; a second draft as before (the Q-14 drafting rule stays: every keyword comment gets its own draft, never blocked) |
+| They click their tracked link (tid) | The click gets the Contact from the reply. Clicks +1 |
+| They open the opt-in page and submit an email, carrying the tid | The tid resolves to the Contact. The email is attached to **that** Contact. Stage subscriber, Subscribers +1. **No new Contact.** This is the case the owner complained about |
+| They submit the email but the tid was lost (cookie, another device, form tool without the field) | The email is looked up: if it belongs to a Contact, same person; if not, a new email-only Contact is created (`created_via` opt_in). It merges with the commenter Contact later if a tid or another key ties them (rule I-4) |
+| The email already belongs to another Contact, and the tid points to the commenter Contact | Two Contacts found: **merge** into the older one (13.6). The person keeps one history |
+| They opt in twice (two lead magnets, or a double submit) | Same Contact, a second opt-in touch row (first-party history kept), Subscribers unchanged |
+| Their Contact already has email A and an opt-in through the same tid arrives with email B | Email B is attached as an additional email of the same Contact (rule M-3), pending open question O-4 |
+| They buy (any source) with the same email | The purchase gets the Contact. Buyer stage, Buyers +1 once. Revenue counted once (P7-01) |
+| They buy with an email nobody knows, and no tid | New Contact (`created_via` purchase, no comment history), pending open question O-2. If they were a commenter under another email this cannot be known and is not guessed |
+| Stripe customer with a known email or a `c2c_tid` in metadata | Resolved by tid first, then by email, then by customer id; the customer id is attached to the Contact |
+| A subscription renewal (P7-03) | Follows the first payment and the same Contact; nothing new is created |
+| A refund | Its own event on the same Contact; the stage does not move back |
+| The GHL sync reads a contact with a `c2c_tid` field | Resolved by tid, the GHL contact id is attached; without a tid, by email; never a new Contact when either exists |
+| The commenter changes their YouTube display name | No effect: the key is the channel id, never the name |
+| The API response has no author channel id | The `comment` fallback identity is used; one Contact per such comment; never merged on a guess |
+| The creator comments under their own video | Never a Contact (unchanged: the creator's own comments never trigger) |
+
+### 13.6 Merge rules
+
+- **M-1 Winner:** the Contact with the earliest `first_seen_at`. Its id survives; the loser gets `merged_into_id` and stays as a tombstone, so old references still resolve.
+- **M-2 What moves:** every identity, and the `contact_id` on replies, clicks, subscribers and purchases, in one database transaction. `first_seen_at` takes the earlier value, `last_seen_at` the later, the stage the furthest forward. The journey is the union of both histories.
+- **M-3 Several emails:** a Contact may hold several emails. `primary_email_norm` is the email of the earliest attributed opt-in; the others are aliases. Every email stays a key, so any of them recognises the person later.
+- **M-4 Reversible:** each merge writes `contact_merges` with what moved, so a wrong merge (for example a shared inbox such as info@company.com used by two people) can be undone by an owner admin action. The undo tool is not part of the first PR; the data needed for it is.
+- **M-5 Counters:** a merge never raises a counter. Where both Contacts had raised the same one, the person counts once from then on (reports are recomputed from the Contact rows, P7-05).
+- **M-6 Attribution:** the merged Contact's purchases are re-attributed by the existing recompute (P7-04) on the union history. Recurring rules (P7-03) are unchanged.
+- **M-7 No merge on weak evidence:** merging happens only on an exact match of a strong key. Names, IP hashes, user agents and country never merge Contacts.
+- **M-8 Shared or role emails:** a merge is not blocked, because for the creator a company inbox is one lead. It is logged with the rule that caused it (M-4). See open question O-5.
+
+### 13.7 Concurrency, ordering and idempotency
+
+- The unique index on (`account_id`, `kind`, `value`) makes duplicates impossible even if two workers race. Creation is `INSERT ... ON CONFLICT DO NOTHING`, then read back the winner.
+- Resolve and merge run inside one transaction that takes a per-account advisory lock for the (short) resolve step. An account's people are resolved one at a time; accounts do not block each other.
+- The resolver is called from the places that already emit events (P6-12): comment insert in the worker, inbound hooks, GHL sync, Stripe sync. The redirect never waits for it: the click row takes the Contact from the reply it was minted for, which is already known.
+- Events may arrive out of order (a CRM sync after the purchase webhook, a purchase before the opt-in). The result is the same in any order, because each event only adds keys and links, and a later key that ties two Contacts triggers a merge.
+- Replaying any webhook, sync page or job never creates a second Contact or a second identity.
+
+### 13.8 The customer journey
+
+The journey of a Contact is assembled from first-party rows, oldest first:
+
+`comment seen` (from `replies`: video id, keyword, intent, language, `created_at`), `reply approved`, `reply posted`, `click` (link, host, country, bot flag), `opt-in` (source, email, consent flag), `purchase` (amount, currency, source, subscription), `refund`, `merge`.
+
+Rules:
+
+- **Timestamps are our own observations** (when we detected the comment, when the creator approved, when we posted, when the click and the opt-in happened). YouTube's own publish time of a comment is API data and is not the basis of the journey (P7-10). Detection delay is minutes (polling tiers), so response times are accurate to that.
+- **Only keyword comments exist in the journey.** Comments that do not match a keyword are never stored (P4-04, data minimisation). "This person left 3 comments" means three keyword comments. See open question O-3.
+- The journey survives the 30 day deletion of comment text, because it lives in `replies` and the other first-party tables, not in `comments`.
+- Analyses this enables, all from real data: time from comment to approval, to reply, to click, to opt-in, to purchase per Contact; number of videos and comments before subscribing or buying; which video and keyword was the first touch and which the last; repeat commenters versus one-time commenters; response time versus conversion (extends R-35 item 2).
+- A Contact page in the app (timeline plus the facts above) is planned as its own PR after the data is correct. The data model in this section is the prerequisite.
+
+### 13.9 YouTube data compliance: the one real tension (needs owner attention)
+
+Recognising a returning commenter needs the commenter's **YouTube channel id**, which is YouTube API data. Three existing rules meet here:
+
+1. **30 day rule** (Q-17 c, YouTube API Developer Policies III.E.4.c and d): stored API data must be **deleted or refreshed** after 30 calendar days. Refreshing is explicitly allowed.
+2. **Q-14** said no commenter identity is stored. The owner has now asked for exactly that recognition. **Q-14 is amended:** the drafting rule stays (every keyword comment gets its own draft, no blocking); the "no commenter identity stored" part is superseded by this section.
+3. **P4-11** chose deletion over refresh for comments. **P4-11 is amended** for one narrow thing: the *reference* that recognises a person (comment id and author channel id) is refreshed instead of deleted. Comment text and display names are **still deleted at 30 days**.
+
+Design (P8-C-01 to P8-C-04, proposals):
+
+- **P8-C-01 Refresh, not keep.** The daily retention job refreshes each stored commenter reference with `comments.list` by id (1 unit per up to 50 comments, ledgered, on the reads budget). If YouTube still returns the comment, the `youtube_channel` identity is confirmed for another 30 days (`refresh_due_at`). If the comment is gone (deleted by the author or the creator), the reference is dropped; when a `youtube_channel` identity has no live reference left, the identity row is deleted. The Contact and its first-party history (emails, replies, clicks, opt-ins, purchases) stay.
+- **P8-C-02 Never leaves the app.** Author channel ids are never in outbound webhooks, GHL payloads, emails, exports or reports (already true since P6-02) and are not shown in the UI. They are used only to recognise a returning commenter.
+- **P8-C-03 Disconnect and revoke** delete every `youtube_channel` identity and comment reference of that channel within the existing 7 day rule (in practice at once), like other YouTube data. Contacts remain, with their first-party history; they can no longer be recognised by YouTube id.
+- **P8-C-04 Disclosure.** The Privacy Policy and Terms drafts get an explicit paragraph: the app stores the commenter's channel id to recognise a returning commenter, refreshes it every 30 days, never shares it, and deletes it on disconnect. This is added in the same PR as the schema (docs/compliance/).
+- **Correlation risk, to be verified before the Google submission.** The YouTube API policies require honesty about what is collected and use only within the privacy policy and the user's consent (III.E.3.a and c), and their overview forbids tracking or deriving information that identifies a user without consent. Linking a commenter's channel id to an email they typed on the creator's opt-in page is a correlation the reviewer may treat as needing consent. Current mitigation: the person gives the email themselves, the linkage is disclosed, and the id never leaves the app. It must be re-checked with the Google OAuth verification pack (docs/compliance/); if the reviewer objects, the fallback is O-1 option B. This is a compliance risk, not a legal opinion.
+
+### 13.10 Effect on the other systems
+
+- **Outbound webhooks** (P6-02): payloads add an opaque `contact_id` (our uuid). Still no YouTube ids, comment text or names. Consumers can dedupe on it.
+- **GoHighLevel** (P6-10): upsert by email as now; the GHL contact id is stored as an identity, so the next sync recognises it. We never create a GHL contact for a Commenter without an email (there is nothing to upsert).
+- **Inbound hooks** (`/api/hooks/optin`, `/api/hooks/purchase`): resolve through the same resolver. Responses are unchanged.
+- **Attribution** (Phase 7): the touch search and the recompute work on Contacts (all touches of a Contact, whatever email was used), so a purchase under email B is still attributed to the video whose tid arrived with email A. Rules P7-01 to P7-04 are otherwise unchanged.
+- **Reports** (Phase 7): definitions in 13.4.
+- **Stripe (Phase 8):** resolves purchases into Contacts by the rules above; the Stripe customer id becomes an identity.
+- **Backfill:** one migration builds Contacts from the existing data: replies with a still stored comment (author id), subscribers and purchases grouped by email, tid links through clicks. It merges by the same rules, is idempotent and can be re-run.
+
+### 13.11 Tests that must exist before this ships
+
+Unit: normalisation of emails, resolver decisions for every scenario row in 13.5, winner selection, stage never moving back. Integration (Postgres): the same commenter on two videos gives one Contact; an opt-in through a tid updates the commenter Contact and creates none; an opt-in with an email of another Contact merges; two workers racing on one new commenter give one Contact; replaying a webhook and a GHL sync page changes nothing; a merge moves every row and can be traced; a purchase under a second email still attributes to the first touch; disconnect wipes YouTube identities but keeps Contacts and history; refresh keeps an identity for 30 more days when the comment exists and drops it when it does not; report counters for Commenters, Subscribers and Buyers count people once.
+
+### 13.12 Owner decision record and open questions
+
+| ID | Decision |
+| --- | --- |
+| Q-23 | **Owner decision (2026-09-26), supersedes Q-14 in part:** one person is one Contact for the whole life of an account. Opt-ins, second comments on other videos, purchases and CRM syncs enrich the existing Contact and never create a duplicate. The customer journey is kept per Contact. No duplication at purchase level (Q-05) and none at Contact level; both are required. |
+| P8-C-01 to P8-C-04 | Proposals in 13.9 (refresh the YouTube reference, never share it, wipe at disconnect, disclose in the privacy drafts). Await owner confirmation. |
+| P8-C-05 | Proposal: the Contact core (schema, resolver, backfill, wiring, tests) ships **before** the Stripe connector, in its own small PRs, so Stripe purchases resolve into Contacts from the first line. Phase 8 then follows. |
+
+Open questions for the owner. Each has a recommended default, which is what gets built unless the owner says otherwise. None blocks the start of the work.
+
+| # | Question | Recommended default | Alternative |
+| --- | --- | --- | --- |
+| O-1 | **How long may we recognise a returning commenter?** Recognition needs the channel id, refreshed every 30 days (cost: 1 unit per 50 comments, negligible). Acceptable for the Google review? | **A: refresh monthly** (13.9). A returning commenter is recognised for as long as their old comment exists on YouTube. | **B: keep the id only 30 days, no refresh.** A person who comments again after more than 30 days, and never gave an email, becomes a second Contact. Safer for Google, weaker for the journey. Also the fallback if a reviewer objects to A. |
+| O-2 | **Who gets a Contact?** Only commenters, or also people who arrive without a comment (an organic opt-in, a Stripe customer we never saw comment)? | **Everyone with an email.** Otherwise a later opt-in of a known buyer would create a second Contact. They start with `created_via` opt_in or purchase and no comment history. | Only commenters; the others stay as plain rows matched by email at query time (simpler, but a person can then appear twice in a Contact list). |
+| O-3 | **Should a known Contact's non-keyword comments be recorded** ("also commented 'great video' on video 4")? | **No.** It means storing comments we do not need, which is API data, and raises the compliance and volume load. The journey shows keyword comments only. | Record a minimal marker (video id and time only, no text) for comments by already known Contacts. Costs no extra quota (the poll already reads them) but adds stored YouTube data. |
+| O-4 | **Two different emails arrive for one Contact** (for example a forwarded link): keep both as one person? | **Yes, same Contact, the second email as an alias** (M-3). The tid proves the path from that comment. | Treat the second email as a new person linked to the first. Better if you expect many forwarded links, but it brings duplicates back. |
+| O-5 | **Automatic merge on an email match, even for shared inboxes** (info@company.com)? | **Yes, always merge on an exact strong key, log it, allow undo** (M-4, M-8). | Never auto-merge role addresses (info@, sales@, support@): keep two Contacts and flag them for review. Fewer wrong merges, some duplicates. |
+| O-6 | **Reporting change:** Subscribers and Buyers become people (Contacts) instead of distinct emails (13.4). For most accounts the numbers are identical; a person with two emails now counts once. OK? | **Yes.** | Keep counting distinct emails. |

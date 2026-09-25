@@ -18,6 +18,8 @@ export const QUEUES = {
   ghlSetup: "ghl.setup",
   ghlSync: "ghl.sync",
   ghlEvent: "ghl.event",
+  reportRefresh: "report.refresh",
+  reportHourly: "report.hourly",
 } as const;
 
 export interface SendEmailJob {
@@ -47,6 +49,10 @@ export interface DeliveryJob {
   deliveryId: string;
 }
 
+export interface AccountJob {
+  accountId: string;
+}
+
 export interface GhlIntegrationJob {
   integrationId: string;
 }
@@ -71,6 +77,7 @@ export interface JobPayloads {
   [QUEUES.ghlSetup]: GhlIntegrationJob;
   [QUEUES.ghlSync]: GhlIntegrationJob;
   [QUEUES.ghlEvent]: GhlEventJob;
+  [QUEUES.reportRefresh]: AccountJob;
 }
 
 // Email jobs carry magic links, so they are removed soon after completion.
@@ -93,4 +100,7 @@ export const QUEUE_OPTIONS = {
   [QUEUES.ghlSetup]: { policy: "stately", retryLimit: 5, retryDelay: 60, retryBackoff: true },
   [QUEUES.ghlSync]: { policy: "stately", retryLimit: 1, retryDelay: 60, expireInSeconds: 600 },
   [QUEUES.ghlEvent]: { retryLimit: 5, retryDelay: 30, retryBackoff: true },
+  // Attribution and report snapshots (Phase 7): one queued plus one running
+  // per account (singletonKey = account id); the tick queues dirty accounts.
+  [QUEUES.reportRefresh]: { policy: "stately", retryLimit: 2, retryDelay: 60, expireInSeconds: 600 },
 } as const;

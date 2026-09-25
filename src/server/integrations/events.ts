@@ -5,6 +5,7 @@ import type { JobPayloads } from "@/jobs/queues";
 import { errorFields, log } from "@/lib/log";
 import { buildEventPayload, type DeliveredEvent, type EventContext, type EventName } from "@/lib/webhooks";
 import type { DbOrTx } from "../accounts";
+import { markReportDirty } from "../attribution";
 
 export interface EmitInput {
   accountId: string;
@@ -56,6 +57,9 @@ export type Kick = (deliveryIds: string[]) => Promise<void>;
 // up anything the immediate kick misses.
 export async function emitEventSafely(db: DbOrTx, input: EmitInput, kick: Kick): Promise<void> {
   try {
+    // Every event is also new report data (Phase 7): comments, replies,
+    // clicks, opt-ins and purchases all pass through here.
+    await markReportDirty(db, input.accountId);
     const ids = await emitEvent(db, input);
     if (ids.length > 0) await kick(ids).catch((error: unknown) => log("warn", "webhook kick failed", errorFields(error)));
   } catch (error) {

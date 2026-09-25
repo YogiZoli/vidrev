@@ -1,6 +1,8 @@
 import type { PgBoss } from "pg-boss";
 import { getDb } from "@/db/client";
-import { type ChannelJob, type CommentJob, type DomainJob, type ReplyJob, QUEUES, QUEUE_OPTIONS, type SendEmailJob } from "@/jobs/queues";
+import { type ChannelJob, type CommentJob, type DeliveryJob, type DomainJob, type ReplyJob, QUEUES, QUEUE_OPTIONS, type SendEmailJob } from "@/jobs/queues";
+import { postJson } from "@/server/integrations/http-post";
+import { pruneDeliveries } from "@/server/integrations/outbound";
 import { appBaseUrl, domainConnectConfig, env } from "@/lib/env";
 import { errorFields, log } from "@/lib/log";
 import { type ChannelDeps, disconnectChannel, syncChannel } from "./channels";
@@ -10,6 +12,12 @@ import { checkDomain, type DomainDeps, queueDomainChecks, removeDomainHostname }
 import { runRetention } from "./retention";
 import { sendReply } from "./sending";
 import { checkRss, type EngineDeps, engineTick, pollChannel, renewWebsub } from "./polling";
+import { deliver, deliverDue, type WebhookDeps } from "./webhooks";
+
+function webhookDeps(): WebhookDeps | null {
+  const { ENCRYPTION_KEY } = env();
+  return ENCRYPTION_KEY ? { db: getDb(), encryptionKey: ENCRYPTION_KEY, post: postJson } : null;
+}
 
 async function sendEmail(job: SendEmailJob): Promise<void> {
   const { RESEND_API_KEY, EMAIL_FROM, PRODUCT_NAME, NODE_ENV } = env();
@@ -122,8 +130,15 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
   await boss.schedule(QUEUES.engineTick, "* * * * *");
   await boss.work(QUEUES.engineTick, async () => {
     await queueDomainChecks(domainDeps(boss));
+    const hooks = webhookDeps();
+    if (hooks) await deliverDue(hooks);
     const deps = engineDeps(boss);
     if (deps) await engineTick(deps);
+  });
+  // Outbound webhooks (Phase 6): immediate delivery; the tick covers retries.
+  await boss.work<DeliveryJob>(QUEUES.webhookDeliver, async ([job]) => {
+    const hooks = webhookDeps();
+    if (hooks) await deliver(hooks, job!.data.deliveryId);
   });
   // Custom link domains (Phase 5): DNS and Cloudflare checks.
   await boss.work<DomainJob>(QUEUES.domainCheck, async ([job]) => checkDomain(domainDeps(boss), job!.data.domainId));
@@ -134,6 +149,7 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
   await boss.work(QUEUES.retention, async () => {
     const deps = engineDeps(boss);
     if (deps) await runRetention(deps);
+    await pruneDeliveries(getDb());
   });
   await boss.createQueue(QUEUES.websubRenew);
   await boss.schedule(QUEUES.websubRenew, "17 * * * *");

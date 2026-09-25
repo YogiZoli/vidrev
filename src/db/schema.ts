@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  bigint,
   bigserial,
   boolean,
   date,
@@ -468,5 +469,178 @@ export const clicks = pgTable(
     uniqueIndex("clicks_tid_uq").on(t.tid),
     index("clicks_account_created_idx").on(t.accountId, t.createdAt),
     index("clicks_link_idx").on(t.linkId),
+  ],
+);
+
+export type IntegrationType = "outbound_webhook" | "ghl";
+export type IntegrationStatus = "active" | "disabled" | "error" | "removed";
+
+// A connected outside system (SPEC section 5). `configEnc` holds the JSON
+// config, encrypted (outbound: url and signing secret; ghl: OAuth tokens,
+// custom field id, buyer tag). It is wiped when the integration is removed.
+// `externalRef` is the GHL location id: one location is live in one account.
+export const integrations = pgTable(
+  "integrations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    type: text("type").$type<IntegrationType>().notNull(),
+    label: text("label"),
+    configEnc: text("config_enc"),
+    status: text("status").$type<IntegrationStatus>().notNull().default("active"),
+    statusReason: text("status_reason"),
+    // Outbound endpoints: subscribed event names; null means all events.
+    events: text("events").array(),
+    externalRef: text("external_ref"),
+    // GHL sync state: cursors per data kind, next run and last success.
+    syncState: jsonb("sync_state").$type<Record<string, unknown>>().notNull().default({}),
+    nextSyncAt: timestamp("next_sync_at", { withTimezone: true }),
+    lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
+    lastSuccessAt: timestamp("last_success_at", { withTimezone: true }),
+    lastError: text("last_error"),
+    createdAt: createdAt(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    removedAt: timestamp("removed_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("integrations_account_idx").on(t.accountId, t.type),
+    index("integrations_next_sync_idx").on(t.nextSyncAt),
+    uniqueIndex("integrations_live_ref_uq")
+      .on(t.type, t.externalRef)
+      .where(sql`status <> 'removed' and external_ref is not null`),
+  ],
+);
+
+export type DeliveryStatus = "pending" | "delivered" | "dead";
+
+// Outbox for outbound webhooks (SPEC section 11). One row per event and
+// endpoint; the worker delivers it and retries with backoff for 24 hours.
+// `eventId` is the same for every endpoint and travels as X-Event-Id.
+export const outboundDeliveries = pgTable(
+  "outbound_deliveries",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    integrationId: uuid("integration_id")
+      .notNull()
+      .references(() => integrations.id, { onDelete: "cascade" }),
+    eventId: uuid("event_id").notNull(),
+    event: text("event").notNull(),
+    payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
+    attempt: integer("attempt").notNull().default(0),
+    status: text("status").$type<DeliveryStatus>().notNull().default("pending"),
+    nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }).notNull().defaultNow(),
+    responseStatus: integer("response_status"),
+    lastError: text("last_error"),
+    deliveredAt: timestamp("delivered_at", { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("outbound_deliveries_event_uq").on(t.integrationId, t.eventId),
+    index("outbound_deliveries_due_idx").on(t.status, t.nextAttemptAt),
+    index("outbound_deliveries_integration_idx").on(t.integrationId, t.createdAt),
+  ],
+);
+
+// Token for the universal inbound hooks (SPEC-REVIEW R-05): only the hash is
+// used for lookup; the encrypted token is kept so the creator can see it again.
+export const inboundHookSecrets = pgTable(
+  "inbound_hook_secrets",
+  {
+    accountId: uuid("account_id")
+      .primaryKey()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull(),
+    tokenEnc: text("token_enc").notNull(),
+    createdAt: createdAt(),
+    rotatedAt: timestamp("rotated_at", { withTimezone: true }),
+  },
+  (t) => [uniqueIndex("inbound_hook_secrets_hash_uq").on(t.tokenHash)],
+);
+
+export type SubscriberSource = "ghl" | "webhook" | "hosted";
+
+// One opt-in event (a "touch"), first-party data. Attribution fields are copied
+// from the click the tracking id points at, so reports survive campaign
+// deletion. A tid that is unknown or belongs to another account is kept but
+// unattributed. Matching across touches happens in Phase 7.
+export const subscribers = pgTable(
+  "subscribers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    emailNorm: text("email_norm").notNull(),
+    name: text("name"),
+    source: text("source").$type<SubscriberSource>().notNull(),
+    externalId: text("external_id"),
+    // external_id, else tid, else "none": one row per email and touch.
+    dedupeKey: text("dedupe_key").notNull(),
+    tid: text("tid"),
+    clickId: uuid("click_id"),
+    linkId: uuid("link_id"),
+    replyId: uuid("reply_id"),
+    campaignId: uuid("campaign_id"),
+    youtubeVideoId: text("youtube_video_id"),
+    keyword: text("keyword"),
+    // null = the source did not say; never assumed.
+    consentMarketing: boolean("consent_marketing"),
+    ghlContactId: text("ghl_contact_id"),
+    occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("subscribers_touch_uq").on(t.accountId, t.source, t.emailNorm, t.dedupeKey),
+    index("subscribers_account_email_idx").on(t.accountId, t.emailNorm),
+    index("subscribers_account_occurred_idx").on(t.accountId, t.occurredAt),
+    index("subscribers_tid_idx").on(t.tid),
+  ],
+);
+
+export type PurchaseSource = "ghl" | "stripe" | "webhook";
+export type PurchaseKind = "payment" | "buyer_marker";
+
+// Every purchase event from every source is stored with its raw numbers
+// (DECISIONS Q-05). `kind = buyer_marker` is a buyer without an amount (won
+// opportunity or buyer tag, Q-06): revenue is "not reported", never estimated.
+// Phase 7 links duplicates across sources through `canonicalPurchaseId`
+// (revenue counts once) and attributes purchases to subscribers.
+export const purchases = pgTable(
+  "purchases",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    source: text("source").$type<PurchaseSource>().notNull(),
+    kind: text("kind").$type<PurchaseKind>().notNull().default("payment"),
+    externalId: text("external_id").notNull(),
+    emailNorm: text("email_norm"),
+    tid: text("tid"),
+    amountCents: bigint("amount_cents", { mode: "number" }),
+    currency: text("currency"),
+    refundedCents: bigint("refunded_cents", { mode: "number" }).notNull().default(0),
+    // Subscription id of a recurring payment; every later payment of the same
+    // subscription keeps the attribution of the first (DECISIONS Q-07).
+    subscriptionRef: text("subscription_ref"),
+    ghlContactId: text("ghl_contact_id"),
+    occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
+    raw: jsonb("raw").$type<Record<string, unknown>>().notNull().default({}),
+    canonicalPurchaseId: uuid("canonical_purchase_id"),
+    attributedSubscriberId: uuid("attributed_subscriber_id"),
+    createdAt: createdAt(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("purchases_source_external_uq").on(t.accountId, t.source, t.externalId),
+    index("purchases_account_email_idx").on(t.accountId, t.emailNorm),
+    index("purchases_account_occurred_idx").on(t.accountId, t.occurredAt),
+    index("purchases_tid_idx").on(t.tid),
   ],
 );

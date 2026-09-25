@@ -36,6 +36,13 @@
       "when": 1790338813357,
       "tag": "0004_domain_checks",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790344863807,
+      "tag": "0005_integrations",
+      "breakpoints": true
     }
   ]
 }

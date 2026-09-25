@@ -5,6 +5,8 @@ import { log } from "@/lib/log";
 import { repliesLeftToday } from "@/lib/quota";
 import { renderReply } from "@/lib/templates";
 import { nextPacificMidnight, pacificDate } from "@/lib/time";
+import { replyContext } from "@/server/integrations/context";
+import { emitEventSafely, kickWith } from "@/server/integrations/events";
 import { ensureReplyLink, publishLink } from "@/server/links";
 import { dayUsage, reserveUnits } from "@/server/quota";
 import { insertReply, YoutubeApiError } from "@/server/youtube/api";
@@ -55,6 +57,7 @@ export async function sendReply(deps: EngineDeps, replyId: string): Promise<void
       .set({ status: "sent", sentAt: now, youtubeReplyId: posted.id, statusReason: null, queuedForDatePt: null, updatedAt: now })
       .where(eq(replies.id, reply.id));
     log("info", "reply sent", { replyId: reply.id });
+    await emitReplyPosted(deps, reply.id, now);
   } catch (error) {
     if (error instanceof ChannelRevokedError) return void (await fail("channel_revoked"));
     if (error instanceof YoutubeApiError && error.quotaExceeded) {
@@ -69,6 +72,15 @@ export async function sendReply(deps: EngineDeps, replyId: string): Promise<void
     // Transient: back to approved, pg-boss retries with backoff.
     await deps.db.update(replies).set({ status: "approved", updatedAt: now }).where(eq(replies.id, reply.id));
     throw error;
+  }
+}
+
+async function emitReplyPosted(deps: EngineDeps, replyId: string, now: Date): Promise<void> {
+  try {
+    const context = await replyContext(deps.db, replyId);
+    if (context) await emitEventSafely(deps.db, { accountId: context.accountId, event: "reply_posted", occurredAt: now, context }, kickWith(deps.enqueue));
+  } catch (error) {
+    log("warn", "reply_posted event failed", { replyId, error: String(error) });
   }
 }
 

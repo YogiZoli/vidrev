@@ -2,6 +2,7 @@ import { getDb } from "@/db/client";
 import { env } from "@/lib/env";
 import { errorFields, log } from "@/lib/log";
 import { fallbackHost, linkHostOf } from "@/lib/link-host";
+import { emitFromWeb } from "@/server/integrations/emit-web";
 import { resolveClick } from "@/server/links";
 
 export const dynamic = "force-dynamic";
@@ -42,6 +43,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
     if (result.kind === "blocked") return page(410, "This link is no longer available.");
     const headers = new Headers({ ...NO_STORE, location: result.location, "referrer-policy": "no-referrer-when-downgrade" });
     if (result.setCookie) headers.append("set-cookie", result.setCookie);
+    // Outbound link_clicked event (Phase 6), after the redirect is decided.
+    if (result.clicked) void emitFromWeb(getDb(), { accountId: result.clicked.accountId, event: "link_clicked", occurredAt: result.clicked.occurredAt, context: result.clicked.context });
     return new Response(null, { status: 302, headers });
   } catch (error) {
     log("error", "link redirect failed", { ...errorFields(error), slug });

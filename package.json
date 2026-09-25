@@ -17,6 +17,8 @@
     "db:migrate:prod": "node dist/scripts/migrate.mjs",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "quota:report": "tsx src/scripts/quota-report.ts",
+    "launch:check": "tsx src/scripts/launch-check.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },

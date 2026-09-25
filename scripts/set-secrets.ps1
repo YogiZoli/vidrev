@@ -23,6 +23,8 @@
 param([string]$GoogleJson = "", [string]$BrandDomain = "", [switch]$Ghl)
 
 $ErrorActionPreference = "Stop"
+# Windows PowerShell 5.1 prefixes piped text with a byte order mark unless told not to.
+$OutputEncoding = New-Object System.Text.UTF8Encoding $false
 $services = @("web", "worker")
 
 function Get-ExistingNames($service) {

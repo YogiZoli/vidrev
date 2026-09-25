@@ -1,6 +1,6 @@
 # STATUS
 
-Last updated: 2026-09-26 (Contacts and Phase 8)
+Last updated: 2026-09-26 (Phase 9)
 
 ## End goal
 
@@ -21,7 +21,7 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 | 7 | Attribution and reporting | **DONE** (2026-09-26), PRs #17 to #19; waits for the first real purchase to show numbers |
 | 7c | Contact identity (Q-23): one person is one Contact, journey per Contact, reports by people | **DONE** (2026-09-26), PRs #21 to #23; DECISIONS section 13 |
 | 8 | Stripe revenue ingestion (read-only, creator-provided restricted key) | **DONE** (2026-09-26), PR #24; waits for the first real Stripe key |
-| 9 | Audit my channel | not started |
+| 9 | Audit my channel | **DONE** (2026-09-26), PRs #26 to #28; needs the owner setup below before it works live |
 | 10 | GHL Marketplace connector | not started |
 | 12 | Compliance and launch readiness | not started |
 
@@ -34,6 +34,14 @@ Phase plan changes (all accepted): compliance pack and quota extension request r
 - Reports count people once (`src/lib/report.ts`): new Commenters and New commenters, Subscribers and Buyers are distinct Contacts; attribution follows the Contact whatever email was used. Outbound events carry an opaque `contact_id`.
 - 30 day rule kept intact (Q-24): the commenter's channel id is confirmed with YouTube every 30 days (comments.list by id, 1 unit per 50, from 5 days before it is due) or deleted; wiped at disconnect; never leaves the app. A legal way to recognise people longer is parked as L-01 for a later review. Privacy draft updated.
 - Not built yet: a Contact page with the timeline in the app, the merge undo tool (the data for it is logged), open questions O-1 to O-6 (defaults are built).
+
+## Phase 9: what was built
+
+- Public page `/audit` (form, no sign-in) and `/audit/<uuid>` (result, `noindex`): the web service only creates an `audits` row (`drizzle/0010`) and queues `audit.run`; the worker (`src/worker/audit.ts`) reads the channel with the audit project's API key (`src/server/youtube/audit-api.ts`), its own quota (`quota_ledger.gcp_project = "audit"`, `AUDIT_DAILY_LIMIT`, at most 13 units per audit) and follows description links through an SSRF-guarded fetcher (`src/server/audit/fetch-page.ts`).
+- Rule-based, no LLM (`src/lib/audit/`): questions and buying signals with reply state, keyword candidates, description link audit (measured, own domain), stack detection with the 03 research signatures (GoHighLevel only on the creator's own page), Comment Conversion Score with its factors, 3-finding instant preview. Real numbers only; a factor without data is left out.
+- Full report by email (`src/server/audit/report.ts`, template in `src/server/email/templates.ts`): sent only to the address entered, marketing consent is a separate unchecked box stored with its time; 3 reports a day per address; optional Turnstile; 5 audits an hour per address; 24h cache per channel (a hit costs no quota).
+- Comment text is never stored. API-derived pointers, titles and links (`audits.examples`) and the channel id are wiped 30 days after they were read (retention job); counts, score and requester stay. `/admin` shows requests, reports, consent and the audit quota.
+- Owner setup: [docs/SETUP-AUDIT.md](docs/SETUP-AUDIT.md). Choices P9-01 to P9-12 in `DECISIONS.md` section 16.
 
 ## Phase 8: what was built
 
@@ -71,13 +79,16 @@ Phase plan changes (all accepted): compliance pack and quota extension request r
 1. Owner setup below, then open `https://go.vidrev.app/abcdefg`: "This link does not exist." means routing works.
 2. `/app/campaigns` shows a `go.vidrev.app/...` link per keyword; opening it lands on the opt-in page with `c2c_tid` and `utm_*`.
 3. `/app/domain`: add a subdomain of another domain you own, add the CNAME; within minutes "Live" plus an email; new replies use it.
-4. Automated: 356 tests (Postgres integration included) pass in CI.
+4. Automated: more than 380 tests (Postgres integration included) pass in CI.
 5. Phase 6: `/app/integrations`: add an endpoint (for example a webhook.site address), Send test event, click a tracked link and see `link_clicked` arrive; POST to `/api/hooks/optin` with the token and a `c2c_tid` from a click; connect GoHighLevel after the owner setup.
-6. Phase 7: open `/app/reports`; the snapshot appears within a minute. Click a tracked link, POST an opt-in with that `c2c_tid` and a purchase with the same email to `/api/hooks/purchase` (see docs/INTEGRATIONS.md): within a minute the funnel shows the click, subscriber, buyer and revenue on the right video and keyword, and the first-click email arrives.
+6. Phase 9: open `/audit`, enter a channel (with `YT_API_KEY_AUDIT` set); the result page shows up to 3 findings within seconds, the email form sends the full report. Without the key the page says the audit is not available.
+7. Phase 7: open `/app/reports`; the snapshot appears within a minute. Click a tracked link, POST an opt-in with that `c2c_tid` and a purchase with the same email to `/api/hooks/purchase` (see docs/INTEGRATIONS.md): within a minute the funnel shows the click, subscriber, buyer and revenue on the right video and keyword, and the first-click email arrives.
 
 ## Owner setup
 
 Done: Railway secrets, GCP project `c2c-app`, OAuth client, channel connected.
+
+Phase 9 Audit my channel **to do** ([docs/SETUP-AUDIT.md](docs/SETUP-AUDIT.md)): new GCP project `vidrev-audit` with the YouTube Data API enabled, an API key restricted to that API, `YT_API_KEY_AUDIT` (and `AUDIT_DAILY_LIMIT=10000`) on both Railway services. Optional: Cloudflare Turnstile keys on `web`. Then run one audit of your own channel and compare the numbers with YouTube Studio.
 
 Phase 6 GoHighLevel **done 2026-09-25**: Private Marketplace app `vidrev` (target user Sub-account, install by Everyone, White-label listing), keys on both Railway services, Sub-account YTC2C connected, `c2c_tid` field created, syncs run without errors ([docs/SETUP-GHL.md](docs/SETUP-GHL.md)). Still to try with real data: a tracked click through an opt-in form into a tagged contact, a payment and a won opportunity.
 
@@ -88,6 +99,9 @@ Still deferred from Phase 4 (no billing yet): platform Gemini key and `WEBSUB_SE
 ## Open issues
 
 - End-to-end run on the owner's channel not done yet (needs the setup above).
+- Audit my channel: built and tested against a fake YouTube API and fake pages only. To confirm with the first real audit: that `commentThreads.list` returns the creator's replies for threads with few replies (the "unanswered" numbers rely on it), that description links resolve, and that the stack finding names the right system. The buying-signal patterns are English only.
+- Audit my channel: not built are the 30 day re-audit reminder with score history (P9-12), delivery of audit opt-ins to the owner's CRM (they are listed in `/admin`), and a web copy of the full report (the email is the gate). Privacy draft updated for audit data; the audit's use of YouTube API data (public data, API key, pointers only) should be re-checked with the Google verification pack.
+- Audit page depends on the Railway `web` service handling the form post from the app host; the in-memory rate limit is per instance (fine for one instance).
 - Brand domain vidrev.app bought; still to do: Resend sending domain, `app.vidrev.app` for the app and OAuth (compliance pack), so OAuth stays in Testing mode (reconnect weekly) until then.
 - First real custom domain (a creator's own subdomain) not tried yet; Cloudflare for SaaS hostname creation is covered by tests with a faked API only.
 - Domain Connect goes live per provider only after the template PR and provider onboarding ([docs/domain-connect/README.md](docs/domain-connect/README.md)); name is lowercase `vidrev` (P5-09).
@@ -103,7 +117,7 @@ Still deferred from Phase 4 (no billing yet): platform Gemini key and `WEBSUB_SE
 - Stripe: the connector is tested against a fake Stripe only. What a real payment must confirm: a restricted key with read on Charges, Customers and Invoices can list charges with the two expansions, and whether it may read `/v1/account` (the name; optional).
 - The Contact page (timeline) and the merge undo tool are not built; a report shows people counts only.
 - Still open: Q-01 (name and domain). GHL merge field names in the provisioning guide must be checked when the workflows are built.
-- Proposals P8-01 to P8-09, P8-C-01 to P8-C-05 and CC-01 to CC-06, P3-01 to P3-07, P4-01 to P4-11 and P5-01 to P5-12 and P6-01 to P6-14 and P7-01 to P7-14 in `DECISIONS.md` await owner review (P4-10 accepted 2026-09-25; owner data principle in DECISIONS section 8).
+- Proposals P9-01 to P9-12, P8-01 to P8-09, P8-C-01 to P8-C-05 and CC-01 to CC-06, P3-01 to P3-07, P4-01 to P4-11 and P5-01 to P5-12 and P6-01 to P6-14 and P7-01 to P7-14 in `DECISIONS.md` await owner review (P4-10 accepted 2026-09-25; owner data principle in DECISIONS section 8).
 - Poll jobs run one at a time per worker; fine for the founding cohort, revisit with many channels.
 - Railway did not run the config-as-code pre-deploy command; migrations run at service start instead.
 - `drizzle-kit` pulls a dev-only dependency with a moderate npm audit advisory; not shipped.
@@ -111,4 +125,4 @@ Still deferred from Phase 4 (no billing yet): platform Gemini key and `WEBSUB_SE
 
 ## Next phase
 
-Phase 9: Audit my channel (public page, own separate GCP project and API key, 24h cache, IP rate limit, real numbers only, email opt-in for the full report, stack detection). Starts only after "mehet". In parallel, once the LLC exists: fill the compliance placeholders and submit (docs/compliance/README.md).
+Phase 10: GHL Marketplace connector (free Marketplace app made Public, one-click connection, `c2c_tid` field and tags, optional workflow trigger and action). Starts only after "mehet". Before it, the owner does the Phase 9 setup above so the audit can be tried live. In parallel, once the LLC exists: fill the compliance placeholders and submit (docs/compliance/README.md).

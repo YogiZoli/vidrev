@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="vidrev">
   <rect width="512" height="512" fill="#FFFFFF"/>
-  <rect x="56" y="56" width="400" height="400" rx="96" fill="#1E7CE8"/>
-  <path d="M256 138c-70 0-118 46-118 104 0 32 14 58 38 78l-10 44 52-26c12 3 25 5 38 5 70 0 118-46 118-104S326 138 256 138z" fill="#FFFFFF"/>
-  <path d="M196 268l44-44 32 30 52-58" fill="none" stroke="#1E7CE8" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M296 192h46v46" fill="none" stroke="#1E7CE8" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="44" y="130" width="296" height="252" rx="56" fill="#1E7CE8"/>
+  <path d="M368 232l88-60c8-5 14-2 14 8v152c0 10-6 13-14 8l-88-60z" fill="#1E7CE8" stroke="#1E7CE8" stroke-width="16" stroke-linejoin="round"/>
+  <path d="M106 316l48-48 36 32 66-74" fill="none" stroke="#FFFFFF" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M222 226h34v34" fill="none" stroke="#FFFFFF" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

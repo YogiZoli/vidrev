@@ -18,6 +18,7 @@ export const QUEUES = {
   ghlSetup: "ghl.setup",
   ghlSync: "ghl.sync",
   ghlEvent: "ghl.event",
+  stripeSync: "stripe.sync",
   reportRefresh: "report.refresh",
   reportHourly: "report.hourly",
 } as const;
@@ -77,6 +78,7 @@ export interface JobPayloads {
   [QUEUES.ghlSetup]: GhlIntegrationJob;
   [QUEUES.ghlSync]: GhlIntegrationJob;
   [QUEUES.ghlEvent]: GhlEventJob;
+  [QUEUES.stripeSync]: GhlIntegrationJob;
   [QUEUES.reportRefresh]: AccountJob;
 }
 
@@ -100,6 +102,9 @@ export const QUEUE_OPTIONS = {
   [QUEUES.ghlSetup]: { policy: "stately", retryLimit: 5, retryDelay: 60, retryBackoff: true },
   [QUEUES.ghlSync]: { policy: "stately", retryLimit: 1, retryDelay: 60, expireInSeconds: 600 },
   [QUEUES.ghlEvent]: { retryLimit: 5, retryDelay: 30, retryBackoff: true },
+  // Stripe (Phase 8): the read-only sync every 5 minutes, one queued plus one
+  // running per integration.
+  [QUEUES.stripeSync]: { policy: "stately", retryLimit: 1, retryDelay: 60, expireInSeconds: 900 },
   // Attribution and report snapshots (Phase 7): one queued plus one running
   // per account (singletonKey = account id); the tick queues dirty accounts.
   [QUEUES.reportRefresh]: { policy: "stately", retryLimit: 2, retryDelay: 60, expireInSeconds: 600 },

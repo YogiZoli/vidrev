@@ -7,6 +7,7 @@ import { requireSession } from "@/server/auth/current";
 import { ghlConfigured } from "@/server/ghl/config";
 import { readGhlConfig } from "@/server/ghl/tokens";
 import { ensureHookToken } from "@/server/integrations/inbound";
+import { readStripeConfig } from "@/server/stripe/connect";
 import { listEndpoints, MAX_ENDPOINTS, readConfig, recentDeliveries } from "@/server/integrations/outbound";
 import { Notice, styles } from "../../ui";
 
@@ -38,6 +39,11 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
     .from(integrations)
     .where(and(eq(integrations.accountId, account.id), eq(integrations.type, "ghl"), ne(integrations.status, "removed")));
   const ghlConfig = ghl?.configEnc ? readGhlConfig(ghl.configEnc, key) : null;
+  const [stripe] = await db
+    .select()
+    .from(integrations)
+    .where(and(eq(integrations.accountId, account.id), eq(integrations.type, "stripe"), ne(integrations.status, "removed")));
+  const stripeLast4 = stripe?.configEnc ? readStripeConfig(stripe.configEnc, key).last4 : null;
 
   return (
     <main style={styles.main}>
@@ -59,6 +65,9 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
       {params.ghl_disconnected ? <Notice tone="info">GoHighLevel disconnected. Remove the app in GoHighLevel too if you no longer want it there.</Notice> : null}
       {params.ghl_sync ? <Notice tone="info">Sync queued. It runs within a minute.</Notice> : null}
       {params.ghl_saved ? <Notice tone="info">Saved.</Notice> : null}
+      {params.stripe_connected ? <Notice tone="info">Stripe connected. We are checking the key and reading your payments.</Notice> : null}
+      {params.stripe_disconnected ? <Notice tone="info">Stripe disconnected. Delete or roll the key in your Stripe dashboard too if you no longer want it to exist.</Notice> : null}
+      {params.stripe_sync ? <Notice tone="info">Sync queued. It runs within a minute.</Notice> : null}
 
       <section style={styles.card}>
         <h2 style={{ marginTop: 0 }}>GoHighLevel</h2>
@@ -131,6 +140,60 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
             </div>
           </>
         )}
+      </section>
+
+      <section style={styles.card}>
+        <h2 style={{ marginTop: 0 }}>Stripe</h2>
+        <p style={styles.muted}>
+          Read your Stripe payments, so each video shows what it earned. We use a restricted key that can only read: it cannot charge, refund
+          or change anything.
+        </p>
+        {!stripe || stripe.status === "error" ? (
+          <>
+            {stripe?.status === "error" ? <Notice tone="error">{stripe.lastError ?? "Stripe stopped working. Paste the key again."}</Notice> : null}
+            <details>
+              <summary>How to create the key</summary>
+              <ol style={{ fontSize: 14 }}>
+                <li>In Stripe, open Developers, then API keys, then Create restricted key.</li>
+                <li>Give it Read access to Charges, Customers and Invoices, and no access to anything else.</li>
+                <li>Copy the key that starts with <code>rk_live_</code> and paste it below.</li>
+              </ol>
+            </details>
+            <form method="post" action="/api/integrations" style={{ display: "grid", gap: 8, maxWidth: 420 }}>
+              <input type="hidden" name="action" value="stripe_connect" />
+              <label>
+                Restricted key
+                <input name="apiKey" type="password" autoComplete="off" style={styles.input} placeholder="rk_live_..." />
+              </label>
+              <button type="submit" style={styles.button}>
+                {stripe ? "Reconnect Stripe" : "Connect Stripe"}
+              </button>
+            </form>
+          </>
+        ) : null}
+        {stripe && stripe.status === "active" ? (
+          <>
+            <p>
+              <strong>{stripe.label ?? "Stripe"}</strong> <span style={styles.muted}>{stripe.syncState.setup === "done" ? "connected" : "checking the key"}</span>
+              <br />
+              <span style={{ ...styles.muted, fontSize: 13 }}>
+                Key ending {stripeLast4 ?? "----"} · last sync {when(stripe.lastSyncedAt)}
+                {stripe.lastError ? ` · ${stripe.lastError}` : ""}
+              </span>
+            </p>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {(["stripe_sync", "stripe_disconnect"] as const).map((action) => (
+                <form key={action} method="post" action="/api/integrations">
+                  <input type="hidden" name="action" value={action} />
+                  <input type="hidden" name="id" value={stripe.id} />
+                  <button type="submit" style={styles.secondary}>
+                    {action === "stripe_sync" ? "Sync now" : "Disconnect"}
+                  </button>
+                </form>
+              ))}
+            </div>
+          </>
+        ) : null}
       </section>
 
       <section style={styles.card}>

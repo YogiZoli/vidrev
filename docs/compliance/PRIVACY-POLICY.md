@@ -30,6 +30,7 @@ You can revoke vidrev's access to your Google account at any time at https://mya
 **First-party data we create:**
 - Replies you approved (text, keyword, language, time of approval and sending).
 - Clicks on your tracked links: time, link, keyword, video id, a daily-changing one-way hash of the IP address (the IP itself is not stored), browser type, country, referring site. Automated clicks (bots) are marked.
+- If you connect Stripe: a restricted read-only key you create (stored encrypted, deleted when you disconnect), and, read from your Stripe account, each payment's id, amount, currency, refunds, time, the buyer's email and name, the Stripe customer id and any tracking id you put in the metadata. We do not store card details, and the key cannot change anything in your Stripe account.
 - Opt-ins and purchases your own systems send us (through our inbound webhooks or a connected GoHighLevel account): email address, name if you send it, the tracking id, order id, amount, currency, refunds and time. We use them only to show you which video and keyword brought them. If you connect GoHighLevel we also store its access tokens, encrypted, and read the contacts, won opportunities and payments of the one sub-account you connect.
 
 ## 4. Data retention (YouTube API data: 30 days)

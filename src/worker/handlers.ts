@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { users } from "@/db/schema";
 import { type AccountJob, type ChannelJob, type CommentJob, type DeliveryJob, type DomainJob, type GhlEventJob, type GhlIntegrationJob, type ReplyJob, QUEUES, QUEUE_OPTIONS, type SendEmailJob } from "@/jobs/queues";
-import { ghlReconnectEmail } from "@/server/email/templates";
+import { ghlReconnectEmail, stripeReconnectEmail } from "@/server/email/templates";
 import { postJson } from "@/server/integrations/http-post";
 import { pruneDeliveries } from "@/server/integrations/outbound";
 import { appBaseUrl, domainConnectConfig, env } from "@/lib/env";
@@ -18,6 +18,7 @@ import { checkRss, type EngineDeps, engineTick, pollChannel, renewWebsub } from 
 import { deliver, deliverDue, type WebhookDeps } from "./webhooks";
 import { type GhlWorkerDeps, handleGhlEvent, queueGhlWork, setupGhl, syncGhl } from "./ghl";
 import { queueReportRefreshes, refreshAccountReports, type ReportDeps } from "./reports";
+import { queueStripeWork, type StripeWorkerDeps, syncStripe } from "./stripe";
 import { markAllReportsDirty } from "@/server/attribution";
 import { backfillContacts } from "@/server/contacts-backfill";
 
@@ -38,6 +39,27 @@ function ghlDeps(boss: PgBoss): GhlWorkerDeps | null {
       const recipients = await db.select({ email: users.email }).from(users).where(eq(users.accountId, accountId));
       for (const { email } of recipients) {
         await boss.send(QUEUES.sendEmail, ghlReconnectEmail({ to: email, url: `${appBaseUrl()}/app/integrations`, productName: PRODUCT_NAME }) as object, {});
+      }
+    },
+  };
+}
+
+function stripeDeps(boss: PgBoss): StripeWorkerDeps | null {
+  const { ENCRYPTION_KEY, PRODUCT_NAME } = env();
+  if (!ENCRYPTION_KEY) return null;
+  const db = getDb();
+  return {
+    db,
+    fetch,
+    encryptionKey: ENCRYPTION_KEY,
+    enqueue: async (queue, data, options) => {
+      await boss.send(queue, data as object, options ?? {});
+    },
+    // Stripe refused the key: tell the creator once to reconnect.
+    onKeyRejected: async (accountId) => {
+      const recipients = await db.select({ email: users.email }).from(users).where(eq(users.accountId, accountId));
+      for (const { email } of recipients) {
+        await boss.send(QUEUES.sendEmail, stripeReconnectEmail({ to: email, url: `${appBaseUrl()}/app/integrations`, productName: PRODUCT_NAME }) as object, {});
       }
     },
   };
@@ -179,6 +201,8 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
     if (hooks) await deliverDue(hooks);
     const ghl = ghlDeps(boss);
     if (ghl) await queueGhlWork(ghl);
+    const stripe = stripeDeps(boss);
+    if (stripe) await queueStripeWork(stripe);
     await queueReportRefreshes(reportDeps(boss));
     const deps = engineDeps(boss);
     if (deps) await engineTick(deps);
@@ -196,6 +220,11 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
   await boss.work<GhlIntegrationJob>(QUEUES.ghlSync, async ([job]) => {
     const deps = ghlDeps(boss);
     if (deps) await syncGhl(deps, job!.data.integrationId);
+  });
+  // Stripe (Phase 8): the read-only sync with the creator's restricted key.
+  await boss.work<GhlIntegrationJob>(QUEUES.stripeSync, async ([job]) => {
+    const deps = stripeDeps(boss);
+    if (deps) await syncStripe(deps, job!.data.integrationId);
   });
   await boss.work<GhlEventJob>(QUEUES.ghlEvent, async ([job]) => {
     const deps = ghlDeps(boss);

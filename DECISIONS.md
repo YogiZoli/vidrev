@@ -161,3 +161,20 @@ The Phase 1 review adds owner questions Q-01 to Q-22 in [docs/SPEC-REVIEW.md](do
 | P4-10 Video id on sent replies | **Accepted.** |
 | Data principle (applies to every phase) | **Owner rule:** keep as much first-party data as possible, detailed and complete (every event, timestamp, status change, reply text, keyword, intent, language, draft source, approval time, click, opt-in, purchase). Nothing is left out; data that turns out to be unneeded can be deleted later or simply not shown. Limit: YouTube API data (comment text, commenter names and ids, video and channel titles, reply ids) still follows the 30-day rule (Q-17 c, YouTube API Developer Policies III.E.4); this principle cannot override it. |
 | Platform Gemini key and WebSub secret | **Deferred** until the brand domain exists; the owner enables no billing before that. Until then drafts use the approved templates. When it is time, Claude gives click-by-click steps with paste-ready URLs (like the Phase 3 Google setup). |
+
+## 9. Phase 5 implementation choices (proposals, 2026-09-25)
+
+Brand domain: **vidrev.app** (owner, 2026-09-25), on Cloudflare. Brand site `vidrev.app`, app `app.vidrev.app` (later), fallback links `go.vidrev.app`, CNAME target `customers.vidrev.app`.
+
+| ID | Choice | Why |
+| --- | --- | --- |
+| P5-01 | Two link kinds (R-07): one `reply` link per reply, minted when the draft is shown or sent; until posted it follows keyword switches and a newly live domain, then host, campaign and destination freeze. `static` links per campaign (channel-wide) and per campaign and video, for descriptions and pinned comments. Slugs: 7 characters, globally unique. | Comment-level data; a posted link must never move (changing it costs 50 units). |
+| P5-02 | The redirect always goes to the campaign destination stored on the link (no open redirect). Links keep redirecting after campaign deletion and account suspension; suspended accounts are not measured (R-35). | Never hold creators' links hostage. |
+| P5-03 | Every click is stored (first-party): tid, link, reply, campaign, video id, keyword, host, daily-salted ip hash, user agent and class, bot flag, country, referrer host. Bots get no tid. | Data principle (DECISIONS section 8); bot clicks must not steal attribution. |
+| P5-04 | Click id `c2c_tid` is 10 characters; appended with `utm_source=c2c`, `utm_medium=comment`, `utm_campaign=<keyword>`, `utm_content=<tid>`. On the creator's own domain a 180-day first-party cookie is set on the registrable domain; `/c2c.js` fills `c2c_tid` fields from URL or cookie and stores it on the opt-in page's domain. | CC-07, all three layers. |
+| P5-05 | Link traffic reaches Railway through Cloudflare with Host rewritten to the Railway domain and `X-Original-Host` carrying the real host; the app routes on that header (or on the fallback host directly). | R-03; Railway rejects unknown hosts. |
+| P5-06 | One live custom domain per account, subdomains only (no apex), product domains reserved. Verification: DNS-over-HTTPS CNAME check plus Cloudflare custom hostname with HTTP DCV; live only when Cloudflare reports hostname and certificate active. Checked every minute for 15 min, every 10 min to 48 h, hourly to 14 days, then "not found" until Check now. Live domains rechecked daily; a broken one drops back so new links use the fallback. | D-38 automatic verification, without waiting on the creator. |
+| P5-07 | "Send to my web person" is a prefilled `mailto:` link; the creator sends it from their own mail. | Nothing is sent on the creator's behalf. |
+| P5-08 | Domain Connect: discovery on the first domain check; the button appears only when the provider already supports our template. Signed apply URLs when `DOMAIN_CONNECT_PRIVATE_KEY` is set. | D-38: built now, goes live per provider. |
+| P5-09 | The product name in the Domain Connect template is assumed to be "VidRev" (from the domain). `PRODUCT_NAME` in env stays the source for the UI. | Q-01 still open for the name. |
+| P5-10 | Owner kill switch per account blocks links on the shared fallback host only (410); links on the creator's own domain keep working. | R-20. |

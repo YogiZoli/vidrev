@@ -15,6 +15,7 @@ import {
   isLive,
 } from "@/server/domains/cloudflare";
 import { detectProvider, lookupCname, lookupNs } from "@/server/domains/dns";
+import { type DomainConnectConfig, discoverDomainConnect } from "@/server/domains/domain-connect";
 import type { FetchLike } from "@/server/google/oauth";
 import type { Enqueue } from "./polling";
 
@@ -23,6 +24,7 @@ export interface DomainDeps {
   fetch: FetchLike;
   cloudflare: CloudflareConfig | null;
   cnameTarget: string | null;
+  domainConnect: DomainConnectConfig | null;
   appBaseUrl: string;
   enqueue: Enqueue;
   now?: () => Date;
@@ -86,6 +88,10 @@ export async function checkDomain(deps: DomainDeps, domainId: string): Promise<v
     const nameservers = registrable ? await lookupNs(deps.fetch, registrable).catch((): string[] => []) : [];
     update.nameservers = nameservers;
     update.dnsProvider = detectProvider(nameservers)?.id ?? (nameservers.length > 0 ? "other" : null);
+    if (registrable && deps.domainConnect) {
+      const support = await discoverDomainConnect(deps.fetch, registrable, deps.domainConnect).catch(() => null);
+      update.domainConnect = support ? { providerId: support.providerId, urlSyncUX: support.urlSyncUX } : null;
+    }
   }
 
   if (!deps.cloudflare || !target) {

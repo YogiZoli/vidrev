@@ -1,7 +1,7 @@
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { campaigns } from "@/db/schema";
-import { env } from "@/lib/env";
+import { appBaseUrl, env } from "@/lib/env";
 import { fallbackHost } from "@/lib/link-host";
 import { cookieDomain, suggestHostname } from "@/lib/links";
 import { requireSession } from "@/server/auth/current";
@@ -93,6 +93,14 @@ export default async function DomainPage({ searchParams }: { searchParams: Promi
             <strong>{statusLabel(domain)}</strong>
           </p>
           {domain.status === "active" ? <p style={styles.muted}>New replies carry links on {domain.hostname}.</p> : null}
+          {domain.status !== "active" && record && domain.domainConnect ? (
+            <p>
+              <a href="/api/domain/connect" style={{ ...styles.button, display: "inline-block", textDecoration: "none" }}>
+                Connect automatically
+              </a>{" "}
+              <span style={styles.muted}>You approve one record at your DNS provider. Or add it by hand:</span>
+            </p>
+          ) : null}
           {domain.status !== "active" && record ? (
             <>
               <p>Add this one record where the DNS of your domain is managed{provider ? ` (${provider.name})` : ""}:</p>
@@ -151,6 +159,18 @@ export default async function DomainPage({ searchParams }: { searchParams: Promi
           </p>
         </section>
       )}
+
+      <section style={styles.card}>
+        <h2 style={{ marginTop: 0 }}>On your opt-in page</h2>
+        <p style={styles.muted}>
+          Every link click adds <code>c2c_tid</code> and UTM parameters (utm_content is the same id) to your opt-in page address. Most form
+          tools store UTM values on their own. To be sure, add a hidden field named <code>c2c_tid</code> to your form and this line to the page:
+        </p>
+        <pre style={{ whiteSpace: "pre-wrap", fontSize: 13, background: "#f6f6f6", padding: 10, borderRadius: 6 }}>
+          {`<script src="${appBaseUrl()}/c2c.js" async></script>`}
+        </pre>
+        <p style={styles.muted}>It fills the field, also when the visitor comes back days later.</p>
+      </section>
     </main>
   );
 }

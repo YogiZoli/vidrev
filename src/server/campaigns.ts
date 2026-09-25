@@ -19,7 +19,7 @@ function splitList(value: string): string[] {
 // Accepts video ids or any YouTube watch, share or Shorts URL.
 export function parseVideoIds(value: string): string[] | null {
   const ids: string[] = [];
-  for (const item of value.split(/[s,]+/).filter(Boolean)) {
+  for (const item of value.split(/[\s,]+/).filter(Boolean)) {
     const match = /(?:v=|youtu\.be\/|shorts\/|live\/)([A-Za-z0-9_-]{11})/.exec(item) ?? /^([A-Za-z0-9_-]{11})$/.exec(item);
     if (!match) return null;
     ids.push(match[1]!);

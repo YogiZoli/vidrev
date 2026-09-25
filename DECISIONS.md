@@ -137,3 +137,19 @@ The Phase 1 review adds owner questions Q-01 to Q-22 in [docs/SPEC-REVIEW.md](do
 | P3-05 | The OAuth code exchange runs in the web callback (codes expire in minutes); resolving the channel (`channels.list`, 1 unit) runs in the worker. | Keeps the rule that YouTube API calls run in the worker. |
 | P3-06 | Owner accounts from `ADMIN_EMAILS` are seeded on the `internal` plan at every start (idempotent). | The owner can sign in before any checkout exists. |
 | P3-07 | A YouTube channel can be live in only one account (unique index). Reconnecting the same channel in the same account replaces the old grant. | Prevents double polling and double replies. |
+
+## 7. Phase 4 implementation choices (proposals, 2026-09-25)
+
+| ID | Choice | Why |
+| --- | --- | --- |
+| P4-01 | A campaign only drafts replies to comments published after it was created; the first poll of a channel starts at its oldest enabled campaign. | Enabling a keyword must never flood the queue with old comments. |
+| P4-02 | Quota units are charged in `quota_ledger` before each call under an advisory lock. Reads (polls, video titles, retention refreshes) may use only 25% of the day; replies may use everything left. Poll intervals stretch by one global factor (capped at 96x) when active channels need more reads than the budget allows (keeping 20% headroom). | D-27, D-31, Q-02; YouTube charges failed calls too. |
+| P4-03 | One poll reads at most 5 pages (500 new comments); older new comments beyond that are skipped and logged. | Bounds quota per poll; far above the target channel size. |
+| P4-04 | Only matching comments are stored; nothing else from a poll is kept. | Data minimization for the Google review. |
+| P4-05 | Language detection (franc) runs only on comments of 20+ characters; shorter ones use the channel default. | Short comments are detected wrongly; B-06 then falls back safely. |
+| P4-06 | The platform AI default is `gemini-3.1-flash-lite` (checked 2026-09-25: 0.25 USD / 1M input, 1.50 USD / 1M output tokens, about 0.0003 USD per draft, about 0.09 USD per account per month at 300 drafts). Own keys: OpenAI `gpt-5.4-nano`, Anthropic `claude-haiku-4-5` defaults, overridable per account. Invalid AI output (missing link twice, engagement bait) falls back to the least recently used approved template, else "Here you go: {link}" for the creator to edit. | Q-13c; model names are configuration. |
+| P4-07 | Template rules: `{link}` exactly once, max 1000 characters, no like/subscribe/bell requests (EN, HU, ES, FR/DE patterns). Checked on save, on every AI draft and on every approval. | Brief: never require like or subscribe. |
+| P4-08 | Plan caps count replies approved in the Pacific month and day, including queued and hand-posted ones. Drafts over the monthly cap are stored as `skipped` with the reason; the daily ceiling blocks approval with a message and the manual fallback stays available. | Q-03 / Q-11; one quota calendar everywhere. |
+| P4-09 | "Drafts are waiting" email at most once per hour per account. | R-35 mobile approval without spamming. |
+| P4-10 | `replies.youtube_video_id` is kept as first-party data (the video we replied on) for per-video reporting; comment text, commenter names and ids, video titles and reply ids are deleted after 30 days or at disconnect. Drafts not approved within 30 days become `expired`. | Q-17 c; Phase 7 reports per video. Owner to confirm. |
+| P4-11 | Retention deletes old comments rather than refreshing them (the SPEC allows either). | The comment is only needed while the draft is open. |

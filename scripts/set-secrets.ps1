@@ -4,9 +4,9 @@
 # With the OAuth client JSON downloaded from Google Cloud:
 #   powershell -ExecutionPolicy Bypass -File scripts/set-secrets.ps1 -GoogleJson "C:/path/client_secret.json"
 #
-# Generated secrets (ENCRYPTION_KEY, AUTH_SECRET, PROVISIONING_SECRET) are set
+# Generated secrets (ENCRYPTION_KEY, AUTH_SECRET, PROVISIONING_SECRET, WEBSUB_SECRET) are set
 # only when missing: changing ENCRYPTION_KEY later would make stored tokens
-# unreadable. Values are never printed. Google OAuth values are asked for when
+# unreadable. Values are never printed. Google OAuth values and the platform Gemini key are asked for when
 # missing; press Enter to skip them for now. With -GoogleJson they are read
 # from the downloaded client JSON instead (and replace existing values).
 
@@ -35,7 +35,7 @@ function Set-OnAllServices($name, $value) {
 
 $existing = Get-ExistingNames "web"
 
-foreach ($name in @("ENCRYPTION_KEY", "AUTH_SECRET", "PROVISIONING_SECRET")) {
+foreach ($name in @("ENCRYPTION_KEY", "AUTH_SECRET", "PROVISIONING_SECRET", "WEBSUB_SECRET")) {
     if ($existing -contains $name) {
         Write-Host "keep $name (already set)"
     } else {
@@ -52,7 +52,7 @@ if ($GoogleJson) {
     exit 0
 }
 
-foreach ($name in @("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET")) {
+foreach ($name in @("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GEMINI_PLATFORM_API_KEY")) {
     if ($existing -contains $name) {
         Write-Host "keep $name (already set)"
         continue

@@ -100,6 +100,11 @@ export default async function AppPage({ searchParams }: { searchParams: Promise<
             </a>
           </p>
         ) : null}
+        {live > 0 ? (
+          <p>
+            <a href="/app/queue">Approval queue</a> · <a href="/app/campaigns">Keywords and replies</a>
+          </p>
+        ) : null}
         <p style={styles.muted}>
           We ask Google only for permission to read comments and post the replies you approve. Every reply waits for your approval.
         </p>

@@ -2,10 +2,12 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { campaigns } from "@/db/schema";
 import { env } from "@/lib/env";
+import { fallbackHost } from "@/lib/link-host";
 import { repliesLeftToday } from "@/lib/quota";
 import { nextPacificMidnight, pacificDate } from "@/lib/time";
 import { requireSession } from "@/server/auth/current";
 import { queueView } from "@/server/campaigns";
+import { ensureReplyLink } from "@/server/links";
 import { dayUsage } from "@/server/quota";
 import { replyUsage } from "@/server/replies";
 import { commentUrl } from "@/server/youtube/api";
@@ -33,9 +35,17 @@ export default async function QueuePage() {
   const db = getDb();
   const now = new Date();
   const rows = await queueView(db, account.id);
-  const links = new Map(
+  const destinations = new Map(
     (await db.select({ id: campaigns.id, url: campaigns.destinationUrl }).from(campaigns).where(eq(campaigns.accountId, account.id))).map((c) => [c.id, c.url]),
   );
+  // Tracked links for replies that can still be posted, so "Copy reply"
+  // carries the same link the API would post (Phase 5).
+  const trackedLinks = new Map<string, string>();
+  for (const row of rows) {
+    if (!["pending_approval", "approved", "queued", "failed", "skipped"].includes(row.reply.status)) continue;
+    const link = await ensureReplyLink(db, row.reply.id, { fallbackHost: fallbackHost() }, now);
+    if (link) trackedLinks.set(row.reply.id, link.url);
+  }
   const usage = await replyUsage(db, account.id, now);
   const reset = nextPacificMidnight(now);
 
@@ -57,7 +67,7 @@ export default async function QueuePage() {
         intent: row.reply.intent,
         otherMatches: row.reply.otherMatches,
         body: row.reply.body,
-        link: (row.reply.campaignId && links.get(row.reply.campaignId)) || "(link)",
+        link: trackedLinks.get(row.reply.id) ?? ((row.reply.campaignId && destinations.get(row.reply.campaignId)) || "(link)"),
         commentText: row.comment?.text ?? null,
         videoTitle: row.videoTitle,
         commentUrl: row.comment ? commentUrl(row.reply.youtubeVideoId, row.comment.youtubeCommentId) : null,

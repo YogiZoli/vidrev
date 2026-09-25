@@ -1,9 +1,11 @@
 import { and, asc, eq, lte } from "drizzle-orm";
 import { campaigns, channels, comments, replies } from "@/db/schema";
+import { fallbackHost } from "@/lib/link-host";
 import { log } from "@/lib/log";
 import { repliesLeftToday } from "@/lib/quota";
 import { renderReply } from "@/lib/templates";
 import { nextPacificMidnight, pacificDate } from "@/lib/time";
+import { ensureReplyLink, publishLink } from "@/server/links";
 import { dayUsage, reserveUnits } from "@/server/quota";
 import { insertReply, YoutubeApiError } from "@/server/youtube/api";
 import { ChannelRevokedError, getAccessToken } from "./channels";
@@ -43,8 +45,11 @@ export async function sendReply(deps: EngineDeps, replyId: string): Promise<void
 
   try {
     const token = await getAccessToken(deps, channel);
-    // Phase 5 replaces the destination URL with the tracked link.
-    const posted = await insertReply(deps.fetch, token, comment.youtubeCommentId, renderReply(reply.body, campaign.destinationUrl));
+    // The tracked link on the creator's domain; the destination URL only
+    // while no link host is configured at all.
+    const link = await ensureReplyLink(deps.db, reply.id, { fallbackHost: fallbackHost() }, now);
+    const posted = await insertReply(deps.fetch, token, comment.youtubeCommentId, renderReply(reply.body, link?.url ?? campaign.destinationUrl));
+    if (link) await publishLink(deps.db, link.id, now);
     await deps.db
       .update(replies)
       .set({ status: "sent", sentAt: now, youtubeReplyId: posted.id, statusReason: null, queuedForDatePt: null, updatedAt: now })

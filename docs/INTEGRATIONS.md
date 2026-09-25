@@ -114,6 +114,10 @@ curl -X POST "$APP/api/hooks/purchase" \
   -d '{"email":"lea@example.com","external_id":"ord_1001","amount":"97.00","currency":"USD"}'
 ```
 
+### Stripe
+
+Stripe has its own connector: paste a read-only restricted key on the Integrations page and payments arrive by themselves, matched to the right video and person. See [SETUP-STRIPE.md](SETUP-STRIPE.md). Use `/api/hooks/purchase` only for other payment tools.
+
 ### GoHighLevel without the connector
 
 In a workflow, add a **Custom Webhook** action: method `POST`, URL as above, header `Authorization: Bearer <token>`, body fields `email` = `{{contact.email}}`, `c2c_tid` = your custom field's merge tag. Trigger it on form submitted (subscriber) or on payment received (buyer, with `external_id` = the order or transaction id).

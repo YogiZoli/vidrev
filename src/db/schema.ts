@@ -585,7 +585,7 @@ export const clicks = pgTable(
   ],
 );
 
-export type IntegrationType = "outbound_webhook" | "ghl";
+export type IntegrationType = "outbound_webhook" | "ghl" | "stripe";
 export type IntegrationStatus = "active" | "disabled" | "error" | "removed";
 
 // A connected outside system (SPEC section 5). `configEnc` holds the JSON

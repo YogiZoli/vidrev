@@ -7,6 +7,7 @@ import { requireEnv } from "@/lib/env";
 import { currentSession } from "@/server/auth/current";
 import { isSameOrigin, redirectTo } from "@/server/http";
 import { disconnectGhl } from "@/server/ghl/connect";
+import { connectStripe, disconnectStripe } from "@/server/stripe/connect";
 import { updateGhlConfig } from "@/server/ghl/tokens";
 import { rotateHookToken } from "@/server/integrations/inbound";
 import { createEndpoint, queuePing, removeEndpoint, rotateSecret, setEndpointEnabled } from "@/server/integrations/outbound";
@@ -66,6 +67,21 @@ export async function POST(request: Request): Promise<Response> {
         .where(and(eq(integrations.id, field("id")), eq(integrations.accountId, accountId), eq(integrations.type, "ghl")));
       if (row) await updateGhlConfig({ db, fetch, encryptionKey: key, client: null }, row.id, { buyerTag: field("buyerTag").trim().slice(0, 60) });
       return redirectTo(`${PAGE}?ghl_saved=1`);
+    }
+    case "stripe_connect": {
+      const result = await connectStripe(db, key, accountId, field("apiKey"));
+      return redirectTo(result.ok ? `${PAGE}?stripe_connected=1` : `${PAGE}?error=${encodeURIComponent(result.error)}`);
+    }
+    case "stripe_disconnect":
+      await disconnectStripe(db, accountId, field("id"));
+      return redirectTo(`${PAGE}?stripe_disconnected=1`);
+    case "stripe_sync": {
+      // The engine tick picks it up within a minute.
+      await db
+        .update(integrations)
+        .set({ nextSyncAt: new Date() })
+        .where(and(eq(integrations.id, field("id")), eq(integrations.accountId, accountId), eq(integrations.type, "stripe"), eq(integrations.status, "active")));
+      return redirectTo(`${PAGE}?stripe_sync=1`);
     }
     case "hook_rotate":
       await rotateHookToken(db, key, accountId);

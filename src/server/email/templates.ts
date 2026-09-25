@@ -60,6 +60,19 @@ export function ghlReconnectEmail(input: { to: string; url: string; productName:
   };
 }
 
+export function stripeReconnectEmail(input: { to: string; url: string; productName: string }): SendEmailJob {
+  const paragraphs = [
+    "Stripe refused the key you connected, so new payments are no longer read.",
+    "Check that the restricted key is still active and can read Charges, Customers and Invoices, then paste it again. Nothing that was already recorded is lost.",
+  ];
+  return {
+    to: input.to,
+    subject: `Reconnect Stripe - ${input.productName}`,
+    text: `${paragraphs.join("\n")}\n\nReconnect: ${input.url}\n`,
+    html: layout(input.productName, paragraphs, { label: "Reconnect", url: input.url }),
+  };
+}
+
 // R-35 (3): the weekly summary, real numbers of the last 7 days only.
 export function weeklySummaryEmail(input: { to: string; revenue: string; clicks: number; subscribers: number; buyers: number; url: string; settingsUrl: string; productName: string }): SendEmailJob {
   const headline = `This week your comments made ${input.revenue}.`;

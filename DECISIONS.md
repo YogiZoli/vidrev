@@ -4,7 +4,7 @@ Source of truth: Drive doc "02 C2C SaaS Döntési napló" (last updated 2026-09-
 
 Sections:
 
-Later sections 5 to 14 record owner answers and the implementation choices of each phase.
+Later sections 5 to 15 record owner answers and the implementation choices of each phase.
 
 1. Valid decisions D-01 to D-37 (owner decisions from 02)
 2. Build brief decisions B-01 to B-09 (owner instructions given to Claude Code on 2026-09-25)
@@ -425,3 +425,19 @@ Open questions for the owner. Each has a recommended default, which is what gets
 | ID | Decision |
 | --- | --- |
 | Q-25 | **Owner decision:** the former Phase 11 (Enterprise BYOK: per-account Google OAuth client and GCP project, separate quota ledger) is **removed from the phase plan** and is not scheduled. The direction after Phase 10 is **deliberately open**: it may become an Agency, White-label or Affiliate offer, or something else. Nothing is built or reserved for it, and it is not listed as a phase in STATUS.md until the owner decides. D-32 (Enterprise plan with BYOK) stays on record as an earlier idea, on hold. The `enterprise` plan row that already exists in the plans table is data only and stays untouched. Phase numbers are not renumbered, so references to Phase 12 stay valid. |
+
+## 15. Phase 8 implementation choices: Stripe (proposals, 2026-09-26)
+
+Closes Q-17 e: Stripe Connect `read_only` OAuth is not available to new integrations, so the connector uses a **creator-provided restricted read-only key**. A Stripe App (marketplace review) stays possible later without changing the data model, because payments land in the same `purchases` table and go through the same Contact resolver (section 13).
+
+| ID | Choice | Why |
+| --- | --- | --- |
+| P8-01 | The creator creates a **restricted key** in their own Stripe dashboard with read permission on Charges, Customers and Invoices, and pastes it on `/app/integrations`. Only `rk_live_` keys are accepted: a full secret key (`sk_`) is refused because it can move money, and a test-mode key (`rk_test_`) is refused because only real revenue is counted (D-05). The key is encrypted at rest (AES-256-GCM), never shown again (only its last 4 characters), never logged. Disconnecting wipes it; the page tells the creator to delete or roll the key in Stripe, which is the only real revocation. | Least privilege, no Stripe review, and no platform secret to guard. |
+| P8-02 | Read-only **polling every 5 minutes** in the worker, the same rhythm and machinery as the GHL sync. No Stripe webhooks: creating an endpoint needs a write permission. Calls use `GET /v1/charges` with `expand[]=data.customer` and `expand[]=data.invoice`, and a pinned `Stripe-Version` so a Stripe default change never changes the numbers. | Read-only by construction; polling is the floor, as in P6-09. |
+| P8-03 | A payment is a **successful, paid charge**: external id = charge id, amount = `amount_captured`, refunds = cumulative `amount_refunded` (capped at the amount), currency upper-cased, nothing converted (Q-08). A charge that belongs to an invoice with a subscription carries `subscription_ref` (both the classic `invoice.subscription` and the newer `invoice.parent.subscription_details.subscription` are read), so renewals follow the first payment for life (Q-07, P7-03). | Q-05, Q-06, P7-03. |
+| P8-04 | The buyer is resolved by the Contact resolver (13.5): email (customer, else billing details, else receipt email), a `c2c_tid` in the charge or customer metadata, and the Stripe **customer id**, which is stored as an identity. The same customer paying with another email is still the same Contact. A charge with no email, no tid and no customer is stored without a Contact and stays unattributed. | Q-23: no duplicate people. |
+| P8-05 | **History:** the first sync imports the last 730 days, quietly: charges older than 3 days appear in reports but fire no outbound event and no GHL tagging, so a creator's automations are never flooded with old sales. A daily 90 day pass and a 2 day overlap on every run pick up refunds. Big histories are read in slices of at most 40 pages (4,000 charges) per run and resumed on the next run. | Real history from day one without side effects. |
+| P8-06 | When the same sale also arrives from GoHighLevel or an inbound webhook, **Stripe is the canonical source** (P7-01 source order), so revenue counts once. | Q-05. |
+| P8-07 | One Stripe account per creator account, and a Stripe account in one creator account at most (`external_ref` = the Stripe account id, when the key can read it). | Prevents two creators counting the same money. |
+| P8-08 | A rejected key (HTTP 401 or 403) sets the integration to `error` with the reason and emails the creator once to reconnect; nothing recorded is lost. Any other failure is retried on the next run and shown on the page. | Same behaviour as GHL (P6-08). |
+| P8-09 | `STRIPE_CONNECT_CLIENT_ID` and `STRIPE_SECRET_KEY` are no longer needed and are removed from `.env.example`. No owner setup exists for Stripe. | The key belongs to the creator. |

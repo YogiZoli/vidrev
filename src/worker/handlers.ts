@@ -1,11 +1,12 @@
 import type { PgBoss } from "pg-boss";
 import { getDb } from "@/db/client";
-import { type ChannelJob, type CommentJob, QUEUES, QUEUE_OPTIONS, type SendEmailJob } from "@/jobs/queues";
+import { type ChannelJob, type CommentJob, type ReplyJob, QUEUES, QUEUE_OPTIONS, type SendEmailJob } from "@/jobs/queues";
 import { appBaseUrl, env } from "@/lib/env";
 import { errorFields, log } from "@/lib/log";
 import { type ChannelDeps, disconnectChannel, syncChannel } from "./channels";
 import { EmailSendError, senderAddress, sendWithResend } from "./email";
 import { createDraft } from "./drafts";
+import { sendReply } from "./sending";
 import { checkRss, type EngineDeps, engineTick, pollChannel, renewWebsub } from "./polling";
 
 async function sendEmail(job: SendEmailJob): Promise<void> {
@@ -81,6 +82,7 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
   // Comment engine (SPEC section 7). The tick queues due polls and RSS
   // checks every minute; push leases are renewed hourly.
   await boss.work<ChannelJob>(QUEUES.channelPoll, withEngineDeps(boss, (deps, data: ChannelJob) => pollChannel(deps, data.channelId)));
+  await boss.work<ReplyJob>(QUEUES.replySend, withEngineDeps(boss, (deps, data: ReplyJob) => sendReply(deps, data.replyId)));
   await boss.work<ChannelJob>(QUEUES.channelRss, withEngineDeps(boss, (deps, data: ChannelJob) => checkRss(deps, data.channelId)));
   await boss.work<CommentJob>(QUEUES.replyDraft, async ([job]) => {
     const { ENCRYPTION_KEY, GEMINI_PLATFORM_API_KEY, AI_PLATFORM_MODEL, PRODUCT_NAME } = env();

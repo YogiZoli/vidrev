@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pacificDate, pacificMonth } from "./time";
+import { nextPacificMidnight, pacificDate, pacificMonth } from "./time";
 
 describe("Pacific quota day", () => {
   it("rolls over at midnight Pacific, not UTC", () => {
@@ -16,5 +16,12 @@ describe("Pacific quota day", () => {
   it("gives the Pacific month", () => {
     expect(pacificMonth(new Date("2026-10-01T06:00:00Z"))).toBe("2026-09");
     expect(pacificMonth(new Date("2026-10-01T08:00:00Z"))).toBe("2026-10");
+  });
+});
+
+describe("nextPacificMidnight", () => {
+  it("finds the next reset in summer and winter time", () => {
+    expect(nextPacificMidnight(new Date("2026-09-25T12:00:00Z")).toISOString()).toBe("2026-09-26T07:00:00.000Z");
+    expect(nextPacificMidnight(new Date("2026-12-01T09:00:00Z")).toISOString()).toBe("2026-12-02T08:00:00.000Z");
   });
 });

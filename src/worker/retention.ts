@@ -1,7 +1,9 @@
-import { and, eq, inArray, isNotNull, lt, notInArray, or, isNull } from "drizzle-orm";
-import { channels, comments, replies, videos } from "@/db/schema";
+import { and, eq, inArray, isNotNull, lt, lte, notInArray, or, isNull } from "drizzle-orm";
+import { channels, comments, contactIdentities, replies, videos } from "@/db/schema";
+import { YOUTUBE_IDENTITY_TTL_MS } from "@/lib/contacts";
 import { log } from "@/lib/log";
 import { reserveUnits } from "@/server/quota";
+import { listCommentsById } from "@/server/youtube/api";
 import { ChannelRevokedError, getAccessToken } from "./channels";
 import type { EngineDeps } from "./polling";
 
@@ -17,6 +19,71 @@ export interface RetentionResult {
   replyIds: number;
   expiredDrafts: number;
   channelTitles: number;
+  identitiesRefreshed: number;
+  identitiesDeleted: number;
+}
+
+// Commenter references that recognise a returning commenter (DECISIONS 13.9)
+// are confirmed with YouTube this many days before they are due, so a bad day
+// (quota, an outage) can be retried before the 30 days run out.
+const REFRESH_LEAD_MS = 5 * 86_400_000;
+const REFRESH_BATCH = 50;
+
+// Confirms each commenter channel id by asking YouTube for the comment that
+// showed it (comments.list by id, 1 unit per up to 50). Still there with the
+// same author: kept for 30 more days. Gone or different: deleted. Contacts and
+// their first-party history are never touched, only the ability to recognise
+// the person by their YouTube channel.
+async function refreshCommenterIdentities(deps: EngineDeps, now: Date): Promise<{ refreshed: number; deleted: number }> {
+  const db = deps.db;
+  let refreshed = 0;
+  let deleted = 0;
+  const soon = new Date(now.getTime() + REFRESH_LEAD_MS);
+  const due = await db
+    .select()
+    .from(contactIdentities)
+    .where(and(eq(contactIdentities.kind, "youtube_channel"), isNotNull(contactIdentities.channelId), lte(contactIdentities.refreshDueAt, soon)));
+  const byChannel = new Map<string, typeof due>();
+  for (const identity of due) byChannel.set(identity.channelId!, [...(byChannel.get(identity.channelId!) ?? []), identity]);
+
+  for (const [channelId, identities] of byChannel) {
+    const [channel] = await db.select().from(channels).where(and(eq(channels.id, channelId), eq(channels.status, "connected")));
+    if (!channel) continue;
+    let token: string;
+    try {
+      token = await getAccessToken(deps, channel);
+    } catch (error) {
+      if (!(error instanceof ChannelRevokedError)) log("warn", "identity refresh: no token", { channelId, error: String(error) });
+      continue;
+    }
+    for (let i = 0; i < identities.length; i += REFRESH_BATCH) {
+      const batch = identities.slice(i, i + REFRESH_BATCH);
+      const withRef = batch.filter((identity) => identity.refCommentId);
+      if (withRef.length === 0) continue;
+      if (!(await reserveUnits(db, { method: "comments.list", accountId: channel.accountId, limit: deps.quotaLimit }, now))) break;
+      let authors: Map<string, string | undefined>;
+      try {
+        const response = await listCommentsById(deps.fetch, token, [...new Set(withRef.map((identity) => identity.refCommentId!))]);
+        authors = new Map((response.items ?? []).map((item) => [item.id, item.snippet?.authorChannelId?.value]));
+      } catch (error) {
+        log("warn", "identity refresh failed", { channelId, error: String(error) });
+        continue;
+      }
+      for (const identity of withRef) {
+        if (authors.get(identity.refCommentId!) === identity.value) {
+          await db
+            .update(contactIdentities)
+            .set({ refreshDueAt: new Date(now.getTime() + YOUTUBE_IDENTITY_TTL_MS) })
+            .where(eq(contactIdentities.id, identity.id));
+          refreshed += 1;
+        } else {
+          await db.delete(contactIdentities).where(eq(contactIdentities.id, identity.id));
+          deleted += 1;
+        }
+      }
+    }
+  }
+  return { refreshed, deleted };
 }
 
 export async function runRetention(deps: EngineDeps): Promise<RetentionResult> {
@@ -44,6 +111,19 @@ export async function runRetention(deps: EngineDeps): Promise<RetentionResult> {
     .set({ youtubeReplyId: null })
     .where(and(isNotNull(replies.youtubeReplyId), or(lt(replies.sentAt, cutoff), inArray(replies.channelId, disconnected))))
     .returning({ id: replies.id });
+
+  // Commenter references: confirm again or delete (13.9), then drop whatever
+  // is past its 30 days, disconnected channels included.
+  const refreshedIdentities = await refreshCommenterIdentities(deps, now);
+  const expiredIdentities = await db
+    .delete(contactIdentities)
+    .where(
+      and(
+        inArray(contactIdentities.kind, ["youtube_channel", "comment"]),
+        or(lte(contactIdentities.refreshDueAt, now), inArray(contactIdentities.channelId, disconnected)),
+      ),
+    )
+    .returning({ id: contactIdentities.id });
 
   // Channel titles: refresh with channels.list (1 unit), or drop them.
   const stale = await db
@@ -76,6 +156,8 @@ export async function runRetention(deps: EngineDeps): Promise<RetentionResult> {
     replyIds: wipedReplyIds.length,
     expiredDrafts: expired.length,
     channelTitles: refreshed,
+    identitiesRefreshed: refreshedIdentities.refreshed,
+    identitiesDeleted: refreshedIdentities.deleted + expiredIdentities.length,
   };
   log("info", "retention done", { ...result });
   return result;

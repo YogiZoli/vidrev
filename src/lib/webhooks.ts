@@ -21,6 +21,8 @@ export interface EventContext {
   keyword?: string | null;
   intent?: string | null;
   replyId?: string | null;
+  // Our opaque id of the person (DECISIONS section 13); never a YouTube id.
+  contactId?: string | null;
   tid?: string | null;
   // opt_in and purchase only
   email?: string | null;
@@ -55,6 +57,7 @@ export function buildEventPayload(input: {
   payload.intent = c.intent ?? null;
   payload.tid = c.tid ?? null;
   if (c.replyId) payload.reply_id = c.replyId;
+  if (c.contactId) payload.contact_id = c.contactId;
   if (input.event === "opt_in" || input.event === "purchase") {
     payload.email = c.email ?? null;
     payload.source = c.source ?? null;

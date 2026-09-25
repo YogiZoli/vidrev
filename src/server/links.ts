@@ -163,13 +163,17 @@ function refererHost(referer: string | null): string | null {
 export async function resolveClick(db: Db, input: ClickInput, now = new Date()): Promise<ClickResult> {
   if (!isSlug(input.slug)) return { kind: "not_found" };
   const [row] = await db
-    .select({ link: links, account: accounts, campaign: campaigns })
+    .select({ link: links, account: accounts, campaign: campaigns, contactId: replies.contactId })
     .from(links)
     .innerJoin(accounts, eq(accounts.id, links.accountId))
     .leftJoin(campaigns, eq(campaigns.id, links.campaignId))
+    .leftJoin(replies, eq(replies.id, links.replyId))
     .where(eq(links.slug, input.slug));
   if (!row) return { kind: "not_found" };
   const { link, account, campaign } = row;
+  // The person the reply was written to (section 13); a static link has none
+  // until an opt-in carrying its tracking id ties one.
+  const contactId = row.contactId ?? null;
   if (account.fallbackLinksBlocked && input.host === input.fallbackHost) return { kind: "blocked" };
 
   // Unpublished reply links follow the campaign; published ones use their snapshot.
@@ -187,6 +191,7 @@ export async function resolveClick(db: Db, input: ClickInput, now = new Date()):
         accountId: account.id,
         linkId: link.id,
         replyId: link.replyId,
+        contactId,
         campaignId: link.campaignId,
         youtubeVideoId: link.youtubeVideoId,
         keyword: link.keyword,
@@ -218,6 +223,7 @@ export async function resolveClick(db: Db, input: ClickInput, now = new Date()):
             keyword: link.keyword,
             intent: link.intent,
             replyId: link.replyId,
+            contactId,
             tid,
           },
         }

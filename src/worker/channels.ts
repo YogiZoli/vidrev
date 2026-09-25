@@ -1,6 +1,6 @@
 import { and, eq, inArray, ne } from "drizzle-orm";
 import type { Db } from "@/db/client";
-import { accounts, channels, comments, replies, videos } from "@/db/schema";
+import { accounts, channels, comments, contactIdentities, replies, videos } from "@/db/schema";
 import { decryptSecret, encryptSecret } from "@/lib/crypto";
 import { log } from "@/lib/log";
 import { recordQuota } from "@/server/channels";
@@ -32,6 +32,9 @@ async function wipeYoutubeData(db: Db, channelId: string): Promise<void> {
   await db.delete(comments).where(eq(comments.channelId, channelId));
   await db.delete(videos).where(eq(videos.channelId, channelId));
   await db.update(replies).set({ youtubeReplyId: null }).where(eq(replies.channelId, channelId));
+  // Commenter channel ids and comment ids that recognise a returning commenter
+  // are YouTube data too (DECISIONS 13.9). Contacts and their history stay.
+  await db.delete(contactIdentities).where(and(eq(contactIdentities.channelId, channelId), inArray(contactIdentities.kind, ["youtube_channel", "comment"])));
 }
 
 export class ChannelRevokedError extends Error {

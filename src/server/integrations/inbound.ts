@@ -5,6 +5,7 @@ import { decryptSecret, encryptSecret, randomToken, sha256Hex } from "@/lib/cryp
 import type { OptInInput, PurchaseInput } from "@/lib/inbound";
 import { ATTRIBUTION_WINDOW_DAYS } from "@/lib/attribution";
 import { markReportDirty } from "../attribution";
+import { attachClickToContact, contactForTouch, resolveContact } from "../contacts";
 import type { EmitInput } from "./events";
 
 // Recording of opt-ins and purchases from any source (SPEC sections 9, 10):
@@ -123,11 +124,25 @@ export async function recordOptIn(
   options: { source: SubscriberSource; ghlContactId?: string | null; emit: Emit },
 ): Promise<RecordedOptIn> {
   const touch = input.tid ? await resolveTid(db, accountId, input.tid) : null;
+  // The person: the Contact the tracking id points to, else the one the email
+  // belongs to, else a new one. Never a duplicate (DECISIONS Q-23, section 13).
+  const person = await resolveContact(db, {
+    accountId,
+    keys: { email: input.email, ghlContact: options.ghlContactId },
+    anchors: [await contactForTouch(db, accountId, touch)],
+    event: "opt_in",
+    createdVia: options.source === "ghl" ? "crm_sync" : "opt_in",
+    source: `opt_in:${options.source}`,
+    at: input.occurredAt,
+    displayName: input.name,
+  });
+  await attachClickToContact(db, accountId, touch?.clickId ?? null, person.contactId);
   const [row] = await db
     .insert(subscribers)
     .values({
       accountId,
       emailNorm: input.email,
+      contactId: person.contactId,
       name: input.name,
       source: options.source,
       externalId: input.externalId,
@@ -163,6 +178,7 @@ export async function recordOptIn(
       keyword: touch?.keyword ?? null,
       intent: campaign.intent ?? null,
       replyId: touch?.replyId ?? null,
+      contactId: person.contactId,
       tid: input.tid,
       email: input.email,
       source: options.source,
@@ -181,9 +197,30 @@ export async function recordPurchase(
   db: Db,
   accountId: string,
   input: PurchaseInput,
-  options: { source: PurchaseSource; ghlContactId?: string | null; raw?: Record<string, unknown>; emit: Emit },
+  options: { source: PurchaseSource; ghlContactId?: string | null; stripeCustomerId?: string | null; raw?: Record<string, unknown>; emit: Emit },
 ): Promise<RecordedPurchase> {
   const kind = input.amountCents === null ? "buyer_marker" : "payment";
+  // The buyer is a Contact too: by tracking id, email, or the CRM and Stripe
+  // ids; a returning buyer, or one who commented before, is the same person.
+  const [known] = await db
+    .select({ contactId: purchases.contactId })
+    .from(purchases)
+    .where(and(eq(purchases.accountId, accountId), eq(purchases.source, options.source), eq(purchases.externalId, input.externalId)));
+  const tidTouch = input.tid ? await resolveTid(db, accountId, input.tid) : null;
+  const anchors = [await contactForTouch(db, accountId, tidTouch), known?.contactId];
+  const keys = { email: input.email, ghlContact: options.ghlContactId, stripeCustomer: options.stripeCustomerId };
+  const person =
+    input.email || options.ghlContactId || options.stripeCustomerId || anchors.some(Boolean)
+      ? await resolveContact(db, {
+          accountId,
+          keys,
+          anchors,
+          event: "purchase",
+          createdVia: options.source === "ghl" ? "crm_sync" : "purchase",
+          source: `purchase:${options.source}`,
+          at: input.occurredAt,
+        })
+      : null;
   const [inserted] = await db
     .insert(purchases)
     .values({
@@ -192,6 +229,7 @@ export async function recordPurchase(
       kind,
       externalId: input.externalId,
       emailNorm: input.email,
+      contactId: person?.contactId ?? null,
       tid: input.tid,
       amountCents: input.amountCents,
       currency: input.currency,
@@ -215,6 +253,7 @@ export async function recordPurchase(
       ...(existing!.amountCents === null && input.amountCents !== null ? { amountCents: input.amountCents, currency: input.currency, kind: "payment" as const } : {}),
       ...(!existing!.emailNorm && input.email ? { emailNorm: input.email } : {}),
       ...(!existing!.tid && input.tid ? { tid: input.tid } : {}),
+      ...(person && existing!.contactId !== person.contactId ? { contactId: person.contactId } : {}),
     };
     if (Object.keys(fill).length > 0) {
       await db.update(purchases).set({ ...fill, updatedAt: new Date() }).where(eq(purchases.id, existing!.id));
@@ -224,7 +263,7 @@ export async function recordPurchase(
     return { id: existing!.id, created: false, refundUpdated: "refundedCents" in fill };
   }
 
-  const touch = (input.tid ? await resolveTid(db, accountId, input.tid) : null) ?? (input.email ? await latestTouchByEmail(db, accountId, input.email, input.occurredAt) : null);
+  const touch = tidTouch ?? (input.email ? await latestTouchByEmail(db, accountId, input.email, input.occurredAt) : null);
   const campaign = await campaignInfo(db, touch?.campaignId ?? null);
   await options.emit({
     accountId,
@@ -239,6 +278,7 @@ export async function recordPurchase(
       keyword: touch?.keyword ?? null,
       intent: campaign.intent ?? null,
       replyId: touch?.replyId ?? null,
+      contactId: person?.contactId ?? null,
       tid: input.tid ?? (touch?.tid || null),
       email: input.email,
       source: options.source,

@@ -8,6 +8,7 @@ import { log } from "@/lib/log";
 import { LINK_PLACEHOLDER } from "@/lib/templates";
 import { type AiConfig, buildPrompt, cleanDraft, DEFAULT_MODELS, generateText } from "@/server/ai";
 import { draftsWaitingEmail } from "@/server/email/templates";
+import { resolveContact } from "@/server/contacts";
 import { emitEventSafely, kickWith } from "@/server/integrations/events";
 import type { FetchLike } from "@/server/google/oauth";
 import { replyUsage } from "@/server/replies";
@@ -107,12 +108,26 @@ export async function createDraft(deps: DraftDeps, commentId: string): Promise<v
   const usage = await replyUsage(deps.db, account.id, now);
   const overCap = plan.monthlyReplyCap !== null && usage.thisMonth >= plan.monthlyReplyCap;
 
+  // The person behind the comment: the same commenter on another video is the
+  // same Contact (DECISIONS Q-23, section 13). Recognised by the channel id.
+  const person = await resolveContact(deps.db, {
+    accountId: account.id,
+    keys: { youtubeChannel: comment.authorChannelId, commentFallback: comment.youtubeCommentId },
+    event: "comment",
+    createdVia: "comment",
+    source: "youtube_comment",
+    at: comment.fetchedAt,
+    channelId: channel.id,
+    refCommentId: comment.youtubeCommentId,
+  });
+
   const [inserted] = await deps.db
     .insert(replies)
     .values({
       accountId: account.id,
       channelId: channel.id,
       commentId: comment.id,
+      contactId: person.contactId,
       campaignId: campaign.id,
       templateId: template?.id ?? null,
       youtubeVideoId: comment.youtubeVideoId,
@@ -143,6 +158,7 @@ export async function createDraft(deps: DraftDeps, commentId: string): Promise<v
         keyword: campaign.keyword,
         intent: campaign.intent,
         replyId: inserted.id,
+        contactId: person.contactId,
       },
     },
     kickWith(deps.enqueue),

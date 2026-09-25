@@ -78,7 +78,7 @@ export function listVideos(fetchImpl: FetchLike, token: string, ids: string[]) {
 // Up to 50 ids per call, 1 unit. Used by the retention job to refresh.
 export function listCommentsById(fetchImpl: FetchLike, token: string, ids: string[]) {
   const params = new URLSearchParams({ part: "snippet", id: ids.join(","), textFormat: "plainText", maxResults: "50" });
-  return call<{ items?: { id: string; snippet?: { textOriginal?: string } }[] }>(fetchImpl, token, `/comments?${params.toString()}`);
+  return call<{ items?: { id: string; snippet?: { textOriginal?: string; authorChannelId?: { value?: string } } }[] }>(fetchImpl, token, `/comments?${params.toString()}`);
 }
 
 // Reply to a top-level comment (comments.insert, 50 units).

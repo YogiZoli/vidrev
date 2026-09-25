@@ -24,6 +24,10 @@ const envSchema = z.object({
   // Platform AI key (Q-13c): a Gemini key on its own billing-enabled GCP project.
   GEMINI_PLATFORM_API_KEY: optional,
   AI_PLATFORM_MODEL: z.string().trim().min(1).default("gemini-3.1-flash-lite"),
+  // Tracked links on the creator's own domain (D-33, CC-03).
+  CLOUDFLARE_API_TOKEN: optional,
+  CLOUDFLARE_ZONE_ID: optional,
+  CUSTOM_HOSTNAME_CNAME_TARGET: optional,
   QUOTA_DAILY_LIMIT: z.coerce.number().int().positive().default(10000),
   RAILWAY_GIT_COMMIT_SHA: optional,
 });

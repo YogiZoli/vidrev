@@ -4,6 +4,7 @@ import { QUEUES } from "@/jobs/queues";
 import { requireEnv } from "@/lib/env";
 import { currentSession } from "@/server/auth/current";
 import { isSameOrigin, redirectTo } from "@/server/http";
+import { rotateHookToken } from "@/server/integrations/inbound";
 import { createEndpoint, queuePing, removeEndpoint, rotateSecret, setEndpointEnabled } from "@/server/integrations/outbound";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +44,9 @@ export async function POST(request: Request): Promise<Response> {
     case "remove":
       await removeEndpoint(db, accountId, field("id"));
       return redirectTo(`${PAGE}?removed=1`);
+    case "hook_rotate":
+      await rotateHookToken(db, key, accountId);
+      return redirectTo(`${PAGE}?hook_rotated=1`);
     case "test": {
       const deliveryId = await queuePing(db, accountId, field("id"));
       if (deliveryId) await enqueue(QUEUES.webhookDeliver, { deliveryId }, { singletonKey: deliveryId });

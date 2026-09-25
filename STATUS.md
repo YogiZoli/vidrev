@@ -41,7 +41,7 @@ Phase plan changes (all accepted): compliance pack and quota extension request r
 - `npm run quota:report -- 14` (`src/lib/quota-sizing.ts`): units per method and per connected channel from the real `quota_ledger`, projection for 13/50/100/250 channels, suggested request with 30% headroom, for [docs/compliance/QUOTA-EXTENSION.md](docs/compliance/QUOTA-EXTENSION.md).
 - Compliance pack updated for Phases 6 to 10: Marketplace install grant and uninstall in the Privacy draft, audit and connector clause in the Terms draft, reviewer answers (Limited Use, retention, logo) in the OAuth pack, one ordered [LAUNCH-CHECKLIST.md](docs/compliance/LAUNCH-CHECKLIST.md).
 - Retention audit: every YouTube-derived table is covered by the daily job (comments, videos, reply ids, commenter identities, channel titles, audit examples) plus delivery logs and expired Marketplace grants; no gap found.
-- Logo redrawn as a clean SVG in the brand azure on a solid background, PNG 512 and 120 (`docs/brand/`); the earlier Gemini JPG had a checkerboard baked in and a turquoise gradient.
+- Logo redrawn (v3) as a clean SVG in the brand azure on a solid background: one video-camera shape with the rising arrow, no second enclosure; PNG 512 and 120 in `docs/brand/`. The earlier Gemini JPG had a checkerboard baked in and a turquoise gradient.
 - Not submitted: Google verification and the quota request (LLC), Public review of the HighLevel app.
 
 ## Phase 10: what was built

@@ -78,6 +78,13 @@
       "when": 1790361982622,
       "tag": "0010_audits",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790363524536,
+      "tag": "0011_ghl_installs",
+      "breakpoints": true
     }
   ]
 }

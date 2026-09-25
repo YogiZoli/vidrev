@@ -826,3 +826,21 @@ export const audits = pgTable(
     index("audits_fetched_idx").on(t.fetchedAt),
   ],
 );
+
+// A GoHighLevel install started from the Marketplace listing (Phase 10): the
+// installer is not signed in here yet, so the grant waits for a signed-in
+// account to claim it. `claimHash` is the sha256 of the claim token the
+// installer's browser holds; `configEnc` seals the token response. Unclaimed
+// rows are deleted after `expiresAt`, claimed ones at once.
+export const ghlInstalls = pgTable(
+  "ghl_installs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    locationId: text("location_id").notNull(),
+    claimHash: text("claim_hash").notNull(),
+    configEnc: text("config_enc").notNull(),
+    createdAt: createdAt(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  },
+  (t) => [uniqueIndex("ghl_installs_claim_uq").on(t.claimHash), index("ghl_installs_location_idx").on(t.locationId), index("ghl_installs_expires_idx").on(t.expiresAt)],
+);

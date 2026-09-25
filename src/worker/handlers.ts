@@ -16,6 +16,7 @@ import { runRetention } from "./retention";
 import { sendReply } from "./sending";
 import { checkRss, type EngineDeps, engineTick, pollChannel, renewWebsub } from "./polling";
 import { deliver, deliverDue, type WebhookDeps } from "./webhooks";
+import { deleteExpiredInstalls } from "@/server/ghl/install";
 import { type GhlWorkerDeps, handleGhlEvent, queueGhlWork, setupGhl, syncGhl } from "./ghl";
 import { queueReportRefreshes, refreshAccountReports, type ReportDeps } from "./reports";
 import { queueStripeWork, type StripeWorkerDeps, syncStripe } from "./stripe";
@@ -274,6 +275,7 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
     if (deps) await runRetention(deps);
     await pruneDeliveries(getDb());
     await scrubAudits(getDb(), new Date(), API_DATA_TTL_MS);
+    await deleteExpiredInstalls(getDb());
   });
   await boss.createQueue(QUEUES.websubRenew);
   await boss.schedule(QUEUES.websubRenew, "17 * * * *");

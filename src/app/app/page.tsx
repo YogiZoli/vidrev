@@ -1,5 +1,10 @@
+import { cookies } from "next/headers";
 import { getDb } from "@/db/client";
+import { requireEnv } from "@/lib/env";
+import { verifySignedValue } from "@/lib/signed";
 import { isAdminEmail, requireSession } from "@/server/auth/current";
+import { GHL_CLAIM_COOKIE, GHL_CLAIM_PAGE } from "@/server/ghl/config";
+import { hasPendingInstall } from "@/server/ghl/install";
 import { buildHeadline } from "@/lib/report";
 import { listChannels, LIVE_STATUSES } from "@/server/channels";
 import { readSnapshots } from "@/server/reports";
@@ -34,6 +39,9 @@ export default async function AppPage({ searchParams }: { searchParams: Promise<
   const live = channelRows.filter((c) => LIVE_STATUSES.includes(c.status)).length;
   const connecting = channelRows.some((c) => c.status === "connecting" || c.status === "disconnecting");
   const { reports, computedAt } = await readSnapshots(getDb(), account.id);
+  // A HighLevel Marketplace install waiting for this browser's account (Phase 10).
+  const claim = verifySignedValue<{ token: string }>((await cookies()).get(GHL_CLAIM_COOKIE)?.value, requireEnv("AUTH_SECRET"));
+  const pendingInstall = claim ? await hasPendingInstall(getDb(), claim.token) : false;
 
   return (
     <main style={styles.main}>
@@ -49,6 +57,11 @@ export default async function AppPage({ searchParams }: { searchParams: Promise<
       </header>
 
       {params.error && ERRORS[params.error] ? <Notice tone="error">{ERRORS[params.error]}</Notice> : null}
+      {pendingInstall ? (
+        <Notice tone="info">
+          You installed the app from HighLevel. <a href={GHL_CLAIM_PAGE}>Finish connecting it to this account.</a>
+        </Notice>
+      ) : null}
       {params.connected ? <Notice tone="info">Google access granted. Finishing the connection.</Notice> : null}
       {params.disconnected ? <Notice tone="info">Channel disconnected. Its YouTube data is being deleted.</Notice> : null}
       {account.status === "suspended" ? (

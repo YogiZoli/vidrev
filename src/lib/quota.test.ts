@@ -34,6 +34,7 @@ describe("poll tiers", () => {
     expect(stretchFactor(["normal", "normal"], 2500)).toBe(1);
     // 100 fresh channels need 72,000 polls a day against 2,000 usable units.
     expect(stretchFactor(Array(100).fill("fresh"), 2500)).toBeCloseTo(36);
+    expect(stretchFactor(["normal"], 0)).toBe(96);
     expect(nextPollAt("fresh", 36, now).getTime() - now.getTime()).toBe(72 * 60_000);
   });
 });

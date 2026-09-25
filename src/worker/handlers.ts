@@ -1,10 +1,11 @@
 import type { PgBoss } from "pg-boss";
 import { getDb } from "@/db/client";
 import { type ChannelJob, QUEUES, QUEUE_OPTIONS, type SendEmailJob } from "@/jobs/queues";
-import { env } from "@/lib/env";
+import { appBaseUrl, env } from "@/lib/env";
 import { errorFields, log } from "@/lib/log";
 import { type ChannelDeps, disconnectChannel, syncChannel } from "./channels";
 import { EmailSendError, senderAddress, sendWithResend } from "./email";
+import { checkRss, type EngineDeps, engineTick, pollChannel, renewWebsub } from "./polling";
 
 async function sendEmail(job: SendEmailJob): Promise<void> {
   const { RESEND_API_KEY, EMAIL_FROM, PRODUCT_NAME, NODE_ENV } = env();
@@ -40,6 +41,26 @@ function channelDeps(): ChannelDeps | null {
   };
 }
 
+function engineDeps(boss: PgBoss): EngineDeps | null {
+  const deps = channelDeps();
+  if (!deps) return null;
+  return {
+    ...deps,
+    quotaLimit: env().QUOTA_DAILY_LIMIT,
+    enqueue: async (queue, data, options) => {
+      await boss.send(queue, data as object, options ?? {});
+    },
+  };
+}
+
+function withEngineDeps<T>(boss: PgBoss, run: (deps: EngineDeps, data: T) => Promise<void>) {
+  return async ([job]: { data: T }[]) => {
+    const deps = engineDeps(boss);
+    if (!deps) throw new Error("Google OAuth or ENCRYPTION_KEY is not configured");
+    await run(deps, job!.data);
+  };
+}
+
 function withChannelDeps(run: (deps: ChannelDeps, channelId: string) => Promise<void>) {
   return async ([job]: { data: ChannelJob }[]) => {
     const deps = channelDeps();
@@ -55,4 +76,25 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
   await boss.work<SendEmailJob>(QUEUES.sendEmail, async ([job]) => sendEmail(job!.data));
   await boss.work<ChannelJob>(QUEUES.channelSync, withChannelDeps(syncChannel));
   await boss.work<ChannelJob>(QUEUES.channelDisconnect, withChannelDeps(disconnectChannel));
+
+  // Comment engine (SPEC section 7). The tick queues due polls and RSS
+  // checks every minute; push leases are renewed hourly.
+  await boss.work<ChannelJob>(QUEUES.channelPoll, withEngineDeps(boss, (deps, data: ChannelJob) => pollChannel(deps, data.channelId)));
+  await boss.work<ChannelJob>(QUEUES.channelRss, withEngineDeps(boss, (deps, data: ChannelJob) => checkRss(deps, data.channelId)));
+  await boss.createQueue(QUEUES.engineTick);
+  await boss.schedule(QUEUES.engineTick, "* * * * *");
+  await boss.work(QUEUES.engineTick, async () => {
+    const deps = engineDeps(boss);
+    if (deps) await engineTick(deps);
+  });
+  await boss.createQueue(QUEUES.websubRenew);
+  await boss.schedule(QUEUES.websubRenew, "17 * * * *");
+  await boss.work(QUEUES.websubRenew, async () => {
+    const deps = engineDeps(boss);
+    const secret = env().WEBSUB_SECRET;
+    const callbackBase = appBaseUrl();
+    // The hub must reach the callback over the public internet.
+    if (!deps || !secret || !callbackBase.startsWith("https://")) return;
+    await renewWebsub(deps, { secret, callbackBase });
+  });
 }

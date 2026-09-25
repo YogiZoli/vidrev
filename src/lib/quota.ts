@@ -55,11 +55,14 @@ export function pollTier(channel: { freshUntil: Date | null; lastUploadAt: Date 
 // Tier intervals are targets. When all active channels together would need
 // more polls per day than the read budget allows (keeping 20% headroom for
 // extra pages and retention refreshes), one global factor stretches them all.
+// Capped so even an empty budget polls a normal channel once a day.
+export const MAX_STRETCH = 96;
+
 export function stretchFactor(tiers: readonly PollTier[], budget: number): number {
   const pollsPerDay = tiers.reduce((sum, tier) => sum + 1440 / TIER_MINUTES[tier], 0);
   const usable = budget * 0.8;
-  if (usable <= 0) return Number.POSITIVE_INFINITY;
-  return Math.max(1, pollsPerDay / usable);
+  if (usable <= 0) return MAX_STRETCH;
+  return Math.min(MAX_STRETCH, Math.max(1, pollsPerDay / usable));
 }
 
 export function nextPollAt(tier: PollTier, factor: number, now: Date): Date {

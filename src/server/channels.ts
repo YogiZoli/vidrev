@@ -24,6 +24,7 @@ export async function listChannels(db: Db, accountId: string) {
       youtubeChannelId: channels.youtubeChannelId,
       status: channels.status,
       statusReason: channels.statusReason,
+      defaultLanguage: channels.defaultLanguage,
       connectedAt: channels.connectedAt,
     })
     .from(channels)

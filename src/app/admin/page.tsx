@@ -89,6 +89,13 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                       {a.status === "active" ? "Suspend" : "Reactivate"}
                     </button>
                   </form>
+                  <form method="post" action="/api/admin" style={{ marginTop: 6 }}>
+                    <input type="hidden" name="kind" value={a.fallbackLinksBlocked ? "unblock_links" : "block_links"} />
+                    <input type="hidden" name="accountId" value={a.accountId} />
+                    <button type="submit" style={styles.secondary}>
+                      {a.fallbackLinksBlocked ? "Allow fallback links" : "Block fallback links"}
+                    </button>
+                  </form>
                 </td>
               </tr>
             ))}

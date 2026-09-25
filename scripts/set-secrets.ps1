@@ -9,8 +9,13 @@
 # unreadable. Values are never printed. Google OAuth values and the platform Gemini key are asked for when
 # missing; press Enter to skip them for now. With -GoogleJson they are read
 # from the downloaded client JSON instead (and replace existing values).
+#
+# Tracked links (Phase 5, docs/SETUP-CLOUDFLARE.md) once Cloudflare is set up:
+#   powershell -ExecutionPolicy Bypass -File scripts/set-secrets.ps1 -BrandDomain vidrev.app
+# sets BRAND_BASE_URL, LINK_FALLBACK_BASE_URL (go.) and CUSTOM_HOSTNAME_CNAME_TARGET
+# (customers.) and asks for CLOUDFLARE_API_TOKEN and CLOUDFLARE_ZONE_ID.
 
-param([string]$GoogleJson = "")
+param([string]$GoogleJson = "", [string]$BrandDomain = "")
 
 $ErrorActionPreference = "Stop"
 $services = @("web", "worker")
@@ -41,6 +46,20 @@ foreach ($name in @("ENCRYPTION_KEY", "AUTH_SECRET", "PROVISIONING_SECRET", "WEB
     } else {
         Set-OnAllServices $name (New-Secret)
     }
+}
+
+if ($BrandDomain) {
+    $domain = $BrandDomain.Trim().ToLower() -replace "^https?://", "" -replace "/.*$", ""
+    Set-OnAllServices "BRAND_BASE_URL" "https://$domain"
+    Set-OnAllServices "LINK_FALLBACK_BASE_URL" "https://go.$domain"
+    Set-OnAllServices "CUSTOM_HOSTNAME_CNAME_TARGET" "customers.$domain"
+    foreach ($name in @("CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ZONE_ID")) {
+        $secure = Read-Host "Paste $name (Enter to keep the current value)" -AsSecureString
+        $plain = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure))
+        if ($plain) { Set-OnAllServices $name $plain.Trim() } else { Write-Host "kept $name" }
+    }
+    Write-Host "Done. Railway redeploys with the next push to main, or redeploy both services now in the Railway dashboard."
+    exit 0
 }
 
 if ($GoogleJson) {

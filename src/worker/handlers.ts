@@ -1,7 +1,7 @@
 import type { PgBoss } from "pg-boss";
 import { getDb } from "@/db/client";
 import { type ChannelJob, type CommentJob, type DomainJob, type ReplyJob, QUEUES, QUEUE_OPTIONS, type SendEmailJob } from "@/jobs/queues";
-import { appBaseUrl, env } from "@/lib/env";
+import { appBaseUrl, domainConnectConfig, env } from "@/lib/env";
 import { errorFields, log } from "@/lib/log";
 import { type ChannelDeps, disconnectChannel, syncChannel } from "./channels";
 import { EmailSendError, senderAddress, sendWithResend } from "./email";
@@ -64,6 +64,7 @@ function domainDeps(boss: PgBoss): DomainDeps {
     fetch,
     cloudflare: CLOUDFLARE_API_TOKEN && CLOUDFLARE_ZONE_ID ? { apiToken: CLOUDFLARE_API_TOKEN, zoneId: CLOUDFLARE_ZONE_ID } : null,
     cnameTarget: CUSTOM_HOSTNAME_CNAME_TARGET ?? null,
+    domainConnect: domainConnectConfig(),
     appBaseUrl: appBaseUrl(),
     enqueue: async (queue, data, options) => {
       await boss.send(queue, data as object, options ?? {});

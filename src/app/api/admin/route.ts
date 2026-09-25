@@ -19,6 +19,9 @@ function parseAction(form: FormData): AdminAction | null {
       return field("accountId") ? { kind: "suspend", accountId: field("accountId") } : null;
     case "unsuspend":
       return field("accountId") ? { kind: "unsuspend", accountId: field("accountId") } : null;
+    case "block_links":
+    case "unblock_links":
+      return field("accountId") ? { kind: "block_links", accountId: field("accountId"), blocked: field("kind") === "block_links" } : null;
     default:
       return null;
   }

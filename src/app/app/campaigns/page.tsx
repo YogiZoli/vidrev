@@ -1,8 +1,10 @@
 import { getDb } from "@/db/client";
 import { LANGUAGE_OPTIONS } from "@/lib/language";
+import { fallbackHost } from "@/lib/link-host";
 import { DEFAULT_MODELS } from "@/server/ai";
 import { requireSession } from "@/server/auth/current";
-import { listCampaigns } from "@/server/campaigns";
+import { listCampaigns, parseVideoIds } from "@/server/campaigns";
+import { ensureStaticLink } from "@/server/links";
 import { listChannels } from "@/server/channels";
 import { Notice, styles } from "../../ui";
 
@@ -37,6 +39,19 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
   const db = getDb();
   const channel = (await listChannels(db, account.id)).find((c) => c.status === "connected");
   const campaignRows = await listCampaigns(db, account.id);
+  // Reusable tracked links for video descriptions and pinned comments (R-07):
+  // one channel-wide per keyword, and one per video on request.
+  const host = fallbackHost();
+  const staticLinks = new Map<string, string>();
+  for (const campaign of campaignRows) {
+    const link = await ensureStaticLink(db, { accountId: account.id, campaignId: campaign.id, youtubeVideoId: null, fallbackHost: host });
+    if (link) staticLinks.set(campaign.id, link.url);
+  }
+  const videoId = params.video ? parseVideoIds(params.video)?.[0] : undefined;
+  const videoLink =
+    videoId && params.campaign
+      ? await ensureStaticLink(db, { accountId: account.id, campaignId: params.campaign, youtubeVideoId: videoId, fallbackHost: host })
+      : null;
 
   return (
     <main style={styles.main}>
@@ -60,6 +75,29 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
               <span style={styles.muted}>
                 {campaign.videoIds ? `${campaign.videoIds.length} video(s)` : "All videos"} · {campaign.destinationUrl}
               </span>
+              {staticLinks.get(campaign.id) ? (
+                <>
+                  <br />
+                  <span style={{ fontSize: 14 }}>
+                    Link for descriptions and pinned comments: <code>{staticLinks.get(campaign.id)}</code>
+                  </span>
+                  {videoLink && params.campaign === campaign.id ? (
+                    <>
+                      <br />
+                      <span style={{ fontSize: 14 }}>
+                        Link for video {videoId}: <code>{videoLink.url}</code>
+                      </span>
+                    </>
+                  ) : null}
+                  <form method="get" action="/app/campaigns" style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                    <input type="hidden" name="campaign" value={campaign.id} />
+                    <input name="video" placeholder="Video link for a per-video link" style={{ ...styles.input, width: 260 }} />
+                    <button type="submit" style={styles.secondary}>
+                      Get link
+                    </button>
+                  </form>
+                </>
+              ) : null}
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               <form method="post" action="/api/campaigns">

@@ -13,6 +13,7 @@ export async function listAccountsForAdmin(db: Db) {
       status: accounts.status,
       planCode: accounts.planCode,
       trialEndsAt: accounts.trialEndsAt,
+      fallbackLinksBlocked: accounts.fallbackLinksBlocked,
       createdAt: accounts.createdAt,
     })
     .from(accounts)
@@ -36,7 +37,8 @@ export type AdminAction =
   | { kind: "grant"; email: string; planCode: string }
   | { kind: "set_plan"; accountId: string; planCode: string }
   | { kind: "suspend"; accountId: string }
-  | { kind: "unsuspend"; accountId: string };
+  | { kind: "unsuspend"; accountId: string }
+  | { kind: "block_links"; accountId: string; blocked: boolean };
 
 export type AdminResult =
   | { ok: true; message: string; loginLink?: { userId: string; email: string; welcome: boolean } }
@@ -90,5 +92,11 @@ export async function runAdminAction(db: Db, actor: string, action: AdminAction)
         .where(eq(accounts.id, action.accountId));
       await writeAudit(db, { actor, accountId: action.accountId, action: "admin.unsuspend" });
       return { ok: true, message: "Account reactivated." };
+    // Kill switch for the shared fallback link host (R-20): its reputation is
+    // shared by every customer. Links on the creator's own domain keep working.
+    case "block_links":
+      await db.update(accounts).set({ fallbackLinksBlocked: action.blocked, updatedAt: new Date() }).where(eq(accounts.id, action.accountId));
+      await writeAudit(db, { actor, accountId: action.accountId, action: action.blocked ? "admin.block_fallback_links" : "admin.unblock_fallback_links" });
+      return { ok: true, message: action.blocked ? "Fallback links blocked." : "Fallback links allowed." };
   }
 }

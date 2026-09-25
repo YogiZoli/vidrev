@@ -28,6 +28,11 @@ const envSchema = z.object({
   CLOUDFLARE_API_TOKEN: optional,
   CLOUDFLARE_ZONE_ID: optional,
   CUSTOM_HOSTNAME_CNAME_TARGET: optional,
+  // Domain Connect (D-38): our provider id defaults to the brand domain.
+  DOMAIN_CONNECT_PROVIDER_ID: optional,
+  DOMAIN_CONNECT_SERVICE_ID: z.string().trim().min(1).default("links"),
+  DOMAIN_CONNECT_PRIVATE_KEY: optional,
+  DOMAIN_CONNECT_KEY_HOST: optional,
   QUOTA_DAILY_LIMIT: z.coerce.number().int().positive().default(10000),
   RAILWAY_GIT_COMMIT_SHA: optional,
 });
@@ -70,6 +75,20 @@ let cached: Env | undefined;
 export function env(): Env {
   cached ??= parseEnv(process.env);
   return cached;
+}
+
+export function domainConnectConfig(): { providerId: string; serviceId: string; privateKey?: string; keyHost?: string } | null {
+  const e = env();
+  let providerId = e.DOMAIN_CONNECT_PROVIDER_ID;
+  if (!providerId && e.BRAND_BASE_URL) providerId = new URL(e.BRAND_BASE_URL).hostname.replace(/^www\./, "");
+  if (!providerId) return null;
+  return {
+    providerId,
+    serviceId: e.DOMAIN_CONNECT_SERVICE_ID,
+    // A PEM pasted on one line with literal \n escapes works too.
+    privateKey: e.DOMAIN_CONNECT_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+    keyHost: e.DOMAIN_CONNECT_KEY_HOST,
+  };
 }
 
 // Absolute base URL of this app for links in emails and OAuth redirects.

@@ -40,6 +40,7 @@ function fake(state: FakeState, now: Date) {
     },
     cloudflare: { apiToken: "t", zoneId: "z" },
     cnameTarget: TARGET,
+    domainConnect: null,
     appBaseUrl: "https://app.vidrev.app",
     enqueue: async (queue, data) => {
       sent.push({ queue, data });

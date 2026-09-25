@@ -57,13 +57,27 @@ Schema changes: edit `src/db/schema.ts`, then `npm run db:generate` and commit t
 
 | Path | What |
 | --- | --- |
-| `src/app` | Next.js App Router pages and API routes (`/api/health`) |
-| `src/worker` | pg-boss worker process (all external API calls run here) |
-| `src/db` | Drizzle schema, client, queries |
-| `src/lib` | Shared code (env validation, health logic, logging) |
-| `src/scripts/migrate.ts` | Migration runner (runs on every service start, advisory-locked) |
+| `src/app` | Next.js App Router pages (`/login`, `/auth/verify`, `/app`, `/admin`) and API routes |
+| `src/server` | Web-side domain code: auth, provisioning, channels, admin, notifications |
+| `src/worker` | pg-boss worker process (all external API calls run here: Resend, Google, YouTube) |
+| `src/jobs` | Queue names, payloads and the web-side job producer |
+| `src/db` | Drizzle schema, client, seeds |
+| `src/lib` | Shared code (env, crypto, signing, plans, Pacific time, logging) |
+| `src/scripts/migrate.ts` | Migrations plus seeds (plans, owner accounts); runs on every service start, advisory-locked |
 | `drizzle/` | Generated SQL migrations |
 | `scripts/start.mjs` | Start command for both Railway services (role from `RAILWAY_SERVICE_NAME`) |
+| `scripts/set-secrets.ps1` | Sets the app secrets on both Railway services without printing them |
+
+## Endpoints
+
+| Route | What |
+| --- | --- |
+| `GET /api/health` | Database, schema and worker heartbeat |
+| `POST /api/provisioning/ghl` | Checkout events from GHL ([docs/GHL-PROVISIONING.md](docs/GHL-PROVISIONING.md)) |
+| `POST /api/auth/magic-link`, `POST /api/auth/verify`, `POST /api/auth/logout` | Magic-link login |
+| `GET /api/oauth/google/start`, `GET /api/oauth/google/callback` | Channel connect ([docs/SETUP-GOOGLE.md](docs/SETUP-GOOGLE.md)) |
+| `POST /api/channels/disconnect` | Disconnect a channel (revokes the grant, deletes its YouTube data) |
+| `POST /api/admin` | Owner actions, limited to `ADMIN_EMAILS` |
 
 ## Deployment
 

@@ -7,6 +7,9 @@ export default function HomePage() {
       <h1>{productName}</h1>
       <p>See which video makes money from your comments.</p>
       <p style={{ color: "#666" }}>Private beta. Not open yet.</p>
+      <p>
+        <a href="/login">Sign in</a>
+      </p>
     </main>
   );
 }

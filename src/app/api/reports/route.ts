@@ -33,6 +33,7 @@ export async function POST(request: Request): Promise<Response> {
     .update(accounts)
     .set({
       reportTimezone: timezone,
+      weeklyEmail: field("weekly_email") === "1",
       // Empty means automatic (Q-08): the worker follows the revenue source.
       ...(currency ? { reportingCurrency: currency, reportingCurrencySource: "creator" as const } : { reportingCurrencySource: "default" as const }),
       updatedAt: new Date(),

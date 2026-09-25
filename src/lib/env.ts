@@ -12,6 +12,8 @@ const envSchema = z.object({
   BRAND_BASE_URL: z.string().url().optional(),
   APP_BASE_URL: z.string().url().optional(),
   LINK_FALLBACK_BASE_URL: z.string().url().optional(),
+  // Where a creator manages or cancels the subscription (GHL customer portal).
+  BILLING_PORTAL_URL: z.string().url().optional(),
   ENCRYPTION_KEY: optional,
   AUTH_SECRET: optional,
   PROVISIONING_SECRET: optional,

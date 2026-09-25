@@ -45,6 +45,13 @@ function ghlDeps(boss: PgBoss): GhlWorkerDeps | null {
 function reportDeps(boss: PgBoss): ReportDeps {
   return {
     db: getDb(),
+    notify: {
+      appBaseUrl: appBaseUrl(),
+      productName: env().PRODUCT_NAME,
+      sendEmail: async (job) => {
+        await boss.send(QUEUES.sendEmail, job as object, {});
+      },
+    },
     enqueue: async (queue, data, options) => {
       await boss.send(queue, data as object, options ?? {});
     },

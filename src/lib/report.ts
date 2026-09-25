@@ -5,11 +5,12 @@ import { addDays, zonedDay } from "./time";
 // here and stores the result as a snapshot, so dashboards never compute.
 // Only real numbers: counts and sums of stored events, nothing estimated.
 
-export const PERIODS = ["this_month", "last_30", "last_90", "all_time"] as const;
+export const PERIODS = ["this_month", "last_7", "last_30", "last_90", "all_time"] as const;
 export type Period = (typeof PERIODS)[number];
 
 export const PERIOD_LABELS: Record<Period, string> = {
   this_month: "This month",
+  last_7: "Last 7 days",
   last_30: "Last 30 days",
   last_90: "Last 90 days",
   all_time: "All time",
@@ -123,6 +124,8 @@ export function periodRange(period: Period, now: Date, timeZone: string): { from
   switch (period) {
     case "this_month":
       return { fromDay: `${today.slice(0, 8)}01`, toDay: today };
+    case "last_7":
+      return { fromDay: addDays(today, -6), toDay: today };
     case "last_30":
       return { fromDay: addDays(today, -29), toDay: today };
     case "last_90":

@@ -183,7 +183,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         </>
       ) : null}
 
-      <section style={styles.card}>
+      <section id="settings" style={styles.card}>
         <h2 style={{ marginTop: 0 }}>Report settings</h2>
         <form method="post" action="/api/reports" style={{ display: "grid", gap: 12, maxWidth: 420 }}>
           <input type="hidden" name="action" value="settings" />
@@ -200,6 +200,10 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           <label>
             Reporting currency
             <input name="currency" defaultValue={account.reportingCurrencySource === "creator" ? account.reportingCurrency : ""} placeholder={`Automatic (now ${account.reportingCurrency})`} style={styles.input} />
+          </label>
+          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <input type="checkbox" name="weekly_email" value="1" defaultChecked={account.weeklyEmail} />
+            Weekly email on Mondays: what your comments made in the last 7 days
           </label>
           <p style={{ ...styles.muted, margin: 0, fontSize: 13 }}>Leave the currency empty to follow your connected revenue source. Amounts in other currencies are listed separately, never converted.</p>
           <button type="submit" style={styles.button}>

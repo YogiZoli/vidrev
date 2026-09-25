@@ -65,6 +65,11 @@ export const accounts = pgTable("accounts", {
   reportingCurrencySource: text("reporting_currency_source").$type<"default" | "source" | "creator">().notNull().default("default"),
   // Calendar days of the reports ("this month") are counted in this zone.
   reportTimezone: text("report_timezone").notNull().default("UTC"),
+  // Retention emails (R-35): weekly summary (opt-out), milestones announced
+  // once each and the renewal recap, keyed in `milestones`.
+  weeklyEmail: boolean("weekly_email").notNull().default(true),
+  weeklyEmailSentAt: timestamp("weekly_email_sent_at", { withTimezone: true }),
+  milestones: jsonb("milestones").$type<Record<string, string>>().notNull().default({}),
   // AI drafting (DECISIONS Q-13c): "platform" uses the owner's billing-enabled
   // Gemini key; otherwise the account's own key, encrypted at rest.
   aiProvider: text("ai_provider").$type<AiProvider>().notNull().default("platform"),

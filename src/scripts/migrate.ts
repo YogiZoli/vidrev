@@ -5,6 +5,7 @@ import * as schema from "@/db/schema";
 import { seedAdminAccounts, seedPlans } from "@/db/seed";
 import { parseEmailList } from "@/lib/email";
 import { errorFields, log } from "@/lib/log";
+import { seedSettings } from "@/server/settings";
 
 // Both Railway services run this on start (scripts/start.mjs), so an advisory
 // lock makes sure only one of them applies migrations at a time.
@@ -23,6 +24,7 @@ export async function runMigrations(
     const db = drizzle(client, { schema });
     await migrate(db, { migrationsFolder: options.migrationsFolder ?? "drizzle" });
     await seedPlans(db);
+    await seedSettings(db);
     const created = await seedAdminAccounts(db, options.adminEmails ?? []);
     if (created > 0) log("info", "owner accounts created", { count: created });
   } finally {

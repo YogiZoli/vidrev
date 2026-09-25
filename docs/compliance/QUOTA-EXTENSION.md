@@ -19,6 +19,18 @@ Per active channel per day (founding cohort, weekly uploads):
 | 13 (fits today's 10,000) | about 10,000 |
 | 100 (founding cohort) | about 78,000 |
 
+### Real usage (fill in before submitting)
+
+Run `railway run --service web npm run quota:report -- 14` against production. It prints the units per method and per connected channel from `quota_ledger`, a projection for 13, 50, 100 and 250 channels, and a suggested request with 30% headroom. Paste the table here and replace the estimates above where they differ. The identity refresh (`comments.list` by id, 1 unit per 50 commenter references, once every 30 days) is negligible.
+
+| Item | Estimate | Measured (date range) |
+| --- | --- | --- |
+| Units per channel per day | about 780 | to fill |
+| Peak day, all channels | to fill | to fill |
+| Share of replies (`comments.insert`) | about 64% | to fill |
+
+Scope: only the product project `c2c-app`. Audit my channel runs in its own project (`vidrev-audit`, API key, public data, at most 13 units per audit, own 10,000 units a day) and is not part of this request.
+
 **Request: 100,000 units per day** for project `c2c-app`, which covers the 100 founding channels with headroom. Update the table with real numbers from `quota_ledger` before submitting.
 
 ## 2. Answers for the form

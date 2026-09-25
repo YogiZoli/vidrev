@@ -55,6 +55,13 @@ Script, in order:
 
 Voice or captions should say at step 3 and 7: "vidrev uses the youtube.force-ssl scope only to read comments on your own channel and post replies you approve one by one."
 
+## 4b. Answers to expect from the reviewer
+
+- Limited Use: the only Google user data is the creator's own comments and channel id. Not sold, not used for ads, not used for AI training (default drafts run on a billing-enabled Gemini project under terms without training; own keys are the creator's agreement). Humans do not read it.
+- Retention: 30 days, refreshed or deleted by the daily job; deleted at once on disconnect (Privacy Policy section 4).
+- Audit my channel is not part of this OAuth client: it uses public data with an API key from a separate project and needs no consent screen.
+- Logo: 120x120 px PNG on a solid background, no baked-in checkerboard, product name lowercase `vidrev`.
+
 ## 5. Submission steps (when section 1 is done)
 
 1. Google Cloud console, project `c2c-app` > Google Auth Platform > Audience: switch from Testing to **In production**.

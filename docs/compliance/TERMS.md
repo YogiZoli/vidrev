@@ -29,6 +29,10 @@ You must be 18 or older and able to enter a contract. Keep your sign-in email se
 
 Plans include reply limits (currently 300 replies a month and a safety ceiling of 30 per channel per day). YouTube's shared daily API quota may delay sending; waiting replies go out first after the daily reset, or you can post them yourself with one click. We do not guarantee delivery times that depend on YouTube.
 
+### Free channel audit and HighLevel connector
+
+The free channel audit reads public YouTube data and gives an instant preview; its score and findings are informational, not advice, and may be wrong. The HighLevel connector writes contacts, tags and a tracking field only into the sub-account you connect; you are responsible for having a lawful basis to contact those people.
+
 ## 6. Plans, billing and cancellation
 
 Checkout and billing run on vidrev.app. Prices and trial terms are shown at purchase. You can cancel at any time; access continues to the end of the paid period. After cancellation your tracked links keep redirecting; only measurement stops.

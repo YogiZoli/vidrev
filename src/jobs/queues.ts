@@ -15,6 +15,9 @@ export const QUEUES = {
   domainCheck: "domain.check",
   domainRemove: "domain.remove",
   webhookDeliver: "webhook.deliver",
+  ghlSetup: "ghl.setup",
+  ghlSync: "ghl.sync",
+  ghlEvent: "ghl.event",
 } as const;
 
 export interface SendEmailJob {
@@ -44,6 +47,16 @@ export interface DeliveryJob {
   deliveryId: string;
 }
 
+export interface GhlIntegrationJob {
+  integrationId: string;
+}
+
+// A verified marketplace webhook body, handled in the worker (API calls).
+export interface GhlEventJob {
+  integrationId: string;
+  payload: Record<string, unknown>;
+}
+
 export interface JobPayloads {
   [QUEUES.sendEmail]: SendEmailJob;
   [QUEUES.channelSync]: ChannelJob;
@@ -55,6 +68,9 @@ export interface JobPayloads {
   [QUEUES.domainCheck]: DomainJob;
   [QUEUES.domainRemove]: DomainJob;
   [QUEUES.webhookDeliver]: DeliveryJob;
+  [QUEUES.ghlSetup]: GhlIntegrationJob;
+  [QUEUES.ghlSync]: GhlIntegrationJob;
+  [QUEUES.ghlEvent]: GhlEventJob;
 }
 
 // Email jobs carry magic links, so they are removed soon after completion.
@@ -72,4 +88,9 @@ export const QUEUE_OPTIONS = {
   // The outbox row carries the retry state (24 hours of backoff), so the job
   // itself is never retried: a lost job is picked up by the engine tick.
   [QUEUES.webhookDeliver]: { policy: "stately", retryLimit: 0, expireInSeconds: 60 },
+  // GoHighLevel (Phase 6): setup once after connecting, sync every few minutes
+  // (one queued plus one running per integration), one job per marketplace event.
+  [QUEUES.ghlSetup]: { policy: "stately", retryLimit: 5, retryDelay: 60, retryBackoff: true },
+  [QUEUES.ghlSync]: { policy: "stately", retryLimit: 1, retryDelay: 60, expireInSeconds: 600 },
+  [QUEUES.ghlEvent]: { retryLimit: 5, retryDelay: 30, retryBackoff: true },
 } as const;

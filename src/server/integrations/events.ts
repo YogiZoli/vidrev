@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, eq, or, sql } from "drizzle-orm";
+import { and, eq, inArray, or, sql } from "drizzle-orm";
 import { integrations, outboundDeliveries } from "@/db/schema";
 import type { JobPayloads } from "@/jobs/queues";
 import { errorFields, log } from "@/lib/log";
@@ -24,7 +24,7 @@ export async function emitEvent(db: DbOrTx, input: EmitInput): Promise<string[]>
     .where(
       and(
         eq(integrations.accountId, input.accountId),
-        eq(integrations.type, "outbound_webhook"),
+        inArray(integrations.type, ["outbound_webhook", "ghl"]),
         eq(integrations.status, "active"),
         or(sql`${integrations.events} is null`, sql`${input.event} = any(${integrations.events})`),
       ),

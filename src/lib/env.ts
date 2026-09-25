@@ -35,6 +35,13 @@ const envSchema = z.object({
   DOMAIN_CONNECT_SERVICE_ID: z.string().trim().min(1).default("links"),
   DOMAIN_CONNECT_PRIVATE_KEY: optional,
   DOMAIN_CONNECT_KEY_HOST: optional,
+  // GoHighLevel Private Marketplace app (Phase 6, docs/SETUP-GHL.md).
+  GHL_CLIENT_ID: optional,
+  GHL_CLIENT_SECRET: optional,
+  // Space separated; overrides the built-in scope list without a deploy.
+  GHL_SCOPES: optional,
+  // PEM of HighLevel's webhook signing key, only if HighLevel rotates it.
+  GHL_WEBHOOK_PUBLIC_KEY: optional,
   QUOTA_DAILY_LIMIT: z.coerce.number().int().positive().default(10000),
   RAILWAY_GIT_COMMIT_SHA: optional,
 });

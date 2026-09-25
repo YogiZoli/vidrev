@@ -1,6 +1,9 @@
 import type { PgBoss } from "pg-boss";
+import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { type ChannelJob, type CommentJob, type DeliveryJob, type DomainJob, type ReplyJob, QUEUES, QUEUE_OPTIONS, type SendEmailJob } from "@/jobs/queues";
+import { users } from "@/db/schema";
+import { type ChannelJob, type CommentJob, type DeliveryJob, type DomainJob, type GhlEventJob, type GhlIntegrationJob, type ReplyJob, QUEUES, QUEUE_OPTIONS, type SendEmailJob } from "@/jobs/queues";
+import { ghlReconnectEmail } from "@/server/email/templates";
 import { postJson } from "@/server/integrations/http-post";
 import { pruneDeliveries } from "@/server/integrations/outbound";
 import { appBaseUrl, domainConnectConfig, env } from "@/lib/env";
@@ -13,10 +16,33 @@ import { runRetention } from "./retention";
 import { sendReply } from "./sending";
 import { checkRss, type EngineDeps, engineTick, pollChannel, renewWebsub } from "./polling";
 import { deliver, deliverDue, type WebhookDeps } from "./webhooks";
+import { type GhlWorkerDeps, handleGhlEvent, queueGhlWork, setupGhl, syncGhl } from "./ghl";
 
-function webhookDeps(): WebhookDeps | null {
+function ghlDeps(boss: PgBoss): GhlWorkerDeps | null {
+  const { ENCRYPTION_KEY, GHL_CLIENT_ID, GHL_CLIENT_SECRET, PRODUCT_NAME } = env();
+  if (!ENCRYPTION_KEY) return null;
+  const db = getDb();
+  return {
+    db,
+    fetch,
+    encryptionKey: ENCRYPTION_KEY,
+    client: GHL_CLIENT_ID && GHL_CLIENT_SECRET ? { clientId: GHL_CLIENT_ID, clientSecret: GHL_CLIENT_SECRET } : null,
+    enqueue: async (queue, data, options) => {
+      await boss.send(queue, data as object, options ?? {});
+    },
+    // The connection was refused: tell the creator once to reconnect.
+    onReauth: async (accountId) => {
+      const recipients = await db.select({ email: users.email }).from(users).where(eq(users.accountId, accountId));
+      for (const { email } of recipients) {
+        await boss.send(QUEUES.sendEmail, ghlReconnectEmail({ to: email, url: `${appBaseUrl()}/app/integrations`, productName: PRODUCT_NAME }) as object, {});
+      }
+    },
+  };
+}
+
+function webhookDeps(boss: PgBoss): WebhookDeps | null {
   const { ENCRYPTION_KEY } = env();
-  return ENCRYPTION_KEY ? { db: getDb(), encryptionKey: ENCRYPTION_KEY, post: postJson } : null;
+  return ENCRYPTION_KEY ? { db: getDb(), encryptionKey: ENCRYPTION_KEY, post: postJson, ghl: ghlDeps(boss) } : null;
 }
 
 async function sendEmail(job: SendEmailJob): Promise<void> {
@@ -130,15 +156,30 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
   await boss.schedule(QUEUES.engineTick, "* * * * *");
   await boss.work(QUEUES.engineTick, async () => {
     await queueDomainChecks(domainDeps(boss));
-    const hooks = webhookDeps();
+    const hooks = webhookDeps(boss);
     if (hooks) await deliverDue(hooks);
+    const ghl = ghlDeps(boss);
+    if (ghl) await queueGhlWork(ghl);
     const deps = engineDeps(boss);
     if (deps) await engineTick(deps);
   });
   // Outbound webhooks (Phase 6): immediate delivery; the tick covers retries.
   await boss.work<DeliveryJob>(QUEUES.webhookDeliver, async ([job]) => {
-    const hooks = webhookDeps();
+    const hooks = webhookDeps(boss);
     if (hooks) await deliver(hooks, job!.data.deliveryId);
+  });
+  // GoHighLevel (Phase 6): one-time setup, the 5 minute sync, marketplace webhooks.
+  await boss.work<GhlIntegrationJob>(QUEUES.ghlSetup, async ([job]) => {
+    const deps = ghlDeps(boss);
+    if (deps) await setupGhl(deps, job!.data.integrationId);
+  });
+  await boss.work<GhlIntegrationJob>(QUEUES.ghlSync, async ([job]) => {
+    const deps = ghlDeps(boss);
+    if (deps) await syncGhl(deps, job!.data.integrationId);
+  });
+  await boss.work<GhlEventJob>(QUEUES.ghlEvent, async ([job]) => {
+    const deps = ghlDeps(boss);
+    if (deps) await handleGhlEvent(deps, job!.data.integrationId, job!.data.payload);
   });
   // Custom link domains (Phase 5): DNS and Cloudflare checks.
   await boss.work<DomainJob>(QUEUES.domainCheck, async ([job]) => checkDomain(domainDeps(boss), job!.data.domainId));

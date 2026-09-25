@@ -1,6 +1,6 @@
 # STATUS
 
-Last updated: 2026-09-26 (Phase 9)
+Last updated: 2026-09-26 (Phase 10)
 
 ## End goal
 
@@ -22,7 +22,7 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 | 7c | Contact identity (Q-23): one person is one Contact, journey per Contact, reports by people | **DONE** (2026-09-26), PRs #21 to #23; DECISIONS section 13 |
 | 8 | Stripe revenue ingestion (read-only, creator-provided restricted key) | **DONE** (2026-09-26), PR #24; waits for the first real Stripe key |
 | 9 | Audit my channel | **DONE** (2026-09-26), PRs #26 to #28; needs the owner setup below before it works live |
-| 10 | GHL Marketplace connector | not started |
+| 10 | GHL Marketplace connector | **DONE** (2026-09-26), PRs #30 to #32; the app is ready for "Start Public review", which waits for the LLC ([docs/MARKETPLACE-LISTING.md](docs/MARKETPLACE-LISTING.md)) |
 | 12 | Compliance and launch readiness | not started |
 
 Phase plan changes (all accepted): compliance pack and quota extension request right after Phase 5 (Q-17 a); one GHL Marketplace app created Private in Phase 6 and made Public in Phase 10 (Q-17 b); retention job in Phase 4 (Q-17 c, done); Cloudflare for SaaS spike once the brand domain exists (Q-17 d).
@@ -34,6 +34,12 @@ Phase plan changes (all accepted): compliance pack and quota extension request r
 - Reports count people once (`src/lib/report.ts`): new Commenters and New commenters, Subscribers and Buyers are distinct Contacts; attribution follows the Contact whatever email was used. Outbound events carry an opaque `contact_id`.
 - 30 day rule kept intact (Q-24): the commenter's channel id is confirmed with YouTube every 30 days (comments.list by id, 1 unit per 50, from 5 days before it is due) or deleted; wiped at disconnect; never leaves the app. A legal way to recognise people longer is parked as L-01 for a later review. Privacy draft updated.
 - Not built yet: a Contact page with the timeline in the app, the merge undo tool (the data for it is logged), open questions O-1 to O-6 (defaults are built).
+
+## Phase 10: what was built
+
+- One-click install from the Marketplace listing (`src/app/api/oauth/crm/callback`, `src/server/ghl/install.ts`, `drizzle/0011`): the same callback serves our own Connect button and the listing's Install button. Signed in: connected at once. Signed out: the grant waits 24 hours in `ghl_installs` (sealed, claim token hash, cookie `ghl_claim` in the installer's browser) and a signed-in account claims it on `/connect/crm` or from the banner on the dashboard and Integrations page. A reinstall of a connected location only refreshes the grant in its own account; nobody can move a location. Agency installs are refused. Retention deletes expired grants.
+- Workflow action "Find the video behind this contact" (`POST /api/hooks/crm/action`, `src/server/ghl/action.ts`): secret header `X-Vidrev-Key` (`GHL_ACTION_SECRET`), answers `found`, `video_id`, `video_url`, `keyword`, `intent`, `stage`, `opted_in_at` from our own rows, optional note on the contact through the worker (`ghl.note`). The c2c_tid field and the tags were built in Phase 6. No custom trigger (HighLevel does not document firing one); the tags start workflows through the built-in Contact Tag trigger.
+- Listing pack: [docs/MARKETPLACE-LISTING.md](docs/MARKETPLACE-LISTING.md) (draft copy, scope justification, portal steps). Choices P10-01 to P10-06 in `DECISIONS.md` section 17.
 
 ## Phase 9: what was built
 
@@ -82,6 +88,7 @@ Phase plan changes (all accepted): compliance pack and quota extension request r
 4. Automated: more than 380 tests (Postgres integration included) pass in CI.
 5. Phase 6: `/app/integrations`: add an endpoint (for example a webhook.site address), Send test event, click a tracked link and see `link_clicked` arrive; POST to `/api/hooks/optin` with the token and a `c2c_tid` from a click; connect GoHighLevel after the owner setup.
 6. Phase 9: open `/audit`, enter a channel (with `YT_API_KEY_AUDIT` set); the result page shows up to 3 findings within seconds, the email form sends the full report. Without the key the page says the audit is not available.
+8. Phase 10: with the Private app, sign out, open the install link from the Marketplace developer portal (or the listing), install on a sub-account: you land on `/connect/crm`; sign in in the same browser and press "Connect to this account". Signed in, the same install connects at once. Set `GHL_ACTION_SECRET`, add the action in the portal (docs/SETUP-GHL.md section 6) and run it in a workflow on a traced contact.
 7. Phase 7: open `/app/reports`; the snapshot appears within a minute. Click a tracked link, POST an opt-in with that `c2c_tid` and a purchase with the same email to `/api/hooks/purchase` (see docs/INTEGRATIONS.md): within a minute the funnel shows the click, subscriber, buyer and revenue on the right video and keyword, and the first-click email arrives.
 
 ## Owner setup
@@ -89,6 +96,8 @@ Phase plan changes (all accepted): compliance pack and quota extension request r
 Done: Railway secrets, GCP project `c2c-app`, OAuth client, channel connected.
 
 Phase 9 Audit my channel **to do** ([docs/SETUP-AUDIT.md](docs/SETUP-AUDIT.md)): new GCP project `vidrev-audit` with the YouTube Data API enabled, an API key restricted to that API, `YT_API_KEY_AUDIT` (and `AUDIT_DAILY_LIMIT=10000`) on both Railway services. Optional: Cloudflare Turnstile keys on `web`. Then run one audit of your own channel and compare the numbers with YouTube Studio.
+
+Phase 10 GoHighLevel Marketplace **to do**: (1) try both install paths on your own sub-account (see How to test 8); (2) optional workflow action: `GHL_ACTION_SECRET` on both Railway services and the action in the developer portal (docs/SETUP-GHL.md section 6); (3) when the LLC exists: fill the listing ([docs/MARKETPLACE-LISTING.md](docs/MARKETPLACE-LISTING.md)) and press "Start Public review" together with the Google verification pack.
 
 Phase 6 GoHighLevel **done 2026-09-25**: Private Marketplace app `vidrev` (target user Sub-account, install by Everyone, White-label listing), keys on both Railway services, Sub-account YTC2C connected, `c2c_tid` field created, syncs run without errors ([docs/SETUP-GHL.md](docs/SETUP-GHL.md)). Still to try with real data: a tracked click through an opt-in form into a tagged contact, a payment and a won opportunity.
 
@@ -117,7 +126,8 @@ Still deferred from Phase 4 (no billing yet): platform Gemini key and `WEBSUB_SE
 - Stripe: the connector is tested against a fake Stripe only. What a real payment must confirm: a restricted key with read on Charges, Customers and Invoices can list charges with the two expansions, and whether it may read `/v1/account` (the name; optional).
 - The Contact page (timeline) and the merge undo tool are not built; a report shows people counts only.
 - Still open: Q-01 (name and domain). GHL merge field names in the provisioning guide must be checked when the workflows are built.
-- Proposals P9-01 to P9-12, P8-01 to P8-09, P8-C-01 to P8-C-05 and CC-01 to CC-06, P3-01 to P3-07, P4-01 to P4-11 and P5-01 to P5-12 and P6-01 to P6-14 and P7-01 to P7-14 in `DECISIONS.md` await owner review (P4-10 accepted 2026-09-25; owner data principle in DECISIONS section 8).
+- Phase 10: built and tested against a fake HighLevel only. To confirm live: that the Marketplace Install button reaches the callback with a `code` and no `state` (the assumed contract), that HighLevel accepts the header setup of the workflow action and the note endpoint (`POST /contacts/{id}/notes`, marked "verify live"), and the Public review itself (needs the LLC). A waiting install lives in the installer's browser cookie for 24 hours: signing in from a different browser or device does not find it, the installer installs again. The GHL sync and note jobs do not check for a suspended account (a pre-existing behaviour of Phase 6).
+- Proposals P10-01 to P10-06, P9-01 to P9-12, P8-01 to P8-09, P8-C-01 to P8-C-05 and CC-01 to CC-06, P3-01 to P3-07, P4-01 to P4-11 and P5-01 to P5-12 and P6-01 to P6-14 and P7-01 to P7-14 in `DECISIONS.md` await owner review (P4-10 accepted 2026-09-25; owner data principle in DECISIONS section 8).
 - Poll jobs run one at a time per worker; fine for the founding cohort, revisit with many channels.
 - Railway did not run the config-as-code pre-deploy command; migrations run at service start instead.
 - `drizzle-kit` pulls a dev-only dependency with a moderate npm audit advisory; not shipped.
@@ -125,4 +135,4 @@ Still deferred from Phase 4 (no billing yet): platform Gemini key and `WEBSUB_SE
 
 ## Next phase
 
-Phase 10: GHL Marketplace connector (free Marketplace app made Public, one-click connection, `c2c_tid` field and tags, optional workflow trigger and action). Starts only after "mehet". Before it, the owner does the Phase 9 setup above so the audit can be tried live. In parallel, once the LLC exists: fill the compliance placeholders and submit (docs/compliance/README.md).
+Phase 12: compliance and launch readiness (Privacy Policy and Terms for the brand site, the Google OAuth verification checklist and demo video script, the quota extension request sized to real usage; the drafts already exist in docs/compliance/). Starts only after "mehet". Before it, the owner does the Phase 9 and Phase 10 setup above so both can be tried live. In parallel, once the LLC exists: fill the compliance placeholders and submit (docs/compliance/README.md), and press "Start Public review" for the HighLevel app.

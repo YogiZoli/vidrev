@@ -26,7 +26,7 @@ export function readToken(request: Request): string | null {
   return bearer ?? request.headers.get("x-hook-token")?.trim() ?? new URL(request.url).searchParams.get("token")?.trim() ?? null;
 }
 
-function clientIp(headers: Headers): string {
+export function clientIp(headers: Headers): string {
   return headers.get("cf-connecting-ip") ?? headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
 }
 

@@ -1,6 +1,6 @@
-import { count, desc, eq, inArray } from "drizzle-orm";
+import { and, count, desc, eq, gt, inArray, isNotNull } from "drizzle-orm";
 import type { Db } from "@/db/client";
-import { accounts, channels, plans, users } from "@/db/schema";
+import { accounts, audits, channels, plans, users } from "@/db/schema";
 import { normalizeEmail } from "@/lib/email";
 import { createAccountWithUser, findUserByEmail, writeAudit } from "./accounts";
 import { LIVE_STATUSES } from "./channels";
@@ -27,6 +27,36 @@ export async function listAccountsForAdmin(db: Db) {
     .groupBy(channels.accountId);
   const liveByAccount = new Map(live.map((row) => [row.accountId, row.n]));
   return rows.map((row) => ({ ...row, liveChannels: liveByAccount.get(row.accountId) ?? 0 }));
+}
+
+// Audit my channel (Phase 9): what the public page did in the last 7 days and
+// the newest report requests with their marketing consent (D-08).
+export async function auditOverview(db: Db, now = new Date()) {
+  const since = new Date(now.getTime() - 7 * 86_400_000);
+  const [totals] = await db
+    .select({ requests: count() })
+    .from(audits)
+    .where(gt(audits.createdAt, since));
+  const [done] = await db.select({ n: count() }).from(audits).where(and(gt(audits.createdAt, since), eq(audits.status, "done")));
+  const [reports] = await db.select({ n: count() }).from(audits).where(and(gt(audits.createdAt, since), isNotNull(audits.reportSentAt)));
+  const recent = await db
+    .select({
+      email: audits.requesterEmail,
+      channel: audits.channelInput,
+      marketing: audits.consentMarketing,
+      at: audits.reportSentAt,
+      score: audits.result,
+    })
+    .from(audits)
+    .where(isNotNull(audits.reportSentAt))
+    .orderBy(desc(audits.reportSentAt))
+    .limit(50);
+  return {
+    requests: totals?.requests ?? 0,
+    done: done?.n ?? 0,
+    reports: reports?.n ?? 0,
+    recent: recent.map((r) => ({ email: r.email, channel: r.channel, marketing: r.marketing, at: r.at, score: r.score?.score.value ?? null, segment: r.score?.stack.segment ?? null })),
+  };
 }
 
 export async function listPlans(db: Db) {

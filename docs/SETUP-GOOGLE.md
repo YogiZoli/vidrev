@@ -1,6 +1,6 @@
 # Google Cloud setup: the app project and OAuth client
 
-This is the product's own GCP project (D-27, D-31): one project, shared by all customers, for reading comments and posting approved replies. "Audit my channel" gets its own, separate project later (D-34, Phase 9). Never create a second project for the same purpose.
+This is the product's own GCP project (D-27, D-31): one project, shared by all customers, for reading comments and posting approved replies. "Audit my channel" has its own, separate project ([SETUP-AUDIT.md](SETUP-AUDIT.md), D-34, Phase 9). Never create a second project for the same purpose.
 
 Do these steps signed in with the Google account that will own the product (the owner's account, not a customer's).
 

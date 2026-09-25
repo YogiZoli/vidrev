@@ -5,7 +5,7 @@ One HighLevel Marketplace app, created **Private** now and switched to Public in
 ## 1. Create the app
 
 1. Open `https://marketplace.gohighlevel.com` and sign in with the HighLevel account that owns the agency (the developer portal is under **My Apps**).
-2. **Create App**. Name: the product name in lowercase (`vidrev`). Never put "GHL" or "YouTube" in the name (D-23). HighLevel also refuses any URL that contains "ghl" or "highlevel" (white-label rule), which is why the paths are `/api/oauth/crm/...` and `/api/hooks/crm`. App type: **Private**. Distribution: **Sub-Account** (location level).
+2. **Create App**. Name: the product name in lowercase (`vidrev`). Never put "GHL" or "YouTube" in the name (D-23). Form choices used: App type Private, target user Sub-account, who can install: Everyone, listing type White-label. Client ID and Secret are under MANAGE, Secrets, Client keys, Add (not on the Auth page). The scope names below are exactly as the picker shows them; the AppUninstall webhook event is not offered. HighLevel also refuses any URL that contains "ghl" or "highlevel" (white-label rule), which is why the paths are `/api/oauth/crm/...` and `/api/hooks/crm`. App type: **Private**. Distribution: **Sub-Account** (location level).
 3. **Advanced Settings, Auth**: set **Redirect URL** to your app address plus the callback path. It must match `APP_BASE_URL` exactly:
 
 ```text

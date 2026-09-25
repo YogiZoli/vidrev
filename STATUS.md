@@ -17,7 +17,7 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 | 4 | Comment engine: channel polling tiers, PubSubHubbub, keyword rules, AI drafts, templates, approval queue, quota-budget sending, transparent queue, manual fallback, quota ledger, retention job | **DONE** (2026-09-25), PRs #2 to #7; end-to-end check on the owner's channel pending (owner setup below) |
 | 5 | Tracked links on the user's own domain: CNAME onboarding, DNS check, Cloudflare for SaaS TLS, fallback domain, click ids, mapping | **DONE** (2026-09-25), PRs #8 to #10; live on vidrev.app since 2026-09-25 (PR #11 adds the spend cap and the Worker) |
 | 5b | Compliance pack (Q-17 a): Privacy/Terms drafts, OAuth verification pack, quota extension request | **Prepared** (2026-09-25), [docs/compliance/](docs/compliance/README.md); submission waits for the LLC (EIN not needed) |
-| 6 | Integrations: outbound HMAC webhooks and tags, GHL OAuth, inbound opt-in and purchase webhooks | **DONE** (2026-09-25), PRs #13 to #15; GHL live check pending the Private Marketplace app (owner setup below) |
+| 6 | Integrations: outbound HMAC webhooks and tags, GHL OAuth, inbound opt-in and purchase webhooks | **DONE** (2026-09-25), PRs #13 to #15; GHL connected live on 2026-09-25 (Sub-account YTC2C, first syncs without errors) |
 | 7 | Attribution and reporting | not started |
 | 8 | Stripe revenue ingestion (read-only; Stripe App or restricted key, Q-17 e) | not started |
 | 9 | Audit my channel | not started |
@@ -57,7 +57,7 @@ Phase plan changes (all accepted): compliance pack and quota extension request r
 
 Done: Railway secrets, GCP project `c2c-app`, OAuth client, channel connected.
 
-Phase 6 GoHighLevel: create the Private Marketplace app and set `GHL_CLIENT_ID` and `GHL_CLIENT_SECRET` with `scripts/set-secrets.ps1 -Ghl` ([docs/SETUP-GHL.md](docs/SETUP-GHL.md)). Until then the button says "not available yet" and everything else in Phase 6 works.
+Phase 6 GoHighLevel **done 2026-09-25**: Private Marketplace app `vidrev` (target user Sub-account, install by Everyone, White-label listing), keys on both Railway services, Sub-account YTC2C connected, `c2c_tid` field created, syncs run without errors ([docs/SETUP-GHL.md](docs/SETUP-GHL.md)). Still to try with real data: a tracked click through an opt-in form into a tagged contact, a payment and a won opportunity.
 
 Phase 5 Cloudflare setup **done 2026-09-25** ([docs/SETUP-CLOUDFLARE.md](docs/SETUP-CLOUDFLARE.md)): DNS, Cloudflare for SaaS, Worker `steep-cake-5ab6vidrev-links` on `*/*`, API token, Railway variables. `https://go.vidrev.app/<slug>` is live.
 
@@ -70,7 +70,7 @@ Still deferred from Phase 4 (no billing yet): platform Gemini key and `WEBSUB_SE
 - First real custom domain (a creator's own subdomain) not tried yet; Cloudflare for SaaS hostname creation is covered by tests with a faked API only.
 - Domain Connect goes live per provider only after the template PR and provider onboarding ([docs/domain-connect/README.md](docs/domain-connect/README.md)); name is lowercase `vidrev` (P5-09).
 - Queue page mints reply links on render (one query set per open draft); fine for now, batch it if queues grow.
-- GoHighLevel API details marked "verify live" (docs/SETUP-GHL.md section 5) are confirmed only on the first real connection.
+- GoHighLevel: connection, setup and the three reads (contacts, won opportunities, payments) ran without HTTP errors on the YTC2C Sub-account; the account holds no real payments yet, so amount units and refunds (docs/SETUP-GHL.md section 5) are confirmed only by the first real payment.
 - Hosted opt-in fallback (SPEC section 9) is not built (P6-13); Phase 7 or later.
 - Outbound `link_clicked` volume is unbounded per click; add a per-endpoint rate cap if a creator's endpoint struggles.
 - Still open: Q-01 (name and domain). GHL merge field names in the provisioning guide must be checked when the workflows are built.

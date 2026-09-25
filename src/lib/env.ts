@@ -20,6 +20,7 @@ const envSchema = z.object({
   GOOGLE_CLIENT_SECRET: optional,
   RESEND_API_KEY: optional,
   EMAIL_FROM: optional,
+  WEBSUB_SECRET: optional,
   QUOTA_DAILY_LIMIT: z.coerce.number().int().positive().default(10000),
   RAILWAY_GIT_COMMIT_SHA: optional,
 });
@@ -32,7 +33,8 @@ type OptionalKey =
   | "GOOGLE_CLIENT_ID"
   | "GOOGLE_CLIENT_SECRET"
   | "RESEND_API_KEY"
-  | "EMAIL_FROM";
+  | "EMAIL_FROM"
+  | "WEBSUB_SECRET";
 
 export function requireEnv(name: OptionalKey): string {
   const value = env()[name];

@@ -178,7 +178,7 @@ describe.skipIf(!hasDb)("inbound hooks (integration)", () => {
   });
 
   it("enriches the purchase event from the latest touch within 180 days; unmatched buyers get no c2c_buyer tag", async () => {
-    const { account, tid, campaign } = await setup();
+    const { account, tid, campaign, link } = await setup();
     const created = await createEndpoint(db(), key, { accountId: account.id, url: "https://hooks.example.com/x" });
     if (!created.ok) throw new Error(created.error);
     const emit = async (input: EmitInput) => void (await emitEvent(db(), input));
@@ -203,8 +203,13 @@ describe.skipIf(!hasDb)("inbound hooks (integration)", () => {
     expect(s!.payload).toMatchObject({ keyword: null, tags: ["c2c"] });
 
     // A touch older than 180 days no longer counts.
+    // (Its own click: one tracking id with two emails would be one person, DECISIONS Q-23.)
+    const oldTid = newTid();
+    await db()
+      .insert(clicks)
+      .values({ tid: oldTid, accountId: account.id, linkId: link.id, campaignId: campaign.id, youtubeVideoId: VIDEO, keyword: "guide", host: "go.vidrev.app", userAgentClass: "desktop", isBot: false });
     const old = `o-${randomUUID()}@example.com`;
-    await recordOptIn(db(), account.id, { email: old, name: null, tid, externalId: "old-1", consentMarketing: null, occurredAt: new Date(Date.now() - 200 * 86_400_000) }, { source: "webhook", emit });
+    await recordOptIn(db(), account.id, { email: old, name: null, tid: oldTid, externalId: "old-1", consentMarketing: null, occurredAt: new Date(Date.now() - 200 * 86_400_000) }, { source: "webhook", emit });
     const late = await recordPurchase(
       db(),
       account.id,

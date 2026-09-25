@@ -9,6 +9,12 @@ import { DEFAULT_BUYER_TAG, type GhlConfig, readGhlConfig, sealGhlConfig } from 
 
 export type ConnectResult = { ok: true; id: string } | { ok: false; error: "not_location" | "location_taken" | "already_connected" };
 
+export const CONNECT_ERRORS = {
+  not_location: "Choose one sub-account (location) when connecting, not the whole agency.",
+  location_taken: "This GoHighLevel account is already connected to another account here.",
+  already_connected: "Another GoHighLevel account is already connected. Disconnect it first.",
+} as const;
+
 export async function connectGhl(db: Db, key: string, accountId: string, tokens: GhlTokenResponse, now = new Date()): Promise<ConnectResult> {
   if ((tokens.userType && tokens.userType !== "Location") || !tokens.locationId) return { ok: false, error: "not_location" };
   const locationId = tokens.locationId;

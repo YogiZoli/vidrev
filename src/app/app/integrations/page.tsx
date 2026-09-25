@@ -1,10 +1,13 @@
 import { and, eq, ne } from "drizzle-orm";
+import { cookies } from "next/headers";
 import { getDb } from "@/db/client";
 import { integrations } from "@/db/schema";
 import { appBaseUrl, requireEnv } from "@/lib/env";
+import { verifySignedValue } from "@/lib/signed";
 import { EVENT_NAMES } from "@/lib/webhooks";
 import { requireSession } from "@/server/auth/current";
-import { ghlConfigured } from "@/server/ghl/config";
+import { GHL_CLAIM_COOKIE, GHL_CLAIM_PAGE, ghlConfigured } from "@/server/ghl/config";
+import { hasPendingInstall } from "@/server/ghl/install";
 import { readGhlConfig } from "@/server/ghl/tokens";
 import { ensureHookToken } from "@/server/integrations/inbound";
 import { readStripeConfig } from "@/server/stripe/connect";
@@ -44,6 +47,9 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
     .from(integrations)
     .where(and(eq(integrations.accountId, account.id), eq(integrations.type, "stripe"), ne(integrations.status, "removed")));
   const stripeLast4 = stripe?.configEnc ? readStripeConfig(stripe.configEnc, key).last4 : null;
+  // A Marketplace install that waits for this browser's account (Phase 10).
+  const claim = verifySignedValue<{ token: string }>((await cookies()).get(GHL_CLAIM_COOKIE)?.value, requireEnv("AUTH_SECRET"));
+  const pendingInstall = !ghl && claim ? await hasPendingInstall(db, claim.token) : false;
 
   return (
     <main style={styles.main}>
@@ -61,6 +67,11 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
       {params.rotated ? <Notice tone="info">New signing secret created. Update it in the receiving system.</Notice> : null}
       {params.removed ? <Notice tone="info">Endpoint removed.</Notice> : null}
 
+      {pendingInstall ? (
+        <Notice tone="info">
+          You installed the app from HighLevel. <a href={GHL_CLAIM_PAGE}>Finish connecting it to this account.</a>
+        </Notice>
+      ) : null}
       {params.ghl_connected ? <Notice tone="info">GoHighLevel connected. We are setting up the tracking field and reading your contacts.</Notice> : null}
       {params.ghl_disconnected ? <Notice tone="info">GoHighLevel disconnected. Remove the app in GoHighLevel too if you no longer want it there.</Notice> : null}
       {params.ghl_sync ? <Notice tone="info">Sync queued. It runs within a minute.</Notice> : null}

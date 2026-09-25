@@ -16,4 +16,4 @@
 4. Open a pull request with `vidrev.app.links.json` to https://github.com/Domain-Connect/Templates (file name `vidrev.app.links.json`).
 5. After the merge, ask each provider to onboard it. Cloudflare: email domain-connect@cloudflare.com with the template link. GoDaddy, IONOS and others read the Templates repository or have their own form; the repository README lists the contacts.
 
-`logoUrl` must exist on vidrev.app before step 4. The product name "VidRev" in the template is an assumption from the domain (proposal P5-09); change it before the pull request if the name differs.
+`logoUrl` must exist on vidrev.app before step 4. The product name is written in lowercase everywhere: `vidrev`, `vidrev.app` (owner, 2026-09-25).

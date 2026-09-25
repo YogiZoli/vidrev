@@ -28,6 +28,8 @@ const envSchema = z.object({
   CLOUDFLARE_API_TOKEN: optional,
   CLOUDFLARE_ZONE_ID: optional,
   CUSTOM_HOSTNAME_CNAME_TARGET: optional,
+  // Spend cap (P5-11): 100 hostnames free, then 0.10 USD each; 150 = at most 5 USD a month.
+  CUSTOM_HOSTNAME_LIMIT: z.coerce.number().int().nonnegative().default(150),
   // Domain Connect (D-38): our provider id defaults to the brand domain.
   DOMAIN_CONNECT_PROVIDER_ID: optional,
   DOMAIN_CONNECT_SERVICE_ID: z.string().trim().min(1).default("links"),

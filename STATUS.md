@@ -50,7 +50,7 @@ Phase plan changes (all accepted): compliance pack and quota extension request r
 
 Done 2026-09-25: Railway secrets, GCP project `c2c-app`, OAuth client, channel connected.
 
-New for Phase 4:
+New for Phase 4 (**deferred by the owner until the brand domain is bought; no billing before that**). When it is time, Claude writes click-by-click steps with paste-ready URLs, like [docs/SETUP-GOOGLE.md](docs/SETUP-GOOGLE.md). Until then drafts come from the approved templates (no AI).
 
 1. Create a separate GCP project for the platform AI key (never `c2c-app`), enable billing and the Gemini API, create an API key restricted to the Generative Language API.
 2. Run `scripts/set-secrets.ps1` again: it generates `WEBSUB_SECRET` and asks for `GEMINI_PLATFORM_API_KEY` (Enter skips; drafts then use templates only).
@@ -61,7 +61,7 @@ New for Phase 4:
 - End-to-end run on the owner's channel not done yet (needs the setup above).
 - Brand domain not bought yet: Resend sends only to the owner inbox; OAuth stays in Testing mode (reconnect weekly); Cloudflare spike waits (Q-15). `APP_BASE_URL` must be the public https URL for WebSub; until then RSS covers upload detection.
 - Still open: Q-01 (name and domain). GHL merge field names in the provisioning guide must be checked when the workflows are built.
-- Proposals CC-01 to CC-06, P3-01 to P3-07 and P4-01 to P4-11 in `DECISIONS.md` await owner review (P4-10: keeping the video id on sent replies).
+- Proposals CC-01 to CC-06, P3-01 to P3-07 and P4-01 to P4-11 in `DECISIONS.md` await owner review (P4-10 accepted 2026-09-25; owner data principle in DECISIONS section 8).
 - Poll jobs run one at a time per worker; fine for the founding cohort, revisit with many channels.
 - Railway did not run the config-as-code pre-deploy command; migrations run at service start instead.
 - `drizzle-kit` pulls a dev-only dependency with a moderate npm audit advisory; not shipped.

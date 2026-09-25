@@ -151,5 +151,13 @@ The Phase 1 review adds owner questions Q-01 to Q-22 in [docs/SPEC-REVIEW.md](do
 | P4-07 | Template rules: `{link}` exactly once, max 1000 characters, no like/subscribe/bell requests (EN, HU, ES, FR/DE patterns). Checked on save, on every AI draft and on every approval. | Brief: never require like or subscribe. |
 | P4-08 | Plan caps count replies approved in the Pacific month and day, including queued and hand-posted ones. Drafts over the monthly cap are stored as `skipped` with the reason; the daily ceiling blocks approval with a message and the manual fallback stays available. | Q-03 / Q-11; one quota calendar everywhere. |
 | P4-09 | "Drafts are waiting" email at most once per hour per account. | R-35 mobile approval without spamming. |
-| P4-10 | `replies.youtube_video_id` is kept as first-party data (the video we replied on) for per-video reporting; comment text, commenter names and ids, video titles and reply ids are deleted after 30 days or at disconnect. Drafts not approved within 30 days become `expired`. | Q-17 c; Phase 7 reports per video. Owner to confirm. |
+| P4-10 | `replies.youtube_video_id` is kept as first-party data (the video we replied on) for per-video reporting; comment text, commenter names and ids, video titles and reply ids are deleted after 30 days or at disconnect. Drafts not approved within 30 days become `expired`. | Q-17 c; Phase 7 reports per video. **Accepted by owner (2026-09-25).** |
 | P4-11 | Retention deletes old comments rather than refreshing them (the SPEC allows either). | The comment is only needed while the draft is open. |
+
+## 8. Owner answers after Phase 4 (2026-09-25)
+
+| Topic | Answer |
+| --- | --- |
+| P4-10 Video id on sent replies | **Accepted.** |
+| Data principle (applies to every phase) | **Owner rule:** keep as much first-party data as possible, detailed and complete (every event, timestamp, status change, reply text, keyword, intent, language, draft source, approval time, click, opt-in, purchase). Nothing is left out; data that turns out to be unneeded can be deleted later or simply not shown. Limit: YouTube API data (comment text, commenter names and ids, video and channel titles, reply ids) still follows the 30-day rule (Q-17 c, YouTube API Developer Policies III.E.4); this principle cannot override it. |
+| Platform Gemini key and WebSub secret | **Deferred** until the brand domain exists; the owner enables no billing before that. Until then drafts use the approved templates. When it is time, Claude gives click-by-click steps with paste-ready URLs (like the Phase 3 Google setup). |

@@ -1,7 +1,8 @@
 import { getDb } from "@/db/client";
-import { requireEnv } from "@/lib/env";
+import { appBaseUrl, requireEnv } from "@/lib/env";
 import { EVENT_NAMES } from "@/lib/webhooks";
 import { requireSession } from "@/server/auth/current";
+import { ensureHookToken } from "@/server/integrations/inbound";
 import { listEndpoints, MAX_ENDPOINTS, readConfig, recentDeliveries } from "@/server/integrations/outbound";
 import { Notice, styles } from "../../ui";
 
@@ -27,6 +28,7 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
   const endpoints = await listEndpoints(db, account.id);
   const configs = await Promise.all(endpoints.map((endpoint) => readConfig(endpoint, key)));
   const deliveries = await recentDeliveries(db, account.id);
+  const hookToken = await ensureHookToken(db, key, account.id);
 
   return (
     <main style={styles.main}>
@@ -111,6 +113,51 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
           </p>
         </section>
       ) : null}
+
+      <section style={styles.card}>
+        <h2 style={{ marginTop: 0 }}>Send us subscribers and buyers</h2>
+        <p style={styles.muted}>
+          Any form tool, checkout, Zapier, Make or n8n can tell us when someone opts in or buys. That is how a comment turns into a subscriber, a
+          buyer and revenue. Send a <code>POST</code> with your token:
+        </p>
+        <table style={styles.table}>
+          <tbody>
+            <tr>
+              <th style={styles.cell}>Subscriber</th>
+              <td style={styles.cell}>
+                <code style={{ wordBreak: "break-all" }}>{appBaseUrl()}/api/hooks/optin</code>
+              </td>
+            </tr>
+            <tr>
+              <th style={styles.cell}>Buyer</th>
+              <td style={styles.cell}>
+                <code style={{ wordBreak: "break-all" }}>{appBaseUrl()}/api/hooks/purchase</code>
+              </td>
+            </tr>
+            <tr>
+              <th style={styles.cell}>Token</th>
+              <td style={styles.cell}>
+                <code style={{ wordBreak: "break-all" }}>{hookToken}</code>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <p style={{ ...styles.muted, fontSize: 13 }}>
+          Send the token as <code>Authorization: Bearer &lt;token&gt;</code>, as <code>X-Hook-Token</code>, or, if your tool cannot set headers, as{" "}
+          <code>?token=</code> at the end of the URL. JSON and form posts both work.
+          <br />
+          Subscriber fields: <code>email</code> (required), <code>c2c_tid</code> (the hidden field on your form), <code>name</code>,{" "}
+          <code>consent_marketing</code>. Buyer fields: <code>email</code> or <code>c2c_tid</code>, <code>external_id</code> (order id, required),{" "}
+          <code>amount</code> and <code>currency</code>, <code>subscription_id</code>, <code>refunded_amount</code>. Sending the same order again is safe.
+        </p>
+        <form method="post" action="/api/integrations">
+          <input type="hidden" name="action" value="hook_rotate" />
+          <button type="submit" style={styles.secondary}>
+            New token
+          </button>
+        </form>
+        {params.hook_rotated ? <Notice tone="info">New token created. The old one no longer works; update it where you use it.</Notice> : null}
+      </section>
 
       <section style={styles.card}>
         <h2 style={{ marginTop: 0 }}>Recent deliveries</h2>

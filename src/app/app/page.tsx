@@ -1,7 +1,10 @@
 import { getDb } from "@/db/client";
 import { isAdminEmail, requireSession } from "@/server/auth/current";
+import { buildHeadline } from "@/lib/report";
 import { listChannels, LIVE_STATUSES } from "@/server/channels";
+import { readSnapshots } from "@/server/reports";
 import { Notice, productName, styles } from "../ui";
+import { ago, HeadlineCard } from "./reports/Headline";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +33,7 @@ export default async function AppPage({ searchParams }: { searchParams: Promise<
   const channelRows = await listChannels(getDb(), account.id);
   const live = channelRows.filter((c) => LIVE_STATUSES.includes(c.status)).length;
   const connecting = channelRows.some((c) => c.status === "connecting" || c.status === "disconnecting");
+  const { reports, computedAt } = await readSnapshots(getDb(), account.id);
 
   return (
     <main style={styles.main}>
@@ -49,6 +53,15 @@ export default async function AppPage({ searchParams }: { searchParams: Promise<
       {params.disconnected ? <Notice tone="info">Channel disconnected. Its YouTube data is being deleted.</Notice> : null}
       {account.status === "suspended" ? (
         <Notice tone="error">Your account is suspended. Nothing is polled or sent. Your reports are kept.</Notice>
+      ) : null}
+
+      {reports.this_month && reports.all_time ? (
+        <>
+          <HeadlineCard headline={buildHeadline(reports.this_month, reports.all_time, plan)} updated={ago(computedAt)} />
+          <p>
+            <a href="/app/reports">Full report per video, keyword and reply</a>
+          </p>
+        </>
       ) : null}
 
       <section style={styles.card}>
@@ -102,7 +115,7 @@ export default async function AppPage({ searchParams }: { searchParams: Promise<
         ) : null}
         {live > 0 ? (
           <p>
-            <a href="/app/queue">Approval queue</a> · <a href="/app/campaigns">Keywords and replies</a> · <a href="/app/domain">Link domain</a> · <a href="/app/integrations">Integrations</a>
+            <a href="/app/queue">Approval queue</a> · <a href="/app/reports">Reports</a> · <a href="/app/campaigns">Keywords and replies</a> · <a href="/app/domain">Link domain</a> · <a href="/app/integrations">Integrations</a>
           </p>
         ) : null}
         <p style={styles.muted}>

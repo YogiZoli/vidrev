@@ -8,6 +8,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -31,6 +32,9 @@ export const plans = pgTable("plans", {
   label: text("label").notNull(),
   billing: text("billing").notNull(),
   priceLabel: text("price_label"),
+  // Numeric price for the report headline (Q-09); null until decided.
+  priceCents: bigint("price_cents", { mode: "number" }),
+  priceCurrency: text("price_currency"),
   channelLimit: integer("channel_limit").notNull(),
   monthlyReplyCap: integer("monthly_reply_cap"),
   dailyReplyCap: integer("daily_reply_cap"),
@@ -56,6 +60,11 @@ export const accounts = pgTable("accounts", {
   billingRef: text("billing_ref"),
   suspendedAt: timestamp("suspended_at", { withTimezone: true }),
   reportingCurrency: text("reporting_currency").notNull().default("USD"),
+  // Q-08: "default" (USD), "source" (the currency of the connected revenue
+  // source, set by the worker) or "creator" (chosen by hand, never overridden).
+  reportingCurrencySource: text("reporting_currency_source").$type<"default" | "source" | "creator">().notNull().default("default"),
+  // Calendar days of the reports ("this month") are counted in this zone.
+  reportTimezone: text("report_timezone").notNull().default("UTC"),
   // AI drafting (DECISIONS Q-13c): "platform" uses the owner's billing-enabled
   // Gemini key; otherwise the account's own key, encrypted at rest.
   aiProvider: text("ai_provider").$type<AiProvider>().notNull().default("platform"),
@@ -663,4 +672,20 @@ export const purchases = pgTable(
     index("purchases_tid_idx").on(t.tid),
     index("purchases_subscription_idx").on(t.accountId, t.subscriptionRef),
   ],
+);
+
+// Precomputed reports (SPEC section 12, D-36): one row per account and period,
+// rebuilt by the worker after new data. Dashboards only read these. The data
+// holds first-party numbers and ids only, never YouTube titles.
+export const reportSnapshots = pgTable(
+  "report_snapshots",
+  {
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    period: text("period").notNull(),
+    data: jsonb("data").notNull(),
+    computedAt: timestamp("computed_at", { withTimezone: true }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.accountId, t.period] })],
 );

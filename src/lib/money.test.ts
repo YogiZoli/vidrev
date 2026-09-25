@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeCurrency, toMinorUnits } from "./money";
+import { formatMoney, normalizeCurrency, toMinorUnits } from "./money";
 
 describe("minor units", () => {
   it("converts decimals to integer cents", () => {
@@ -31,5 +31,14 @@ describe("minor units", () => {
     expect(normalizeCurrency(" usd ")).toBe("USD");
     expect(normalizeCurrency("US")).toBeNull();
     expect(normalizeCurrency(5)).toBeNull();
+  });
+});
+
+describe("formatMoney", () => {
+  it("shows minor units in the currency's own format", () => {
+    expect(formatMoney(123450, "USD")).toBe("$1,234.50");
+    expect(formatMoney(808, "USD")).toBe("$8.08");
+    expect(formatMoney(9700, "JPY")).toBe("¥9,700");
+    expect(formatMoney(1500, "KWD")).toMatch(/^KWD\s1\.500$/);
   });
 });

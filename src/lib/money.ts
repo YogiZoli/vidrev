@@ -29,3 +29,13 @@ export function toMinorUnits(amount: unknown, currency: string): number | null {
   const minor = Number(match[1]) * 10 ** exponent + Number(fraction.slice(0, exponent).padEnd(exponent, "0") || "0");
   return Number.isSafeInteger(minor) ? minor : null;
 }
+
+// "$1,234.50", "€97.00", "¥9,700": minor units shown in their own currency.
+export function formatMoney(minor: number, currency: string): string {
+  const exponent = minorUnitExponent(currency);
+  try {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency, minimumFractionDigits: exponent, maximumFractionDigits: exponent }).format(minor / 10 ** exponent);
+  } catch {
+    return `${(minor / 10 ** exponent).toFixed(exponent)} ${currency}`;
+  }
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nextPacificMidnight, pacificDate, pacificMonth } from "./time";
+import { addDays, isValidTimeZone, nextPacificMidnight, pacificDate, pacificMonth, zonedDay } from "./time";
 
 describe("Pacific quota day", () => {
   it("rolls over at midnight Pacific, not UTC", () => {
@@ -23,5 +23,22 @@ describe("nextPacificMidnight", () => {
   it("finds the next reset in summer and winter time", () => {
     expect(nextPacificMidnight(new Date("2026-09-25T12:00:00Z")).toISOString()).toBe("2026-09-26T07:00:00.000Z");
     expect(nextPacificMidnight(new Date("2026-12-01T09:00:00Z")).toISOString()).toBe("2026-12-02T08:00:00.000Z");
+  });
+});
+
+describe("report days", () => {
+  it("formats the day in the account's time zone", () => {
+    const at = new Date("2026-03-01T05:00:00Z");
+    expect(zonedDay(at, "UTC")).toBe("2026-03-01");
+    expect(zonedDay(at, "America/Los_Angeles")).toBe("2026-02-28");
+    expect(zonedDay(at, "Asia/Singapore")).toBe("2026-03-01");
+  });
+
+  it("adds days across month and year ends and checks zone names", () => {
+    expect(addDays("2026-02-28", 1)).toBe("2026-03-01");
+    expect(addDays("2026-01-01", -1)).toBe("2025-12-31");
+    expect(addDays("2026-03-31", -29)).toBe("2026-03-02");
+    expect(isValidTimeZone("Europe/Budapest")).toBe(true);
+    expect(isValidTimeZone("Mars/Base")).toBe(false);
   });
 });

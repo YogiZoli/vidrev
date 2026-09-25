@@ -1,0 +1,237 @@
+@import "tailwindcss";
+
+/* Brand tokens: copied from the design-system canon (design-system/tokens.css,
+   light theme only, owner decision 2026-08-31: no dark UI). Components read the
+   role tokens, never a hex. Keep in sync with the canon file. */
+:root {
+  /* --- Brand scale: azure (identity, links, dark sections, focus on brand) --- */
+  --brand-50:  #EBF3FE;
+  --brand-100: #D6E6FD;
+  --brand-200: #B0CEFB;
+  --brand-300: #82B0F7;
+  --brand-400: #4F8DF0;
+  --brand-500: #1E7CE8;   /* base brand */
+  --brand-600: #1663C6;   /* brand hover, link on light */
+  --brand-700: #144F9F;
+  --brand-800: #163F7B;
+  --brand-900: #15355F;   /* dark section background */
+  --brand-950: #0E2038;   /* near-black navy: footer, CTA text, shadow tint */
+
+  /* --- Accent scale: green (the action color: CTA, ring, progress, active).
+         Anchored on #12A150, the green Zoltan picked. --- */
+  --accent-50:  #E4F5EA;
+  --accent-100: #BFE8CC;
+  --accent-200: #8DD5A6;
+  --accent-300: #56BE7B;
+  --accent-400: #24A957;   /* bright green */
+  --accent-500: #12A150;   /* base accent  primary CTA fill */
+  --accent-600: #0E8542;   /* CTA hover */
+  --accent-700: #0C6A36;   /* green that carries white text (AA) */
+  --accent-800: #0C5430;
+  --accent-900: #0A4228;
+
+  /* --- Neutral scale: blue-biased grey (90% of every surface) --- */
+  --neutral-0:   #FFFFFF;
+  --neutral-50:  #F6F8FC;   /* page ground, not pure white */
+  --neutral-100: #EDF1F7;   /* alt surface, rails */
+  --neutral-200: #E0E6F0;   /* border */
+  --neutral-300: #CAD3E1;   /* strong border, input outline */
+  --neutral-400: #97A3B8;   /* placeholder, disabled text */
+  --neutral-500: #6A7688;   /* secondary text */
+  --neutral-600: #4C5768;   /* labels, meta */
+  --neutral-700: #333D4C;
+  --neutral-800: #1E2733;   /* primary body text on light (not #000) */
+  --neutral-900: #131A24;
+
+  /* --- Semantic (separate from the accent hue) --- */
+  --success:    #0B7A3E;  --success-surface: #E3F3E8;  /* deeper than the accent so a green button != "success" */
+  --warning:    #E5A400;  --warning-surface: #FBF2DD;
+  --danger:     #E5484D;  --danger-surface:  #FCECED;
+  --info:       var(--brand-600);
+
+  /* --- Role tokens (light). Components read only these, never the scales. --- */
+  --background:          var(--neutral-50);
+  --foreground:          var(--neutral-800);
+  --surface:             var(--neutral-0);
+  --surface-foreground:  var(--neutral-800);
+  --surface-alt:         var(--neutral-100);
+  --muted:               var(--neutral-100);
+  --muted-foreground:    var(--neutral-500);
+
+  --primary:             var(--accent-600);   /* deep green CTA (#0E8542), white text ~4.7:1 */
+  --primary-hover:       var(--accent-700);
+  --primary-foreground:  var(--neutral-0);
+
+  --secondary:           var(--brand-600);    /* deep azure (#1663C6), white text ~5.8:1 */
+  --secondary-hover:     var(--brand-700);
+  --secondary-foreground: var(--neutral-0);
+
+  --link:                var(--brand-600);
+  --link-hover:          var(--brand-700);
+
+  --accent-surface:      var(--brand-50);     /* faint hover / highlight fill */
+  --accent-surface-foreground: var(--brand-700);
+
+  --border:              var(--neutral-200);
+  --border-strong:       var(--neutral-300);
+  --input:               var(--neutral-300);
+  --ring:                var(--accent-600);   /* green focus ring, matches the CTA */
+
+  /* --- Typography --- */
+  --font-sans: "Open Sans", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  --font-display: "Open Sans", "Segoe UI", system-ui, sans-serif; /* optional: "Raleway" for headings only */
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", "Cascadia Mono", Menlo, monospace;
+
+  /* Base 18px (1.125rem on a 16px root). Scale ~1.22. */
+  --text-xs:   0.8125rem;  --lh-xs:   1.125rem; --ls-xs:   0;      /* 13 */
+  --text-sm:   0.9375rem;  --lh-sm:   1.375rem; --ls-sm:   0;      /* 15 */
+  --text-base: 1.125rem;   --lh-base: 1.75rem;  --ls-base: 0;      /* 18 / 1.55 */
+  --text-lg:   1.25rem;    --lh-lg:   1.85rem;  --ls-lg:   -0.006em; /* 20 */
+  --text-xl:   1.375rem;   --lh-xl:   1.95rem;  --ls-xl:   -0.01em;  /* 22 */
+  --text-2xl:  1.625rem;   --lh-2xl:  2.1rem;   --ls-2xl:  -0.012em; /* 26 */
+  --text-3xl:  2rem;       --lh-3xl:  2.4rem;   --ls-3xl:  -0.016em; /* 32 */
+  --text-4xl:  2.5rem;     --lh-4xl:  2.85rem;  --ls-4xl:  -0.02em;  /* 40 */
+  --text-5xl:  3.125rem;   --lh-5xl:  3.35rem;  --ls-5xl:  -0.022em; /* 50 */
+  --text-6xl:  3.875rem;   --lh-6xl:  4rem;     --ls-6xl:  -0.026em; /* 62 */
+  --text-7xl:  4.625rem;   --lh-7xl:  4.75rem;  --ls-7xl:  -0.03em;  /* 74 */
+
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-extrabold: 800;
+
+  --measure: 68ch;   /* max line length for running text */
+
+  /* --- Spacing (4px base; only the steps we actually use) --- */
+  --space-0: 0;
+  --space-1: 0.125rem;   /* 2 */
+  --space-2: 0.25rem;    /* 4 */
+  --space-3: 0.5rem;     /* 8 */
+  --space-4: 0.75rem;    /* 12 */
+  --space-5: 1rem;       /* 16 */
+  --space-6: 1.25rem;    /* 20 */
+  --space-7: 1.5rem;     /* 24 */
+  --space-8: 2rem;       /* 32 */
+  --space-9: 2.5rem;     /* 40 */
+  --space-10: 3rem;      /* 48 */
+  --space-12: 4rem;      /* 64 */
+  --space-14: 5rem;      /* 80 */
+  --space-16: 6rem;      /* 96 */
+  --space-20: 8rem;      /* 128 */
+
+  --container: 1200px;
+  --container-prose: 720px;
+  --gutter: 1.25rem;    /* 20 desktop */
+  --gutter-mobile: 1rem; /* 16 mobile */
+
+  /* Section rhythm  mobile-first, deliberately tighter than LeadGenJay desktop.
+     Use --section-y for vertical section padding; bump up at >=768px only. */
+  --section-y: 2.5rem;        /* 40 mobile */
+  --section-y-lg: 4rem;       /* 64 desktop */
+  --block-gap: 1.25rem;       /* 20  gap between cards/blocks */
+
+  /* --- Radius --- */
+  --radius-sm: 6px;    /* badge, tag */
+  --radius-md: 10px;   /* button, input */
+  --radius-lg: 12px;   /* card  base --radius */
+  --radius-xl: 16px;   /* panel, modal */
+  --radius-2xl: 24px;  /* hero media, feature block */
+  --radius-full: 9999px;
+  --radius: var(--radius-lg);
+
+  /* --- Border width --- */
+  --border-width: 1px;
+
+  /* --- Shadow (navy-tinted, never pure black) --- */
+  --shadow-xs: 0 1px 2px rgba(14, 32, 56, 0.06);
+  --shadow-sm: 0 1px 3px rgba(14, 32, 56, 0.08), 0 1px 2px rgba(14, 32, 56, 0.04);
+  --shadow-md: 0 4px 12px rgba(14, 32, 56, 0.08);
+  --shadow-lg: 0 12px 28px rgba(14, 32, 56, 0.12);
+  --shadow-cta: 0 6px 20px rgba(18, 161, 80, 0.30);   /* green halo, CTA only */
+
+  /* --- Motion --- */
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --duration-slow: 280ms;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-inout: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* --- Decorative background (faint, breaks flat white) --- */
+  --grid-line: rgba(224, 230, 240, 0.55);
+  --hero-wash: linear-gradient(180deg, var(--brand-50) 0%, var(--neutral-50) 60%);
+}
+
+@theme inline {
+  --font-sans: var(--font-open-sans), "Segoe UI", system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, Menlo, monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-alt: var(--surface-alt);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-hover: var(--secondary-hover);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-link: var(--link);
+  --color-accent-surface: var(--accent-surface);
+  --color-success: var(--success);
+  --color-success-surface: var(--success-surface);
+  --color-warning: var(--warning);
+  --color-warning-surface: var(--warning-surface);
+  --color-danger: var(--danger);
+  --color-danger-surface: var(--danger-surface);
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+  --color-brand-900: var(--brand-900);
+  --color-brand-950: var(--brand-950);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-2xl: var(--radius-2xl);
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --animate-cta-halo: cta-halo 2.4s var(--ease-out) infinite;
+}
+
+@keyframes cta-halo {
+  0% { box-shadow: 0 0 0 0 rgba(18, 161, 80, 0.45); }
+  70% { box-shadow: 0 0 0 14px rgba(18, 161, 80, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(18, 161, 80, 0); }
+}
+
+@layer base {
+  html { -webkit-font-smoothing: antialiased; }
+  body {
+    margin: 0;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans, "Open Sans", system-ui, sans-serif);
+    font-size: var(--text-base);
+    line-height: var(--lh-base);
+    font-variant-numeric: tabular-nums;
+  }
+  h1, h2, h3 { font-weight: var(--weight-bold); text-wrap: balance; }
+  a { color: var(--link); }
+  a:hover { color: var(--link-hover); }
+  :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition-duration: 0.01ms !important; }
+}

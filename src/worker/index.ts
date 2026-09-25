@@ -2,11 +2,13 @@ import { createServer, type Server } from "node:http";
 import { PgBoss } from "pg-boss";
 import { closeDb, getDb } from "@/db/client";
 import { recordHeartbeat } from "@/db/heartbeat";
+import { QUEUES } from "@/jobs/queues";
 import { appVersion, env } from "@/lib/env";
 import { errorFields, log } from "@/lib/log";
+import { registerHandlers } from "./handlers";
 
 const WORKER_ID = "worker";
-const HEARTBEAT_QUEUE = "system.heartbeat";
+const HEARTBEAT_QUEUE = QUEUES.heartbeat;
 
 async function beat(): Promise<void> {
   await recordHeartbeat(getDb(), WORKER_ID, appVersion());
@@ -42,6 +44,7 @@ async function main(): Promise<void> {
   await boss.work(HEARTBEAT_QUEUE, async () => {
     await beat();
   });
+  await registerHandlers(boss);
 
   await beat();
   ready = true;

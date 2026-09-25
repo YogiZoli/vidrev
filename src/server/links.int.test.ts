@@ -155,6 +155,11 @@ describe.skipIf(!hasDb)("tracked links (integration)", () => {
     expect(target.searchParams.get("utm_content")).toBe(tid);
     expect(result.setCookie).toContain(`c2c_tid=${tid}`);
     expect(result.setCookie).toContain(`Domain=${host.slice(3)}`);
+    // The route turns this into the link_clicked webhook event.
+    expect(result.clicked).toMatchObject({
+      accountId: account.id,
+      context: { tid, keyword: "guide", campaignId: guide.id, campaign: "G", videoId: "VID1", replyId: reply.id },
+    });
 
     const [row] = await getDb().select().from(clicks).where(eq(clicks.tid, tid));
     expect(row).toMatchObject({
@@ -178,7 +183,7 @@ describe.skipIf(!hasDb)("tracked links (integration)", () => {
     const slug = slugOf(link!.url);
 
     const bot = await click(slug, FALLBACK, "Googlebot/2.1");
-    expect(bot).toMatchObject({ kind: "redirect", setCookie: null });
+    expect(bot).toMatchObject({ kind: "redirect", setCookie: null, clicked: null });
     if (bot.kind === "redirect") expect(bot.location).not.toContain("c2c_tid");
 
     const human = await click(slug);

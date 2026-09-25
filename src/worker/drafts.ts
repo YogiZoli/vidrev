@@ -8,6 +8,7 @@ import { log } from "@/lib/log";
 import { LINK_PLACEHOLDER } from "@/lib/templates";
 import { type AiConfig, buildPrompt, cleanDraft, DEFAULT_MODELS, generateText } from "@/server/ai";
 import { draftsWaitingEmail } from "@/server/email/templates";
+import { emitEventSafely, kickWith } from "@/server/integrations/events";
 import type { FetchLike } from "@/server/google/oauth";
 import { replyUsage } from "@/server/replies";
 import type { Enqueue } from "./polling";
@@ -127,6 +128,25 @@ export async function createDraft(deps: DraftDeps, commentId: string): Promise<v
     .onConflictDoNothing()
     .returning({ id: replies.id });
   if (!inserted) return;
+  // Outbound event (Phase 6): keyword, video and campaign, never the comment.
+  await emitEventSafely(
+    deps.db,
+    {
+      accountId: account.id,
+      event: "comment_matched",
+      occurredAt: comment.publishedAt,
+      context: {
+        channelId: channel.id,
+        videoId: comment.youtubeVideoId,
+        campaignId: campaign.id,
+        campaign: campaign.name,
+        keyword: campaign.keyword,
+        intent: campaign.intent,
+        replyId: inserted.id,
+      },
+    },
+    kickWith(deps.enqueue),
+  );
   await deps.db.update(comments).set({ language: detected }).where(eq(comments.id, comment.id));
   if (template) await deps.db.update(templates).set({ lastUsedAt: now }).where(eq(templates.id, template.id));
   if (!overCap) await notifyDraftsWaiting(deps, account, now);

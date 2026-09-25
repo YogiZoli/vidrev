@@ -3,6 +3,8 @@ import type { Db } from "@/db/client";
 import { accounts, campaigns, channels, plans, replies, type ReplyStatus } from "@/db/schema";
 import { checkReplyAllowance } from "@/lib/plans";
 import { type TemplateProblem, templateProblems } from "@/lib/templates";
+import { replyContext } from "./integrations/context";
+import { emitFromWeb } from "./integrations/emit-web";
 import { publishLink } from "./links";
 import { replyUsage } from "./replies";
 
@@ -76,6 +78,8 @@ export async function markSentManually(db: Db, accountId: string, replyId: strin
   if (!changed) return false;
   const [reply] = await db.select({ linkId: replies.linkId }).from(replies).where(eq(replies.id, replyId));
   if (reply?.linkId) await publishLink(db, reply.linkId, now);
+  const context = await replyContext(db, replyId);
+  if (context) await emitFromWeb(db, { accountId, event: "reply_posted", occurredAt: now, context });
   return true;
 }
 

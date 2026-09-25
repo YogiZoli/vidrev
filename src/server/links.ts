@@ -12,6 +12,7 @@ import {
   tidCookie,
 } from "@/lib/links";
 import { pacificDate } from "@/lib/time";
+import type { EventContext } from "@/lib/webhooks";
 
 // Tracked links on the creator's own domain (D-33, D-38), fallback host for
 // creators without a domain.
@@ -134,8 +135,16 @@ export interface ClickInput {
   fallbackHost: string | null;
 }
 
+// Set for a measured, non-bot click: the route emits the link_clicked event
+// after the redirect is on its way, so webhooks never slow a click down.
+export interface ClickedEvent {
+  accountId: string;
+  occurredAt: Date;
+  context: EventContext;
+}
+
 export type ClickResult =
-  | { kind: "redirect"; location: string; setCookie: string | null }
+  | { kind: "redirect"; location: string; setCookie: string | null; clicked: ClickedEvent | null }
   | { kind: "not_found" }
   | { kind: "blocked" };
 
@@ -197,6 +206,22 @@ export async function resolveClick(db: Db, input: ClickInput, now = new Date()):
     kind: "redirect",
     location: destinationWithTid(destination, { tid, keyword: link.keyword }),
     setCookie: tid && ownDomain ? tidCookie(tid, input.host) : null,
+    clicked: tid
+      ? {
+          accountId: account.id,
+          occurredAt: now,
+          context: {
+            channelId: campaign?.channelId ?? null,
+            videoId: link.youtubeVideoId,
+            campaignId: link.campaignId,
+            campaign: campaign?.name ?? null,
+            keyword: link.keyword,
+            intent: link.intent,
+            replyId: link.replyId,
+            tid,
+          },
+        }
+      : null,
   };
 }
 

@@ -14,6 +14,7 @@ export const QUEUES = {
   replySend: "reply.send",
   domainCheck: "domain.check",
   domainRemove: "domain.remove",
+  webhookDeliver: "webhook.deliver",
 } as const;
 
 export interface SendEmailJob {
@@ -39,6 +40,10 @@ export interface DomainJob {
   domainId: string;
 }
 
+export interface DeliveryJob {
+  deliveryId: string;
+}
+
 export interface JobPayloads {
   [QUEUES.sendEmail]: SendEmailJob;
   [QUEUES.channelSync]: ChannelJob;
@@ -49,6 +54,7 @@ export interface JobPayloads {
   [QUEUES.replySend]: ReplyJob;
   [QUEUES.domainCheck]: DomainJob;
   [QUEUES.domainRemove]: DomainJob;
+  [QUEUES.webhookDeliver]: DeliveryJob;
 }
 
 // Email jobs carry magic links, so they are removed soon after completion.
@@ -63,4 +69,7 @@ export const QUEUE_OPTIONS = {
   [QUEUES.replySend]: { policy: "stately", retryLimit: 5, retryDelay: 60, retryBackoff: true },
   [QUEUES.domainCheck]: { policy: "stately", retryLimit: 2, retryDelay: 30 },
   [QUEUES.domainRemove]: { retryLimit: 10, retryDelay: 60, retryBackoff: true },
+  // The outbox row carries the retry state (24 hours of backoff), so the job
+  // itself is never retried: a lost job is picked up by the engine tick.
+  [QUEUES.webhookDeliver]: { policy: "stately", retryLimit: 0, expireInSeconds: 60 },
 } as const;

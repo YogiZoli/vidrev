@@ -102,7 +102,7 @@ export default async function AppPage({ searchParams }: { searchParams: Promise<
         ) : null}
         {live > 0 ? (
           <p>
-            <a href="/app/queue">Approval queue</a> · <a href="/app/campaigns">Keywords and replies</a> · <a href="/app/domain">Link domain</a>
+            <a href="/app/queue">Approval queue</a> · <a href="/app/campaigns">Keywords and replies</a> · <a href="/app/domain">Link domain</a> · <a href="/app/integrations">Integrations</a>
           </p>
         ) : null}
         <p style={styles.muted}>

@@ -1,11 +1,12 @@
 import type { PgBoss } from "pg-boss";
 import { getDb } from "@/db/client";
-import { type ChannelJob, type CommentJob, type ReplyJob, QUEUES, QUEUE_OPTIONS, type SendEmailJob } from "@/jobs/queues";
+import { type ChannelJob, type CommentJob, type DomainJob, type ReplyJob, QUEUES, QUEUE_OPTIONS, type SendEmailJob } from "@/jobs/queues";
 import { appBaseUrl, env } from "@/lib/env";
 import { errorFields, log } from "@/lib/log";
 import { type ChannelDeps, disconnectChannel, syncChannel } from "./channels";
 import { EmailSendError, senderAddress, sendWithResend } from "./email";
 import { createDraft } from "./drafts";
+import { checkDomain, type DomainDeps, queueDomainChecks, removeDomainHostname } from "./domains";
 import { runRetention } from "./retention";
 import { sendReply } from "./sending";
 import { checkRss, type EngineDeps, engineTick, pollChannel, renewWebsub } from "./polling";
@@ -50,6 +51,20 @@ function engineDeps(boss: PgBoss): EngineDeps | null {
   return {
     ...deps,
     quotaLimit: env().QUOTA_DAILY_LIMIT,
+    enqueue: async (queue, data, options) => {
+      await boss.send(queue, data as object, options ?? {});
+    },
+  };
+}
+
+function domainDeps(boss: PgBoss): DomainDeps {
+  const { CLOUDFLARE_API_TOKEN, CLOUDFLARE_ZONE_ID, CUSTOM_HOSTNAME_CNAME_TARGET } = env();
+  return {
+    db: getDb(),
+    fetch,
+    cloudflare: CLOUDFLARE_API_TOKEN && CLOUDFLARE_ZONE_ID ? { apiToken: CLOUDFLARE_API_TOKEN, zoneId: CLOUDFLARE_ZONE_ID } : null,
+    cnameTarget: CUSTOM_HOSTNAME_CNAME_TARGET ?? null,
+    appBaseUrl: appBaseUrl(),
     enqueue: async (queue, data, options) => {
       await boss.send(queue, data as object, options ?? {});
     },
@@ -105,9 +120,13 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
   await boss.createQueue(QUEUES.engineTick);
   await boss.schedule(QUEUES.engineTick, "* * * * *");
   await boss.work(QUEUES.engineTick, async () => {
+    await queueDomainChecks(domainDeps(boss));
     const deps = engineDeps(boss);
     if (deps) await engineTick(deps);
   });
+  // Custom link domains (Phase 5): DNS and Cloudflare checks.
+  await boss.work<DomainJob>(QUEUES.domainCheck, async ([job]) => checkDomain(domainDeps(boss), job!.data.domainId));
+  await boss.work<DomainJob>(QUEUES.domainRemove, async ([job]) => removeDomainHostname(domainDeps(boss), job!.data.domainId));
   // 30-day rule (Q-17 c), daily at 10:30 UTC.
   await boss.createQueue(QUEUES.retention);
   await boss.schedule(QUEUES.retention, "30 10 * * *");

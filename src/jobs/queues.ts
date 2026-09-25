@@ -12,6 +12,8 @@ export const QUEUES = {
   channelRss: "channel.rss",
   replyDraft: "reply.draft",
   replySend: "reply.send",
+  domainCheck: "domain.check",
+  domainRemove: "domain.remove",
 } as const;
 
 export interface SendEmailJob {
@@ -33,6 +35,10 @@ export interface ReplyJob {
   replyId: string;
 }
 
+export interface DomainJob {
+  domainId: string;
+}
+
 export interface JobPayloads {
   [QUEUES.sendEmail]: SendEmailJob;
   [QUEUES.channelSync]: ChannelJob;
@@ -41,6 +47,8 @@ export interface JobPayloads {
   [QUEUES.channelRss]: ChannelJob;
   [QUEUES.replyDraft]: CommentJob;
   [QUEUES.replySend]: ReplyJob;
+  [QUEUES.domainCheck]: DomainJob;
+  [QUEUES.domainRemove]: DomainJob;
 }
 
 // Email jobs carry magic links, so they are removed soon after completion.
@@ -53,4 +61,6 @@ export const QUEUE_OPTIONS = {
   [QUEUES.channelRss]: { policy: "stately", retryLimit: 2, retryDelay: 60 },
   [QUEUES.replyDraft]: { retryLimit: 5, retryDelay: 30, retryBackoff: true },
   [QUEUES.replySend]: { policy: "stately", retryLimit: 5, retryDelay: 60, retryBackoff: true },
+  [QUEUES.domainCheck]: { policy: "stately", retryLimit: 2, retryDelay: 30 },
+  [QUEUES.domainRemove]: { retryLimit: 10, retryDelay: 60, retryBackoff: true },
 } as const;

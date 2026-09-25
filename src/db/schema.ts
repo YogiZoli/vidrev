@@ -388,6 +388,8 @@ export const customDomains = pgTable(
     domainConnect: jsonb("domain_connect").$type<{ providerId: string; urlSyncUX: string } | null>(),
     lastError: text("last_error"),
     checks: integer("checks").notNull().default(0),
+    // Start of the current verification attempt ("Check now" restarts it).
+    checkStartedAt: timestamp("check_started_at", { withTimezone: true }).notNull().defaultNow(),
     lastCheckedAt: timestamp("last_checked_at", { withTimezone: true }),
     verifiedAt: timestamp("verified_at", { withTimezone: true }),
     removedAt: timestamp("removed_at", { withTimezone: true }),

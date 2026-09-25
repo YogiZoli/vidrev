@@ -1,0 +1,1 @@
+ALTER TABLE "custom_domains" ADD COLUMN "check_started_at" timestamp with time zone DEFAULT now() NOT NULL;

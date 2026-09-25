@@ -15,6 +15,13 @@
       "when": 1790326247679,
       "tag": "0001_accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790330192345,
+      "tag": "0002_comment_engine",
+      "breakpoints": true
     }
   ]
 }

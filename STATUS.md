@@ -15,7 +15,7 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 | 2 | Scaffold and deploy: app skeleton, Postgres, migrations, health check, CI, Railway project `c2c-saas`, first deploy | **DONE** (2026-09-25) |
 | 3 | Accounts: magic-link login, provisioning webhook, plans and seeds, OAuth connect with encrypted tokens | **DONE** (2026-09-25); verified end to end on 2026-09-25 |
 | 4 | Comment engine: channel polling tiers, PubSubHubbub, keyword rules, AI drafts, templates, approval queue, quota-budget sending, transparent queue, manual fallback, quota ledger, retention job | **DONE** (2026-09-25), PRs #2 to #7; end-to-end check on the owner's channel pending (owner setup below) |
-| 5 | Tracked links on the user's own domain: CNAME onboarding, DNS check, Cloudflare for SaaS TLS, fallback domain, click ids, mapping | **DONE** (2026-09-25), PRs #8 to #10; goes live after the owner Cloudflare setup (below) |
+| 5 | Tracked links on the user's own domain: CNAME onboarding, DNS check, Cloudflare for SaaS TLS, fallback domain, click ids, mapping | **DONE** (2026-09-25), PRs #8 to #10; live on vidrev.app since 2026-09-25 (PR #11 adds the spend cap and the Worker) |
 | 6 | Integrations: outbound HMAC webhooks and tags, GHL OAuth, inbound opt-in and purchase webhooks | not started |
 | 7 | Attribution and reporting | not started |
 | 8 | Stripe revenue ingestion (read-only; Stripe App or restricted key, Q-17 e) | not started |
@@ -47,7 +47,7 @@ Phase plan changes (all accepted): compliance pack and quota extension request r
 
 Done: Railway secrets, GCP project `c2c-app`, OAuth client, channel connected.
 
-**New for Phase 5:** follow [docs/SETUP-CLOUDFLARE.md](docs/SETUP-CLOUDFLARE.md) (DNS records, Cloudflare for SaaS, two rules, API token, then `scripts/set-secrets.ps1 -BrandDomain vidrev.app`). Until then replies keep the plain destination URL, as before.
+Phase 5 Cloudflare setup **done 2026-09-25** ([docs/SETUP-CLOUDFLARE.md](docs/SETUP-CLOUDFLARE.md)): DNS, Cloudflare for SaaS, Worker `steep-cake-5ab6vidrev-links` on `*/*`, API token, Railway variables. `https://go.vidrev.app/<slug>` is live.
 
 Still deferred from Phase 4 (no billing yet): platform Gemini key and `WEBSUB_SECRET`, see DECISIONS section 8.
 
@@ -55,8 +55,8 @@ Still deferred from Phase 4 (no billing yet): platform Gemini key and `WEBSUB_SE
 
 - End-to-end run on the owner's channel not done yet (needs the setup above).
 - Brand domain vidrev.app bought; still to do: Resend sending domain, `app.vidrev.app` for the app and OAuth (compliance pack), so OAuth stays in Testing mode (reconnect weekly) until then.
-- Phase 5 not verified live yet: needs the Cloudflare setup; the Cloudflare for SaaS behaviour is covered by tests with a faked API only.
-- Domain Connect goes live per provider only after the template PR and provider onboarding ([docs/domain-connect/README.md](docs/domain-connect/README.md)); P5-09 assumes the name "VidRev".
+- First real custom domain (a creator's own subdomain) not tried yet; Cloudflare for SaaS hostname creation is covered by tests with a faked API only.
+- Domain Connect goes live per provider only after the template PR and provider onboarding ([docs/domain-connect/README.md](docs/domain-connect/README.md)); name is lowercase `vidrev` (P5-09).
 - Queue page mints reply links on render (one query set per open draft); fine for now, batch it if queues grow.
 - Still open: Q-01 (name and domain). GHL merge field names in the provisioning guide must be checked when the workflows are built.
 - Proposals CC-01 to CC-06, P3-01 to P3-07, P4-01 to P4-11 and P5-01 to P5-10 in `DECISIONS.md` await owner review (P4-10 accepted 2026-09-25; owner data principle in DECISIONS section 8).

@@ -33,3 +33,31 @@ export function nextPacificMidnight(now: Date): Date {
   }
   return new Date(high);
 }
+
+// Reports (Phase 7) count by calendar day in the account's time zone.
+const zonedFormatters = new Map<string, Intl.DateTimeFormat>();
+
+export function isValidTimeZone(timeZone: string): boolean {
+  try {
+    new Intl.DateTimeFormat("en-CA", { timeZone });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// "YYYY-MM-DD" of the day in `timeZone` that contains `at`.
+export function zonedDay(at: Date, timeZone: string): string {
+  let formatter = zonedFormatters.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" });
+    zonedFormatters.set(timeZone, formatter);
+  }
+  return formatter.format(at);
+}
+
+// Calendar arithmetic on "YYYY-MM-DD" strings (no time zone involved).
+export function addDays(day: string, days: number): string {
+  const [y, m, d] = day.split("-").map(Number);
+  return new Date(Date.UTC(y!, m! - 1, d! + days)).toISOString().slice(0, 10);
+}

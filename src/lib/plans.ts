@@ -9,6 +9,8 @@ export interface PlanSeed {
   label: string;
   billing: Billing;
   priceLabel: string | null;
+  priceCents: number | null;
+  priceCurrency: string | null;
   channelLimit: number;
   monthlyReplyCap: number | null;
   dailyReplyCap: number | null;
@@ -25,6 +27,8 @@ export const PLAN_SEEDS: readonly PlanSeed[] = [
     billing: "monthly",
     // Price is not decided yet (D-37); set it in the plans table when it is.
     priceLabel: null,
+    priceCents: null,
+    priceCurrency: null,
     channelLimit: 1,
     monthlyReplyCap: 300,
     dailyReplyCap: 30,
@@ -35,6 +39,8 @@ export const PLAN_SEEDS: readonly PlanSeed[] = [
     label: "Founding member",
     billing: "annual",
     priceLabel: "$97/year",
+    priceCents: 9700,
+    priceCurrency: "USD",
     channelLimit: 1,
     monthlyReplyCap: 300,
     dailyReplyCap: 30,
@@ -45,6 +51,8 @@ export const PLAN_SEEDS: readonly PlanSeed[] = [
     label: "Partner access",
     billing: "free_grant",
     priceLabel: null,
+    priceCents: null,
+    priceCurrency: null,
     channelLimit: 1,
     monthlyReplyCap: 300,
     dailyReplyCap: 30,
@@ -55,6 +63,8 @@ export const PLAN_SEEDS: readonly PlanSeed[] = [
     label: "Enterprise",
     billing: "custom",
     priceLabel: null,
+    priceCents: null,
+    priceCurrency: null,
     channelLimit: 1,
     // Enterprise runs on its own GCP project and quota (D-32).
     monthlyReplyCap: null,
@@ -66,6 +76,8 @@ export const PLAN_SEEDS: readonly PlanSeed[] = [
     label: "Internal",
     billing: "free_grant",
     priceLabel: null,
+    priceCents: null,
+    priceCurrency: null,
     channelLimit: 1,
     monthlyReplyCap: null,
     dailyReplyCap: 30,

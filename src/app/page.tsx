@@ -1,4 +1,4 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, MessageSquare, MousePointerClick, Users, Wallet } from "lucide-react";
 import Link from "next/link";
 import { Brand } from "@/components/brand";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +6,13 @@ import { Button } from "@/components/ui/button";
 import { currentSession } from "@/server/auth/current";
 
 export const dynamic = "force-dynamic";
+
+const STEPS = [
+  { icon: MessageSquare, title: "Comment", text: "A viewer comments your keyword under a video." },
+  { icon: Users, title: "Subscriber", text: "They reach your opt-in page through your own link." },
+  { icon: Wallet, title: "Buyer", text: "A purchase is matched back by email and tracking id." },
+  { icon: MousePointerClick, title: "Revenue", text: "See which video and keyword made money. Real numbers only." },
+];
 
 // Front door of the app host. The brand site (landing, Privacy, Terms) lives in
 // GoHighLevel, DECISIONS D-28; this page is only the entry to the app.

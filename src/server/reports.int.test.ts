@@ -76,7 +76,7 @@ describe.skipIf(!hasDb)("report snapshots (integration)", () => {
     await refreshAccountReports(deps(), account.id);
     const { reports, computedAt } = await readSnapshots(db(), account.id);
     expect(computedAt).not.toBeNull();
-    expect(Object.keys(reports).sort()).toEqual(["all_time", "last_30", "last_90", "this_month"]);
+    expect(Object.keys(reports).sort()).toEqual(["all_time", "last_30", "last_7", "last_90", "this_month"]);
     expect(reports.this_month!.totals).toMatchObject({ comments: 1, replies: 1, clicks: 2, subscribers: 1, buyers: 1, revenueCents: 9700 });
     expect(reports.all_time!.byTemplate[0]).toMatchObject({ key: "ai", clicks: 2, buyers: 1 });
     expect(reports.all_time!.byReplyTime.find((b) => b.key === "under_1h")).toMatchObject({ replies: 1, clicks: 2, revenueCents: 9700 });
@@ -101,5 +101,28 @@ describe.skipIf(!hasDb)("report snapshots (integration)", () => {
     const { reports } = await readSnapshots(db(), account.id);
     expect(reports.this_month!.currency).toBe("USD");
     expect(reports.this_month!.totals.clicks).toBe(2);
+  });
+
+  it("sends each milestone once and the weekly summary on Monday", async () => {
+    const { account } = await setup();
+    const sent: { to: string; subject: string }[] = [];
+    // A Monday, 10:00 UTC; the clicks of setup() are inside the last 7 days.
+    const monday = new Date(Date.UTC(2026, 8, 28, 10));
+    const now = new Date() > monday ? new Date(monday.getTime() + Math.ceil((Date.now() - monday.getTime()) / (7 * 86_400_000)) * 7 * 86_400_000) : monday;
+    const notifyDeps = {
+      db: db(),
+      now: () => now,
+      enqueue: async () => {},
+      notify: { appBaseUrl: "https://app.vidrev.app", productName: "vidrev", sendEmail: async (job: { to: string; subject: string }) => void sent.push(job) },
+    };
+    await refreshAccountReports(notifyDeps, account.id);
+    expect(sent.map((m) => m.subject)).toEqual([expect.stringMatching(/clicked the link/), expect.stringMatching(/^This week your comments made \$0\.00/)]);
+    const [row] = await db().select().from(accounts).where(eq(accounts.id, account.id));
+    expect(row!.milestones.first_click).toBeDefined();
+    expect(row!.weeklyEmailSentAt).not.toBeNull();
+
+    sent.length = 0;
+    await refreshAccountReports(notifyDeps, account.id);
+    expect(sent).toEqual([]);
   });
 });

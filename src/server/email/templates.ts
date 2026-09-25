@@ -59,3 +59,52 @@ export function ghlReconnectEmail(input: { to: string; url: string; productName:
     html: layout(input.productName, paragraphs, { label: "Reconnect", url: input.url }),
   };
 }
+
+// R-35 (3): the weekly summary, real numbers of the last 7 days only.
+export function weeklySummaryEmail(input: { to: string; revenue: string; clicks: number; subscribers: number; buyers: number; url: string; settingsUrl: string; productName: string }): SendEmailJob {
+  const headline = `This week your comments made ${input.revenue}.`;
+  const paragraphs = [
+    headline,
+    `Last 7 days: ${input.clicks} clicks, ${input.subscribers} new subscribers, ${input.buyers} buyers.`,
+    `You get this email on Mondays. Turn it off in your report settings: ${input.settingsUrl}`,
+  ];
+  return {
+    to: input.to,
+    subject: `${headline.replace(/\.$/, "")} - ${input.productName}`,
+    text: `${paragraphs.join("\n\n")}\n\nFull report: ${input.url}\n`,
+    html: layout(input.productName, paragraphs, { label: "See the full report", url: input.url }),
+  };
+}
+
+const MILESTONE_LINES = {
+  first_click: ["Someone clicked the link in one of your replies for the first time.", "From now on every click is counted per video and keyword."],
+  first_subscriber: ["Your first subscriber came from a comment.", "A viewer who commented your keyword just joined your list."],
+  first_buyer: ["Your first buyer came from a comment.", "A purchase was traced back to a comment reply. The report shows which video and keyword made it."],
+} as const;
+
+// R-35 (4): instant milestone notifications, each sent once.
+export function milestoneEmail(input: { to: string; milestone: keyof typeof MILESTONE_LINES; url: string; productName: string }): SendEmailJob {
+  const paragraphs = [...MILESTONE_LINES[input.milestone]];
+  return {
+    to: input.to,
+    subject: `${paragraphs[0]!.replace(/\.$/, "")} - ${input.productName}`,
+    text: `${paragraphs.join("\n\n")}\n\nReport: ${input.url}\n`,
+    html: layout(input.productName, paragraphs, { label: "Open the report", url: input.url }),
+  };
+}
+
+// R-35 (4): value recap before a yearly renewal.
+export function renewalRecapEmail(input: { to: string; renewalDate: string; lifetime: string; price: string | null; productName: string; url: string }): SendEmailJob {
+  const paragraphs = [
+    `Your ${input.productName} membership renews on ${input.renewalDate}.`,
+    `Since you joined, your comments made ${input.lifetime} in attributed revenue.`,
+    ...(input.price ? [`Your renewal price stays at ${input.price}, locked for life.`] : []),
+    "Nothing to do: the renewal runs through your original checkout.",
+  ];
+  return {
+    to: input.to,
+    subject: `Your year in numbers - ${input.productName}`,
+    text: `${paragraphs.join("\n\n")}\n\nReport: ${input.url}\n`,
+    html: layout(input.productName, paragraphs, { label: "See the report", url: input.url }),
+  };
+}

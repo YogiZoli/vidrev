@@ -76,6 +76,13 @@ export default async function AppPage({ searchParams }: { searchParams: Promise<
         <p style={styles.muted}>
           Replies: {plan.monthlyReplyCap ?? "no plan limit"} per month, at most {plan.dailyReplyCap ?? "unlimited"} per day.
         </p>
+        {plan.billing === "monthly" || plan.billing === "annual" ? (
+          <p>
+            <a href="/app/cancel" style={styles.muted}>
+              Cancel subscription
+            </a>
+          </p>
+        ) : null}
         {isAdminEmail(user.email) ? (
           <p>
             <a href="/admin">Owner admin</a>

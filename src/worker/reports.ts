@@ -5,6 +5,7 @@ import type { JobPayloads } from "@/jobs/queues";
 import { log } from "@/lib/log";
 import { claimReportDirty, dirtyAccounts, runAttribution } from "@/server/attribution";
 import { rebuildReports } from "@/server/reports";
+import { type NotifyDeps, sendRetentionEmails } from "./notifications";
 
 // Attribution and reporting (Phase 7). New data marks an account dirty
 // (src/server/attribution.ts); the engine tick queues one refresh per dirty
@@ -13,6 +14,8 @@ import { rebuildReports } from "@/server/reports";
 export interface ReportDeps {
   db: Db;
   now?: () => Date;
+  // Retention emails; left out in tests that only check the numbers.
+  notify?: Omit<NotifyDeps, "db">;
   enqueue: <Q extends keyof JobPayloads>(queue: Q, data: JobPayloads[Q], options?: { singletonKey?: string }) => Promise<void>;
 }
 
@@ -26,7 +29,8 @@ export async function refreshAccountReports(deps: ReportDeps, accountId: string)
   const startedAt = deps.now?.() ?? new Date();
   await claimReportDirty(deps.db, accountId, startedAt);
   const attribution = await runAttribution(deps.db, accountId, startedAt);
-  await rebuildReports(deps.db, accountId, startedAt);
+  const reports = await rebuildReports(deps.db, accountId, startedAt);
+  if (reports && deps.notify) await sendRetentionEmails({ db: deps.db, ...deps.notify }, accountId, reports, startedAt);
   await deps.db.update(accounts).set({ reportsComputedAt: startedAt }).where(eq(accounts.id, accountId));
   if (attribution.changed > 0) log("info", "attribution updated", { accountId, ...attribution });
 }

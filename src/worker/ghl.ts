@@ -294,7 +294,7 @@ export async function syncGhl(deps: GhlWorkerDeps, integrationId: string): Promi
     .where(eq(integrations.id, integrationId));
 }
 
-// A verified marketplace webhook (src/app/api/hooks/ghl). The contact is read
+// A verified marketplace webhook (src/app/api/hooks/crm). The contact is read
 // back through the API so every event type ends up with the same shape.
 export async function handleGhlEvent(deps: GhlWorkerDeps, integrationId: string, payload: Record<string, unknown>): Promise<void> {
   const row = await integrationAccount(deps, integrationId);

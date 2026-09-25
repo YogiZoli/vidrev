@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 const { publicKey, privateKey } = generateKeyPairSync("ed25519");
 process.env.GHL_WEBHOOK_PUBLIC_KEY = publicKey.export({ type: "spki", format: "pem" }).toString();
 
-import { POST as ghlWebhook } from "@/app/api/hooks/ghl/route";
+import { POST as ghlWebhook } from "@/app/api/hooks/crm/route";
 import { closeDb, getDb } from "@/db/client";
 import { campaigns, channels, clicks, integrations, links, outboundDeliveries, purchases, subscribers } from "@/db/schema";
 import { newTid } from "@/lib/links";
@@ -357,7 +357,7 @@ describe.skipIf(!hasDb)("GoHighLevel connector (integration)", () => {
       const headers: Record<string, string> = { "content-type": "application/json" };
       if (signWith === "valid") headers["x-ghl-signature"] = sign(null, Buffer.from(raw), privateKey).toString("base64");
       else if (signWith) headers["x-ghl-signature"] = signWith;
-      return ghlWebhook(new Request("https://app.vidrev.app/api/hooks/ghl", { method: "POST", headers, body: raw }));
+      return ghlWebhook(new Request("https://app.vidrev.app/api/hooks/crm", { method: "POST", headers, body: raw }));
     }
 
     it("verifies the Ed25519 signature, ignores unknown locations and drops our side on uninstall", async () => {

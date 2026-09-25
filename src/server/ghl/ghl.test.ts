@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { createGhlApi, GhlApiError } from "./api";
 import { buildInstallUrl, exchangeGhlCode, GhlOAuthError, refreshGhlToken, verifyGhlSignature } from "./oauth";
 
-const client = { clientId: "abc123-lm4x9", clientSecret: "secret", redirectUri: "https://app.vidrev.app/api/oauth/ghl/callback" };
+const client = { clientId: "abc123-lm4x9", clientSecret: "secret", redirectUri: "https://app.vidrev.app/api/oauth/crm/callback" };
 
 describe("install url", () => {
   it("builds the location chooser url with scopes, state and the draft version", () => {

@@ -2,7 +2,7 @@ import { appBaseUrl, env } from "@/lib/env";
 import { DEFAULT_GHL_SCOPES, type GhlClient } from "./oauth";
 
 export const GHL_COOKIE = "ghl_oauth";
-export const GHL_COOKIE_PATH = "/api/oauth/ghl";
+export const GHL_COOKIE_PATH = "/api/oauth/crm";
 export const GHL_COOKIE_TTL_MS = 10 * 60 * 1000;
 
 export function ghlConfigured(): boolean {
@@ -13,7 +13,7 @@ export function ghlConfigured(): boolean {
 export function ghlClient(): GhlClient {
   const e = env();
   if (!e.GHL_CLIENT_ID || !e.GHL_CLIENT_SECRET) throw new Error("GHL_CLIENT_ID or GHL_CLIENT_SECRET is not set");
-  return { clientId: e.GHL_CLIENT_ID, clientSecret: e.GHL_CLIENT_SECRET, redirectUri: `${appBaseUrl()}/api/oauth/ghl/callback` };
+  return { clientId: e.GHL_CLIENT_ID, clientSecret: e.GHL_CLIENT_SECRET, redirectUri: `${appBaseUrl()}/api/oauth/crm/callback` };
 }
 
 export function ghlScopes(): string[] {

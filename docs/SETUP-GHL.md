@@ -5,11 +5,11 @@ One HighLevel Marketplace app, created **Private** now and switched to Public in
 ## 1. Create the app
 
 1. Open `https://marketplace.gohighlevel.com` and sign in with the HighLevel account that owns the agency (the developer portal is under **My Apps**).
-2. **Create App**. Name: the product name in lowercase (`vidrev`). Never put "GHL" or "YouTube" in the name (D-23). App type: **Private**. Distribution: **Sub-Account** (location level).
+2. **Create App**. Name: the product name in lowercase (`vidrev`). Never put "GHL" or "YouTube" in the name (D-23). HighLevel also refuses any URL that contains "ghl" or "highlevel" (white-label rule), which is why the paths are `/api/oauth/crm/...` and `/api/hooks/crm`. App type: **Private**. Distribution: **Sub-Account** (location level).
 3. **Advanced Settings, Auth**: set **Redirect URL** to your app address plus the callback path. It must match `APP_BASE_URL` exactly:
 
 ```text
-<APP_BASE_URL>/api/oauth/ghl/callback
+<APP_BASE_URL>/api/oauth/crm/callback
 ```
 
 4. **Scopes**: tick exactly these (they are also sent in the install link, so the two lists must agree):
@@ -29,7 +29,7 @@ locations/customFields.write
 5. **Advanced Settings, Webhooks**: set the default webhook URL to:
 
 ```text
-<APP_BASE_URL>/api/hooks/ghl
+<APP_BASE_URL>/api/hooks/crm
 ```
 
    Subscribe to these events: `ContactCreate`, `ContactUpdate` (if offered), `ContactTagUpdate`, `OpportunityStatusUpdate` and the app uninstall event. Everything else is ignored. Webhooks are optional for correctness (the 5 minute sync covers contacts, opportunities and payments) but make tags and won deals show up in seconds.

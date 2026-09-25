@@ -70,7 +70,7 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
             </p>
             {ghlConfigured() ? (
               <p>
-                <a href="/api/oauth/ghl/start" style={{ ...styles.button, display: "inline-block", textDecoration: "none" }}>
+                <a href="/api/oauth/crm/start" style={{ ...styles.button, display: "inline-block", textDecoration: "none" }}>
                   Connect GoHighLevel
                 </a>
               </p>
@@ -99,7 +99,7 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
             </p>
             {ghl.status === "error" && ghlConfigured() ? (
               <p>
-                <a href="/api/oauth/ghl/start" style={{ ...styles.button, display: "inline-block", textDecoration: "none" }}>
+                <a href="/api/oauth/crm/start" style={{ ...styles.button, display: "inline-block", textDecoration: "none" }}>
                   Reconnect
                 </a>
               </p>

@@ -1,21 +1,29 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties } from "react";
 
-// Minimal shared styles until the design system lands in the app.
+// Shared inline styles for pages not yet moved to the components in
+// src/components/ui. They read the brand tokens (globals.css), so every page
+// already follows the design system.
 export const styles = {
-  main: { maxWidth: 720, margin: "0 auto", padding: "48px 16px" } satisfies CSSProperties,
-  card: { border: "1px solid #ddd", borderRadius: 8, padding: 20, margin: "16px 0" } satisfies CSSProperties,
-  input: { padding: "10px 12px", fontSize: 15, border: "1px solid #bbb", borderRadius: 6, width: "100%", boxSizing: "border-box" } satisfies CSSProperties,
-  button: { padding: "10px 16px", fontSize: 15, border: 0, borderRadius: 6, background: "#111", color: "#fff", cursor: "pointer" } satisfies CSSProperties,
-  secondary: { padding: "8px 12px", fontSize: 14, border: "1px solid #bbb", borderRadius: 6, background: "#fff", color: "#111", cursor: "pointer" } satisfies CSSProperties,
-  muted: { color: "#666" } satisfies CSSProperties,
-  table: { width: "100%", borderCollapse: "collapse", fontSize: 14 } satisfies CSSProperties,
-  cell: { borderBottom: "1px solid #eee", padding: "8px 6px", textAlign: "left", verticalAlign: "top" } satisfies CSSProperties,
+  main: { maxWidth: 720, margin: "0 auto", padding: "40px var(--gutter-mobile)" } satisfies CSSProperties,
+  card: { border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", padding: 20, margin: "16px 0", background: "var(--surface)", boxShadow: "var(--shadow-xs)" } satisfies CSSProperties,
+  input: {
+    padding: "12px 16px", minHeight: 44, fontSize: "var(--text-base)", fontFamily: "inherit", border: "1px solid var(--input)", borderRadius: "var(--radius-md)",
+    background: "var(--surface)", color: "var(--foreground)", width: "100%", boxSizing: "border-box",
+  } satisfies CSSProperties,
+  button: {
+    padding: "12px 24px", minHeight: 44, fontSize: "var(--text-base)", fontFamily: "inherit", fontWeight: 600, border: 0, borderRadius: "var(--radius-md)",
+    background: "var(--primary)", color: "var(--primary-foreground)", cursor: "pointer", boxShadow: "var(--shadow-sm)",
+  } satisfies CSSProperties,
+  secondary: {
+    padding: "8px 16px", minHeight: 40, fontSize: "var(--text-sm)", fontFamily: "inherit", fontWeight: 600, border: "1px solid var(--border-strong)", borderRadius: "var(--radius-md)",
+    background: "var(--surface)", color: "var(--foreground)", cursor: "pointer",
+  } satisfies CSSProperties,
+  muted: { color: "var(--muted-foreground)" } satisfies CSSProperties,
+  table: { width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" } satisfies CSSProperties,
+  cell: { borderBottom: "1px solid var(--border)", padding: "8px 6px", textAlign: "left", verticalAlign: "top" } satisfies CSSProperties,
 };
 
-export function Notice({ tone, children }: { tone: "info" | "error"; children: ReactNode }) {
-  const color = tone === "error" ? { background: "#fdecec", borderColor: "#f3b5b5" } : { background: "#eef6ee", borderColor: "#b9dcb9" };
-  return <p style={{ ...styles.card, ...color, padding: 12 }}>{children}</p>;
-}
+export { Notice } from "@/components/ui/notice";
 
 export function productName(): string {
   return process.env.PRODUCT_NAME ?? "ProductName";

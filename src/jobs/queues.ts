@@ -10,6 +10,7 @@ export const QUEUES = {
   channelPoll: "channel.poll",
   channelRss: "channel.rss",
   replyDraft: "reply.draft",
+  replySend: "reply.send",
 } as const;
 
 export interface SendEmailJob {
@@ -27,6 +28,10 @@ export interface CommentJob {
   commentId: string;
 }
 
+export interface ReplyJob {
+  replyId: string;
+}
+
 export interface JobPayloads {
   [QUEUES.sendEmail]: SendEmailJob;
   [QUEUES.channelSync]: ChannelJob;
@@ -34,6 +39,7 @@ export interface JobPayloads {
   [QUEUES.channelPoll]: ChannelJob;
   [QUEUES.channelRss]: ChannelJob;
   [QUEUES.replyDraft]: CommentJob;
+  [QUEUES.replySend]: ReplyJob;
 }
 
 // Email jobs carry magic links, so they are removed soon after completion.
@@ -45,4 +51,5 @@ export const QUEUE_OPTIONS = {
   [QUEUES.channelPoll]: { policy: "stately", retryLimit: 2, retryDelay: 30, expireInSeconds: 300 },
   [QUEUES.channelRss]: { policy: "stately", retryLimit: 2, retryDelay: 60 },
   [QUEUES.replyDraft]: { retryLimit: 5, retryDelay: 30, retryBackoff: true },
+  [QUEUES.replySend]: { policy: "stately", retryLimit: 5, retryDelay: 60, retryBackoff: true },
 } as const;

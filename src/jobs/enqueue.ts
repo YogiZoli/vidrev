@@ -19,11 +19,15 @@ async function startProducer(): Promise<PgBoss> {
   return boss;
 }
 
-export async function enqueue<Q extends keyof JobPayloads>(queue: Q, data: JobPayloads[Q]): Promise<void> {
+export async function enqueue<Q extends keyof JobPayloads>(
+  queue: Q,
+  data: JobPayloads[Q],
+  options: { singletonKey?: string; startAfter?: number } = {},
+): Promise<void> {
   bossPromise ??= startProducer().catch((error: unknown) => {
     bossPromise = undefined;
     throw error;
   });
   const boss = await bossPromise;
-  await boss.send(queue, data as object);
+  await boss.send(queue, data as object, options);
 }

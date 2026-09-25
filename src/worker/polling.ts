@@ -10,6 +10,7 @@ import { getNumberSetting } from "@/server/settings";
 import { type CommentThread, listChannelThreads, listVideos, YoutubeApiError } from "@/server/youtube/api";
 import { applyFeedEntries } from "@/server/uploads";
 import { feedTopic, HUB_URL, LEASE_SECONDS, parseFeed, rssUrl, websubSecret } from "@/server/youtube/feed";
+import { releaseQueued } from "./sending";
 import { ChannelRevokedError, type ChannelDeps, getAccessToken } from "./channels";
 
 export type Enqueue = <Q extends keyof JobPayloads>(queue: Q, data: JobPayloads[Q], options?: { singletonKey?: string; startAfter?: number }) => Promise<void>;
@@ -60,6 +61,7 @@ async function currentStretch(db: Db, quotaLimit: number, now: Date): Promise<nu
 // channel, so a slow poll is never queued twice.
 export async function engineTick(deps: EngineDeps): Promise<void> {
   const now = deps.now?.() ?? new Date();
+  await releaseQueued(deps);
   const rows = await activeChannels(deps.db);
   for (const channel of rows) {
     if (!channel.nextPollAt || channel.nextPollAt <= now) {

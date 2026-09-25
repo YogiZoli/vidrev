@@ -18,3 +18,18 @@ export function pacificDate(at: Date): string {
 export function pacificMonth(at: Date): string {
   return pacificDate(at).slice(0, 7);
 }
+
+// First instant of the next Pacific-time day (the YouTube quota reset).
+// Steps forward and then narrows down, so DST changes need no special case.
+export function nextPacificMidnight(now: Date): Date {
+  const today = pacificDate(now);
+  let low = now.getTime();
+  let high = low + 60_000;
+  while (pacificDate(new Date(high)) === today) high += 3_600_000;
+  while (high - low > 1) {
+    const mid = Math.floor((low + high) / 2);
+    if (pacificDate(new Date(mid)) === today) low = mid;
+    else high = mid;
+  }
+  return new Date(high);
+}

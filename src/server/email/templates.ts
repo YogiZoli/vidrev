@@ -33,3 +33,15 @@ export function ownerAlertEmail(input: { to: string; subject: string; lines: str
     html: layout(input.productName, input.lines),
   };
 }
+
+// Mobile approval (R-35): one email when drafts are waiting, throttled.
+export function draftsWaitingEmail(input: { to: string; count: number; url: string; productName: string }): SendEmailJob {
+  const line = input.count === 1 ? "1 reply is waiting for your approval." : `${input.count} replies are waiting for your approval.`;
+  const paragraphs = [line, "Nothing is posted until you approve each reply."];
+  return {
+    to: input.to,
+    subject: `${line.replace(/\.$/, "")} - ${input.productName}`,
+    text: `${paragraphs.join("\n")}\n\nReview: ${input.url}\n`,
+    html: layout(input.productName, paragraphs, { label: "Review replies", url: input.url }),
+  };
+}

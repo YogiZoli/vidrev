@@ -7,10 +7,12 @@ import { newTid } from "@/lib/links";
 import { runMigrations } from "@/scripts/migrate";
 import { createDraft, type DraftDeps } from "@/worker/drafts";
 import { createAccountWithUser } from "./accounts";
+import { runAttribution } from "./attribution";
 import { backfillContacts } from "./contacts-backfill";
 import { resolveContact } from "./contacts";
 import { recordOptIn, recordPurchase } from "./integrations/inbound";
 import { ensureReplyLink, ensureStaticLink, resolveClick } from "./links";
+import { rebuildReports } from "./reports";
 
 const hasDb = Boolean(process.env.DATABASE_URL);
 const db = () => getDb();
@@ -340,6 +342,32 @@ describe.skipIf(!hasDb)("contacts (integration)", () => {
       { source: "webhook", stripeCustomerId: customer, emit },
     );
     expect(await liveContacts(s.account.id)).toHaveLength(1);
+  });
+
+  it("attributes and reports a person once when the buyer is known by a second email of the same Contact", async () => {
+    const s = await setup();
+    const reply = await comment(s, `UC${randomUUID()}`, "VIDEO_A", 90);
+    const tid = await clickThrough(reply.id);
+    const first = mail("first");
+    const second = mail("second");
+    const ghl = `ghl-${randomUUID()}`;
+    await recordOptIn(db(), s.account.id, optIn(first, tid, { externalId: "a" }), { source: "webhook", ghlContactId: ghl, emit });
+    // The CRM later knows the same person under another email; no tid on this one.
+    await recordOptIn(db(), s.account.id, optIn(second, null, { externalId: "b" }), { source: "ghl", ghlContactId: ghl, emit });
+    await recordPurchase(
+      db(),
+      s.account.id,
+      { email: second, tid: null, externalId: "pay-1", amountCents: 9700, currency: "USD", refundedCents: null, subscriptionId: null, occurredAt: new Date(now.getTime() + 3_600_000) },
+      { source: "ghl", ghlContactId: ghl, emit },
+    );
+    expect(await liveContacts(s.account.id)).toHaveLength(1);
+
+    await runAttribution(db(), s.account.id, now);
+    const [paid] = await db().select().from(purchases).where(eq(purchases.externalId, "pay-1"));
+    expect(paid).toMatchObject({ attributionMethod: "email", attributedVideoId: "VIDEO_A", attributedReplyId: reply.id });
+
+    const reports = await rebuildReports(db(), s.account.id, new Date(now.getTime() + 86_400_000));
+    expect(reports!.all_time.totals).toMatchObject({ comments: 1, commenters: 1, newCommenters: 1, clicks: 1, subscribers: 1, buyers: 1, revenueCents: 9700 });
   });
 
   it("keeps two accounts apart even for the same email", async () => {

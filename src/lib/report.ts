@@ -4,6 +4,8 @@ import { addDays, zonedDay } from "./time";
 // worker loads first-party rows (src/server/reports.ts), builds every period
 // here and stores the result as a snapshot, so dashboards never compute.
 // Only real numbers: counts and sums of stored events, nothing estimated.
+// People are counted once (DECISIONS section 13.4): commenters, subscribers and
+// buyers are distinct Contacts, comments, replies and clicks are events.
 
 export const PERIODS = ["this_month", "last_7", "last_30", "last_90", "all_time"] as const;
 export type Period = (typeof PERIODS)[number];
@@ -45,6 +47,8 @@ interface Dims {
 
 export interface ReplyFact extends Dims {
   id: string;
+  // The Contact who wrote the comment; the reply itself stands in for old rows.
+  person?: string;
   createdAt: Date;
   sentAt: Date | null;
 }
@@ -59,6 +63,8 @@ export interface ClickFact extends Dims {
 // Attributed opt-ins (touches traced to a comment).
 export interface SubscriberFact extends Dims {
   email: string;
+  // The Contact; the email stands in for rows without one.
+  person?: string;
   replyId: string | null;
   occurredAt: Date;
 }
@@ -79,10 +85,14 @@ export interface ReportInput {
   clicks: ClickFact[];
   subscribers: SubscriberFact[];
   purchases: PurchaseFact[];
+  // First keyword comment of every Contact, for "new commenters".
+  firstCommentDates?: Date[];
 }
 
 export interface Metrics {
   comments: number;
+  // Distinct people who commented (section 13.4).
+  commenters: number;
   replies: number;
   clicks: number;
   subscribers: number;
@@ -106,6 +116,8 @@ export interface Report {
   toDay: string;
   currency: string;
   totals: Metrics & {
+    // Contacts whose first keyword comment falls in the period.
+    newCommenters: number;
     recurringCents: number;
     // Buyers whose purchases carry no amount (tag, won opportunity).
     buyersWithoutAmount: number;
@@ -135,7 +147,7 @@ export function periodRange(period: Period, now: Date, timeZone: string): { from
   }
 }
 
-const empty = (): Metrics => ({ comments: 0, replies: 0, clicks: 0, subscribers: 0, buyers: 0, revenueCents: 0 });
+const empty = (): Metrics => ({ comments: 0, commenters: 0, replies: 0, clicks: 0, subscribers: 0, buyers: 0, revenueCents: 0 });
 
 // Accumulates additive counts and distinct people per group key.
 interface GroupRow {
@@ -143,7 +155,10 @@ interface GroupRow {
   intent?: string | null;
   people: Set<string>;
   buyers: Set<string>;
+  commenters: Set<string>;
 }
+
+type Touchpoint = (row: Metrics, people: Set<string>, buyers: Set<string>, commenters: Set<string>) => void;
 
 class Groups {
   private rows = new Map<string, GroupRow>();
@@ -154,15 +169,15 @@ class Groups {
       if (intent != null && found.intent == null) found.intent = intent;
       return found;
     }
-    const row: GroupRow = { metrics: empty(), people: new Set(), buyers: new Set() };
+    const row: GroupRow = { metrics: empty(), people: new Set(), buyers: new Set(), commenters: new Set() };
     if (intent !== undefined) row.intent = intent;
     this.rows.set(key, row);
     return row;
   }
 
-  add(key: string, intent: string | null | undefined, fn: (row: Metrics, people: Set<string>, buyers: Set<string>) => void) {
+  add(key: string, intent: string | null | undefined, fn: Touchpoint) {
     const row = this.get(key, intent);
-    fn(row.metrics, row.people, row.buyers);
+    fn(row.metrics, row.people, row.buyers, row.commenters);
   }
 
   result(): Row[] {
@@ -171,6 +186,7 @@ class Groups {
         ...row.metrics,
         ...(row.intent !== undefined ? { intent: row.intent } : {}),
         key,
+        commenters: row.commenters.size,
         subscribers: row.people.size,
         buyers: row.buyers.size,
       }))
@@ -193,7 +209,7 @@ export function buildReport(input: ReportInput, options: { period: Period; now: 
   const byKeyword = new Groups();
   const byTemplate = new Groups();
   const byIntent = new Groups();
-  const all = (d: Dims, fn: (row: Metrics, people: Set<string>, buyers: Set<string>) => void) => {
+  const all = (d: Dims, fn: Touchpoint) => {
     byVideo.add(d.videoId ?? UNKNOWN, undefined, fn);
     byKeyword.add(d.keyword ?? UNKNOWN, d.intent, fn);
     byTemplate.add(d.templateKey, d.intent, fn);
@@ -202,6 +218,7 @@ export function buildReport(input: ReportInput, options: { period: Period; now: 
 
   const totals = empty();
   const totalPeople = new Set<string>();
+  const totalCommenters = new Set<string>();
   const totalBuyers = new Set<string>();
   const buyersWithAmount = new Set<string>();
   let recurringCents = 0;
@@ -209,8 +226,13 @@ export function buildReport(input: ReportInput, options: { period: Period; now: 
 
   for (const r of input.replies) {
     if (inPeriod(r.createdAt)) {
+      const person = r.person ?? r.id;
       totals.comments += 1;
-      all(r, (row) => void (row.comments += 1));
+      totalCommenters.add(person);
+      all(r, (row, _people, _buyers, commenters) => {
+        row.comments += 1;
+        commenters.add(person);
+      });
     }
     if (inPeriod(r.sentAt)) {
       totals.replies += 1;
@@ -224,8 +246,9 @@ export function buildReport(input: ReportInput, options: { period: Period; now: 
   }
   for (const s of input.subscribers) {
     if (!inPeriod(s.occurredAt)) continue;
-    totalPeople.add(s.email);
-    all(s, (_row, people) => void people.add(s.email));
+    const person = s.person ?? s.email;
+    totalPeople.add(person);
+    all(s, (_row, people) => void people.add(person));
   }
   for (const p of input.purchases) {
     if (!p.attributed || !inPeriod(p.occurredAt)) continue;
@@ -240,21 +263,27 @@ export function buildReport(input: ReportInput, options: { period: Period; now: 
       row.revenueCents += counted;
     });
   }
+  totals.commenters = totalCommenters.size;
   totals.subscribers = totalPeople.size;
   totals.buyers = totalBuyers.size;
 
   // Reply speed: replies posted in the period, with everything they led to.
   const bucketOf = (r: ReplyFact) => REPLY_TIME_BUCKETS.find((b) => r.sentAt!.getTime() - r.createdAt.getTime() < b.maxMs)!.key;
   const sentInPeriod = new Map(input.replies.filter((r) => inPeriod(r.sentAt)).map((r) => [r.id, bucketOf(r)]));
-  const speed = new Map(REPLY_TIME_BUCKETS.map((b) => [b.key as string, { ...empty(), people: new Set<string>(), buyers: new Set<string>() }]));
-  for (const bucket of sentInPeriod.values()) speed.get(bucket)!.replies += 1;
+  const speed = new Map(REPLY_TIME_BUCKETS.map((b) => [b.key as string, { ...empty(), people: new Set<string>(), buyers: new Set<string>(), commenters: new Set<string>() }]));
+  for (const r of input.replies) {
+    const bucket = sentInPeriod.get(r.id);
+    if (!bucket) continue;
+    speed.get(bucket)!.replies += 1;
+    speed.get(bucket)!.commenters.add(r.person ?? r.id);
+  }
   for (const c of input.clicks) {
     const bucket = c.replyId ? sentInPeriod.get(c.replyId) : undefined;
     if (bucket) speed.get(bucket)!.clicks += c.count;
   }
   for (const s of input.subscribers) {
     const bucket = s.replyId ? sentInPeriod.get(s.replyId) : undefined;
-    if (bucket) speed.get(bucket)!.people.add(s.email);
+    if (bucket) speed.get(bucket)!.people.add(s.person ?? s.email);
   }
   for (const p of input.purchases) {
     const bucket = p.attributed && p.replyId ? sentInPeriod.get(p.replyId) : undefined;
@@ -271,6 +300,7 @@ export function buildReport(input: ReportInput, options: { period: Period; now: 
     currency,
     totals: {
       ...totals,
+      newCommenters: (input.firstCommentDates ?? []).filter((at) => inPeriod(at)).length,
       recurringCents,
       buyersWithoutAmount: [...totalBuyers].filter((b) => !buyersWithAmount.has(b)).length,
       otherCurrencies: [...other.entries()].map(([code, revenueCents]) => ({ currency: code, revenueCents })).sort((a, b) => b.revenueCents - a.revenueCents),
@@ -280,8 +310,8 @@ export function buildReport(input: ReportInput, options: { period: Period; now: 
     byTemplate: byTemplate.result(),
     byIntent: byIntent.result(),
     byReplyTime: REPLY_TIME_BUCKETS.map((b) => {
-      const { people, buyers, ...row } = speed.get(b.key)!;
-      return { ...row, key: b.key, label: b.label, subscribers: people.size, buyers: buyers.size };
+      const { people, buyers, commenters, ...row } = speed.get(b.key)!;
+      return { ...row, key: b.key, label: b.label, commenters: commenters.size, subscribers: people.size, buyers: buyers.size };
     }),
   };
 }

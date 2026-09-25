@@ -22,7 +22,6 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 | 8 | Stripe revenue ingestion (read-only; Stripe App or restricted key, Q-17 e) | not started |
 | 9 | Audit my channel | not started |
 | 10 | GHL Marketplace connector | not started |
-| 11 | Enterprise BYOK | not started |
 | 12 | Compliance and launch readiness | not started |
 
 Phase plan changes (all accepted): compliance pack and quota extension request right after Phase 5 (Q-17 a); one GHL Marketplace app created Private in Phase 6 and made Public in Phase 10 (Q-17 b); retention job in Phase 4 (Q-17 c, done); Cloudflare for SaaS spike once the brand domain exists (Q-17 d).

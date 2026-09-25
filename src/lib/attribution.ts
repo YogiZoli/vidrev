@@ -8,7 +8,8 @@
 //    won opportunity) counts a buyer with revenue "not reported" (Q-06).
 // 2. A purchase is attributed to the last touch before it within 180 days
 //    (B-08): its own tracking id first (SPEC section 10), else the latest
-//    attributed opt-in of the same email.
+//    attributed opt-in of the same person: the same Contact (DECISIONS
+//    section 13, whatever email the opt-in used), or the same email.
 // 3. Every later payment of a subscription follows the first payment's
 //    attribution for the subscription's whole life, window or not (Q-07).
 // 4. Net revenue is the amount minus the refunds (B-08). Never estimated.
@@ -32,6 +33,8 @@ export interface PurchaseFact {
   source: PurchaseSourceName;
   kind: "payment" | "buyer_marker";
   emailNorm: string | null;
+  // The person (DECISIONS section 13); null for rows not yet given a Contact.
+  contactId?: string | null;
   tid: string | null;
   amountCents: number | null;
   currency: string | null;
@@ -67,6 +70,8 @@ export interface TouchLookup {
   clickByTid: ReadonlyMap<string, Touch>;
   // Attributed opt-ins of this account by email, any order.
   optInsByEmail: ReadonlyMap<string, readonly Touch[]>;
+  // The same by Contact: an opt-in under a second email still counts.
+  optInsByContact?: ReadonlyMap<string, readonly Touch[]>;
 }
 
 function isPayment(p: PurchaseFact): boolean {
@@ -74,7 +79,7 @@ function isPayment(p: PurchaseFact): boolean {
 }
 
 function sameBuyer(a: PurchaseFact, b: PurchaseFact): boolean {
-  return Boolean((a.emailNorm && a.emailNorm === b.emailNorm) || (a.tid && a.tid === b.tid));
+  return Boolean((a.contactId && a.contactId === b.contactId) || (a.emailNorm && a.emailNorm === b.emailNorm) || (a.tid && a.tid === b.tid));
 }
 
 function byPriority(a: PurchaseFact, b: PurchaseFact): number {
@@ -138,6 +143,15 @@ export function lastTouchByEmail(touches: readonly Touch[] | undefined, at: Date
   return best;
 }
 
+// Every opt-in touch of one person: those of the Contact and those of the email.
+function touchesOf(lookup: TouchLookup, contactId: string | null, email: string | null): Touch[] {
+  const touches: Touch[] = [...(contactId ? (lookup.optInsByContact?.get(contactId) ?? []) : [])];
+  for (const t of email ? (lookup.optInsByEmail.get(email) ?? []) : []) {
+    if (!touches.some((x) => x === t || (x.subscriberId !== null && x.subscriberId === t.subscriberId))) touches.push(t);
+  }
+  return touches;
+}
+
 export function attributePurchases(purchases: readonly PurchaseFact[], lookup: TouchLookup): Map<string, AttributionResult> {
   const results = new Map<string, AttributionResult>();
   const groups = groupDuplicates(purchases).sort(
@@ -149,6 +163,7 @@ export function attributePurchases(purchases: readonly PurchaseFact[], lookup: T
   for (const { canonical, members } of groups) {
     const at = canonical.occurredAt;
     const email = first(members, (m) => m.emailNorm);
+    const contactId = first(members, (m) => m.contactId ?? null);
     const tid = first(members, (m) => m.tid);
     const subscriptionRef = first(members, (m) => m.subscriptionRef);
 
@@ -164,10 +179,10 @@ export function attributePurchases(purchases: readonly PurchaseFact[], lookup: T
       if (click && inWindow(click.at, at)) {
         method = "tid";
         // The opt-in that carried the same tracking id, when there is one.
-        const optIn = email ? lookup.optInsByEmail.get(email)?.find((t) => t.clickId === click.clickId) : undefined;
+        const optIn = touchesOf(lookup, contactId, email).find((t) => t.clickId === click.clickId);
         touch = { ...click, subscriberId: optIn?.subscriberId ?? null };
-      } else if (email) {
-        touch = lastTouchByEmail(lookup.optInsByEmail.get(email), at);
+      } else if (email || contactId) {
+        touch = lastTouchByEmail(touchesOf(lookup, contactId, email), at);
         method = touch ? "email" : null;
       }
       if (subscriptionRef) subscriptions.set(subscriptionRef, { method, touch });

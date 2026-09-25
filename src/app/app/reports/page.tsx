@@ -31,7 +31,7 @@ function Table({ title, note, first, rows, currency, label }: { title: string; n
           <table style={styles.table}>
             <thead>
               <tr>
-                {[first, "Comments", "Replies", "Clicks", "Subscribers", "Buyers", "Revenue", "Click rate"].map((h) => (
+                {[first, "Comments", "Commenters", "Replies", "Clicks", "Subscribers", "Buyers", "Revenue", "Click rate"].map((h) => (
                   <th key={h} style={styles.cell}>
                     {h}
                   </th>
@@ -43,6 +43,7 @@ function Table({ title, note, first, rows, currency, label }: { title: string; n
                 <tr key={row.key}>
                   <td style={styles.cell}>{label(row)}</td>
                   <td style={styles.cell}>{row.comments}</td>
+                  <td style={styles.cell}>{row.commenters ?? 0}</td>
                   <td style={styles.cell}>{row.replies}</td>
                   <td style={styles.cell}>{row.clicks}</td>
                   <td style={styles.cell}>{row.subscribers}</td>
@@ -62,6 +63,7 @@ function Table({ title, note, first, rows, currency, label }: { title: string; n
 function Funnel({ totals, currency }: { totals: Metrics; currency: string }) {
   const steps: [string, string, string | null][] = [
     ["Comments", String(totals.comments), null],
+    ["Commenters", String(totals.commenters ?? 0), null],
     ["Replies", String(totals.replies), null],
     ["Clicks", String(totals.clicks), rate(totals.clicks, totals.replies)],
     ["Subscribers", String(totals.subscribers), rate(totals.subscribers, totals.clicks)],

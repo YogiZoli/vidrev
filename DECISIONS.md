@@ -4,7 +4,7 @@ Source of truth: Drive doc "02 C2C SaaS Döntési napló" (last updated 2026-09-
 
 Sections:
 
-Later sections 5 to 13 record owner answers and the implementation choices of each phase.
+Later sections 5 to 14 record owner answers and the implementation choices of each phase.
 
 1. Valid decisions D-01 to D-37 (owner decisions from 02)
 2. Build brief decisions B-01 to B-09 (owner instructions given to Claude Code on 2026-09-25)
@@ -48,7 +48,7 @@ Status column: **valid** = applies as written; **refined** = still valid, a late
 | D-29 | Infrastructure: everything in the Railway project `c2c-saas` (app, worker, Postgres); no Supabase, no Upstash, no Redis. | The legacy app hit free tier limits on both. | valid |
 | D-30 | Decisions, quota and architecture solutions of the legacy C2C app are NOT guidance and NOT patterns for the new app. | | valid |
 | D-31 | Quota: multiple GCP projects for the same purpose are prohibited (YouTube Developer Policies). Legal tools: channel-level polling, push notifications, reply scheduling that uses the daily budget evenly (what does not fit today goes first tomorrow), transparent queue, per-plan caps, a separate project only for a separate use case (Audit my channel), quota audit. | | valid |
-| D-32 | Enterprise plan: BYOK, the customer's own GCP project and quota; no on-premise. | | valid |
+| D-32 | Enterprise plan: BYOK, the customer's own GCP project and quota; no on-premise. | | on hold, direction open (Q-25) |
 | D-33 | Tracked links on the USER'S OWN domain (e.g. go.userdomain.com) are mission critical: CNAME to the link service, automatic TLS (Cloudflare for SaaS, Custom Hostnames); go.brand.com is only a fallback. Google verification concerns only the app domain, not the user's link domain. | | valid |
 | D-34 | Audit my channel gets its own separate GCP project (different use case). | | valid |
 | D-35 | Quota extension has no official deadline (reports range from days to months; a typical first approval is 50,000 to 100,000 units per day). The legacy app's 1-day approval was OAuth verification, not a quota extension. | | valid (planning fact) |
@@ -412,3 +412,16 @@ Open questions for the owner. Each has a recommended default, which is what gets
 | O-4 | **Two different emails arrive for one Contact** (for example a forwarded link): keep both as one person? | **Yes, same Contact, the second email as an alias** (M-3). The tid proves the path from that comment. | Treat the second email as a new person linked to the first. Better if you expect many forwarded links, but it brings duplicates back. |
 | O-5 | **Automatic merge on an email match, even for shared inboxes** (info@company.com)? | **Yes, always merge on an exact strong key, log it, allow undo** (M-4, M-8). | Never auto-merge role addresses (info@, sales@, support@): keep two Contacts and flag them for review. Fewer wrong merges, some duplicates. |
 | O-6 | **Reporting change:** Subscribers and Buyers become people (Contacts) instead of distinct emails (13.4). For most accounts the numbers are identical; a person with two emails now counts once. OK? | **Yes.** | Keep counting distinct emails. |
+
+### 13.13 Owner instruction: the 30 day rule stays intact; a legal workaround is a later review (2026-09-26)
+
+| ID | Decision |
+| --- | --- |
+| Q-24 | **Owner decision:** the 30 day rule for YouTube API data (Q-17 c, III.E.4.c and d) **stays fully intact**. Nothing in the Contact model may keep YouTube API data beyond 30 days without a refresh that YouTube's own policy allows. The implementation in 13.9 (confirm with YouTube every 30 days, otherwise delete) is the accepted baseline and is built. |
+| L-01 | **Review later (parked, not started):** investigate whether a **legal way** exists to recognise a returning commenter for longer or more reliably than the refresh in 13.9 allows, without weakening the 30 day rule. Questions for that review: (1) whether the Google or YouTube API policies, or a written answer from the YouTube API compliance team, allow keeping a one-way derived key of the commenter (a salted hash) as first-party data; (2) whether the commenter's own explicit consent on the opt-in page (a consent line that links the email to their YouTube comment) makes the correlation of channel id and email permitted, and how to collect and store that consent; (3) whether identifying a returning commenter through first-party signals only (the tracked link, the cookie of CC-07 layer 3, the email itself) can replace the channel id for most cases; (4) how the answer changes the Google OAuth verification pack. Until this review is done and the owner decides, **the refresh-or-delete design stays and no derived key is stored**. |
+
+## 14. Phase plan change (owner, 2026-09-26)
+
+| ID | Decision |
+| --- | --- |
+| Q-25 | **Owner decision:** the former Phase 11 (Enterprise BYOK: per-account Google OAuth client and GCP project, separate quota ledger) is **removed from the phase plan** and is not scheduled. The direction after Phase 10 is **deliberately open**: it may become an Agency, White-label or Affiliate offer, or something else. Nothing is built or reserved for it, and it is not listed as a phase in STATUS.md until the owner decides. D-32 (Enterprise plan with BYOK) stays on record as an earlier idea, on hold. The `enterprise` plan row that already exists in the plans table is data only and stays untouched. Phase numbers are not renumbered, so references to Phase 12 stay valid. |

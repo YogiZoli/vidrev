@@ -167,6 +167,22 @@ describe("attributePurchases", () => {
     expect(results.get(renewal.id)!.method).toBeNull();
   });
 
+  it("attributes a purchase to the touch of the same Contact, whatever email the opt-in used (Q-23)", () => {
+    const optInUnderOtherEmail = touch({ at: at(-3), videoId: "first-video", subscriberId: "s-other" });
+    const p = purchase({ emailNorm: "work@example.com", contactId: "contact-1" });
+    const byContact = { clickByTid: new Map(), optInsByEmail: new Map([["home@example.com", [optInUnderOtherEmail]]]), optInsByContact: new Map([["contact-1", [optInUnderOtherEmail]]]) };
+    expect(attributePurchases([p], byContact).get(p.id)).toMatchObject({ method: "email", touch: { videoId: "first-video" } });
+    // Without the Contact the second email finds nothing: it is never guessed.
+    const noContact = purchase({ emailNorm: "work@example.com" });
+    expect(attributePurchases([noContact], byContact).get(noContact.id)!.method).toBeNull();
+  });
+
+  it("counts the same sale once when one source knows the email and the other only the Contact", () => {
+    const ghl = purchase({ source: "ghl", emailNorm: null, contactId: "contact-1", occurredAt: at(0) });
+    const hook = purchase({ source: "webhook", emailNorm: "ann@example.com", contactId: "contact-1", occurredAt: at(0, 60_000) });
+    expect(groupDuplicates([ghl, hook])).toHaveLength(1);
+  });
+
   it("needs a new touch for a separate purchase by the same buyer", () => {
     const p1 = purchase({ occurredAt: at(0) });
     const p2 = purchase({ occurredAt: at(300), amountCents: 50000 });

@@ -127,3 +127,18 @@ describe("api client", () => {
     await expect(broken.api.getLocationName("L1")).rejects.toBeInstanceOf(GhlApiError);
   });
 });
+
+describe("notes", () => {
+  it("posts the note with the installing user when known", async () => {
+    const calls: { url: URL; init?: RequestInit }[] = [];
+    const api = createGhlApi(async (input: string, init?: RequestInit) => {
+      calls.push({ url: new URL(input), init });
+      return Response.json({});
+    }, "tok");
+    await api.addNote("C1", "vidrev source", "U1");
+    await api.addNote("C1", "vidrev source");
+    expect(calls[0]!.url.pathname).toBe("/contacts/C1/notes");
+    expect(JSON.parse(String(calls[0]!.init!.body))).toEqual({ body: "vidrev source", userId: "U1" });
+    expect(JSON.parse(String(calls[1]!.init!.body))).toEqual({ body: "vidrev source" });
+  });
+});

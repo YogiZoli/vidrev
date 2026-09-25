@@ -44,6 +44,8 @@ const envSchema = z.object({
   GHL_SCOPES: optional,
   // PEM of HighLevel's webhook signing key, only if HighLevel rotates it.
   GHL_WEBHOOK_PUBLIC_KEY: optional,
+  // Shared secret the Marketplace workflow action sends in X-Vidrev-Key (Phase 10, docs/SETUP-GHL.md).
+  GHL_ACTION_SECRET: optional,
   QUOTA_DAILY_LIMIT: z.coerce.number().int().positive().default(10000),
   // Audit my channel (Phase 9): its own GCP project and API key (D-34), no OAuth.
   YT_API_KEY_AUDIT: optional,

@@ -3,6 +3,8 @@ import type { Db } from "@/db/client";
 import { accounts, campaigns, clicks, inboundHookSecrets, purchases, subscribers, type PurchaseSource, type SubscriberSource } from "@/db/schema";
 import { decryptSecret, encryptSecret, randomToken, sha256Hex } from "@/lib/crypto";
 import type { OptInInput, PurchaseInput } from "@/lib/inbound";
+import { ATTRIBUTION_WINDOW_DAYS } from "@/lib/attribution";
+import { markReportDirty } from "../attribution";
 import type { EmitInput } from "./events";
 
 // Recording of opt-ins and purchases from any source (SPEC sections 9, 10):
@@ -11,9 +13,6 @@ import type { EmitInput } from "./events";
 export type Emit = (input: EmitInput) => Promise<void>;
 
 export const HOOK_TOKEN_PREFIX = "c2c_hk_";
-// Last touch within 180 days (DECISIONS B-08). Phase 7 owns the full matching
-// rules; here it only enriches the purchase event.
-export const ATTRIBUTION_WINDOW_DAYS = 180;
 
 export function newHookToken(): string {
   return `${HOOK_TOKEN_PREFIX}${randomToken(24)}`;
@@ -81,6 +80,8 @@ export async function resolveTid(db: Db, accountId: string, tid: string): Promis
 }
 
 // The most recent attributed opt-in of this email in the 180 days before `at`.
+// Enriches the outbound purchase event only; reports use the full rules in
+// src/lib/attribution.ts, recomputed by the worker.
 export async function latestTouchByEmail(db: Db, accountId: string, emailNorm: string, at: Date): Promise<Touch | null> {
   const since = new Date(at.getTime() - ATTRIBUTION_WINDOW_DAYS * 86_400_000);
   const touches = await db
@@ -215,7 +216,11 @@ export async function recordPurchase(
       ...(!existing!.emailNorm && input.email ? { emailNorm: input.email } : {}),
       ...(!existing!.tid && input.tid ? { tid: input.tid } : {}),
     };
-    if (Object.keys(fill).length > 0) await db.update(purchases).set({ ...fill, updatedAt: new Date() }).where(eq(purchases.id, existing!.id));
+    if (Object.keys(fill).length > 0) {
+      await db.update(purchases).set({ ...fill, updatedAt: new Date() }).where(eq(purchases.id, existing!.id));
+      // A refund or a late email changes revenue and attribution.
+      await markReportDirty(db, accountId);
+    }
     return { id: existing!.id, created: false, refundUpdated: "refundedCents" in fill };
   }
 

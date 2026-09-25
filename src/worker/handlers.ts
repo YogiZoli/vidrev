@@ -2,7 +2,7 @@ import type { PgBoss } from "pg-boss";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { users } from "@/db/schema";
-import { type ChannelJob, type CommentJob, type DeliveryJob, type DomainJob, type GhlEventJob, type GhlIntegrationJob, type ReplyJob, QUEUES, QUEUE_OPTIONS, type SendEmailJob } from "@/jobs/queues";
+import { type AccountJob, type ChannelJob, type CommentJob, type DeliveryJob, type DomainJob, type GhlEventJob, type GhlIntegrationJob, type ReplyJob, QUEUES, QUEUE_OPTIONS, type SendEmailJob } from "@/jobs/queues";
 import { ghlReconnectEmail } from "@/server/email/templates";
 import { postJson } from "@/server/integrations/http-post";
 import { pruneDeliveries } from "@/server/integrations/outbound";
@@ -17,6 +17,8 @@ import { sendReply } from "./sending";
 import { checkRss, type EngineDeps, engineTick, pollChannel, renewWebsub } from "./polling";
 import { deliver, deliverDue, type WebhookDeps } from "./webhooks";
 import { type GhlWorkerDeps, handleGhlEvent, queueGhlWork, setupGhl, syncGhl } from "./ghl";
+import { queueReportRefreshes, refreshAccountReports, type ReportDeps } from "./reports";
+import { markAllReportsDirty } from "@/server/attribution";
 
 function ghlDeps(boss: PgBoss): GhlWorkerDeps | null {
   const { ENCRYPTION_KEY, GHL_CLIENT_ID, GHL_CLIENT_SECRET, PRODUCT_NAME } = env();
@@ -36,6 +38,15 @@ function ghlDeps(boss: PgBoss): GhlWorkerDeps | null {
       for (const { email } of recipients) {
         await boss.send(QUEUES.sendEmail, ghlReconnectEmail({ to: email, url: `${appBaseUrl()}/app/integrations`, productName: PRODUCT_NAME }) as object, {});
       }
+    },
+  };
+}
+
+function reportDeps(boss: PgBoss): ReportDeps {
+  return {
+    db: getDb(),
+    enqueue: async (queue, data, options) => {
+      await boss.send(queue, data as object, options ?? {});
     },
   };
 }
@@ -160,6 +171,7 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
     if (hooks) await deliverDue(hooks);
     const ghl = ghlDeps(boss);
     if (ghl) await queueGhlWork(ghl);
+    await queueReportRefreshes(reportDeps(boss));
     const deps = engineDeps(boss);
     if (deps) await engineTick(deps);
   });
@@ -180,6 +192,14 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
   await boss.work<GhlEventJob>(QUEUES.ghlEvent, async ([job]) => {
     const deps = ghlDeps(boss);
     if (deps) await handleGhlEvent(deps, job!.data.integrationId, job!.data.payload);
+  });
+  // Attribution and reports (Phase 7): refresh per dirty account; hourly,
+  // every account is marked so periods roll over.
+  await boss.work<AccountJob>(QUEUES.reportRefresh, async ([job]) => refreshAccountReports(reportDeps(boss), job!.data.accountId));
+  await boss.createQueue(QUEUES.reportHourly);
+  await boss.schedule(QUEUES.reportHourly, "7 * * * *");
+  await boss.work(QUEUES.reportHourly, async () => {
+    await markAllReportsDirty(getDb());
   });
   // Custom link domains (Phase 5): DNS and Cloudflare checks.
   await boss.work<DomainJob>(QUEUES.domainCheck, async ([job]) => checkDomain(domainDeps(boss), job!.data.domainId));

@@ -65,6 +65,10 @@ export const accounts = pgTable("accounts", {
   draftsNotifiedAt: timestamp("drafts_notified_at", { withTimezone: true }),
   // Owner kill switch for the shared fallback link host (R-20).
   fallbackLinksBlocked: boolean("fallback_links_blocked").notNull().default(false),
+  // Reports (Phase 7): set when new first-party data arrives; the worker
+  // recomputes attribution and report snapshots and clears it.
+  reportDirtyAt: timestamp("report_dirty_at", { withTimezone: true }),
+  reportsComputedAt: timestamp("reports_computed_at", { withTimezone: true }),
   createdAt: createdAt(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -609,8 +613,8 @@ export type PurchaseKind = "payment" | "buyer_marker";
 // Every purchase event from every source is stored with its raw numbers
 // (DECISIONS Q-05). `kind = buyer_marker` is a buyer without an amount (won
 // opportunity or buyer tag, Q-06): revenue is "not reported", never estimated.
-// Phase 7 links duplicates across sources through `canonicalPurchaseId`
-// (revenue counts once) and attributes purchases to subscribers.
+// Duplicates across sources are linked through `canonicalPurchaseId`
+// (revenue counts once) and each purchase is attributed to a touch.
 export const purchases = pgTable(
   "purchases",
   {
@@ -632,8 +636,23 @@ export const purchases = pgTable(
     ghlContactId: text("ghl_contact_id"),
     occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
     raw: jsonb("raw").$type<Record<string, unknown>>().notNull().default({}),
+    // Phase 7 attribution (src/lib/attribution.ts), recomputed by the worker.
+    // `canonicalPurchaseId` is the row's own id for the purchase that counts,
+    // another row's id for a duplicate, null until computed. `netCents` is the
+    // revenue it counts: amount minus refunds on canonical payments, 0 on
+    // duplicates, null on buyer markers (revenue not reported).
     canonicalPurchaseId: uuid("canonical_purchase_id"),
+    netCents: bigint("net_cents", { mode: "number" }),
+    attributionMethod: text("attribution_method").$type<"tid" | "email" | "subscription">(),
     attributedSubscriberId: uuid("attributed_subscriber_id"),
+    attributedClickId: uuid("attributed_click_id"),
+    attributedReplyId: uuid("attributed_reply_id"),
+    attributedCampaignId: uuid("attributed_campaign_id"),
+    attributedVideoId: text("attributed_video_id"),
+    attributedKeyword: text("attributed_keyword"),
+    attributedIntent: text("attributed_intent").$type<Intent>(),
+    attributedTouchAt: timestamp("attributed_touch_at", { withTimezone: true }),
+    attributionComputedAt: timestamp("attribution_computed_at", { withTimezone: true }),
     createdAt: createdAt(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -642,5 +661,6 @@ export const purchases = pgTable(
     index("purchases_account_email_idx").on(t.accountId, t.emailNorm),
     index("purchases_account_occurred_idx").on(t.accountId, t.occurredAt),
     index("purchases_tid_idx").on(t.tid),
+    index("purchases_subscription_idx").on(t.accountId, t.subscriptionRef),
   ],
 );

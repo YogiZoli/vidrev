@@ -2,7 +2,7 @@ import type { PgBoss } from "pg-boss";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { users } from "@/db/schema";
-import { type AccountJob, type ChannelJob, type CommentJob, type DeliveryJob, type DomainJob, type GhlEventJob, type GhlIntegrationJob, type ReplyJob, QUEUES, QUEUE_OPTIONS, type SendEmailJob } from "@/jobs/queues";
+import { type AccountJob, type AuditJob, type ChannelJob, type CommentJob, type DeliveryJob, type DomainJob, type GhlEventJob, type GhlIntegrationJob, type ReplyJob, QUEUES, QUEUE_OPTIONS, type SendEmailJob } from "@/jobs/queues";
 import { ghlReconnectEmail, stripeReconnectEmail } from "@/server/email/templates";
 import { postJson } from "@/server/integrations/http-post";
 import { pruneDeliveries } from "@/server/integrations/outbound";
@@ -20,6 +20,10 @@ import { type GhlWorkerDeps, handleGhlEvent, queueGhlWork, setupGhl, syncGhl } f
 import { queueReportRefreshes, refreshAccountReports, type ReportDeps } from "./reports";
 import { queueStripeWork, type StripeWorkerDeps, syncStripe } from "./stripe";
 import { markAllReportsDirty } from "@/server/attribution";
+import { promises as dnsPromises } from "node:dns";
+import { fetchPage } from "@/server/audit/fetch-page";
+import { API_DATA_TTL_MS } from "@/server/audit/service";
+import { type AuditDeps, failStuckAudits, runAudit, scrubAudits } from "./audit";
 import { backfillContacts } from "@/server/contacts-backfill";
 
 function ghlDeps(boss: PgBoss): GhlWorkerDeps | null {
@@ -78,6 +82,17 @@ function reportDeps(boss: PgBoss): ReportDeps {
     enqueue: async (queue, data, options) => {
       await boss.send(queue, data as object, options ?? {});
     },
+  };
+}
+
+function auditDeps(): AuditDeps {
+  return {
+    db: getDb(),
+    fetch,
+    apiKey: env().YT_API_KEY_AUDIT ?? null,
+    dailyLimit: env().AUDIT_DAILY_LIMIT,
+    fetchPage,
+    resolveCname: (host) => dnsPromises.resolveCname(host).then((names) => names.map((n) => n.toLowerCase())),
   };
 }
 
@@ -204,9 +219,12 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
     const stripe = stripeDeps(boss);
     if (stripe) await queueStripeWork(stripe);
     await queueReportRefreshes(reportDeps(boss));
+    await failStuckAudits(getDb(), new Date());
     const deps = engineDeps(boss);
     if (deps) await engineTick(deps);
   });
+  // Audit my channel (Phase 9): one run per request, own API key and quota.
+  await boss.work<AuditJob>(QUEUES.auditRun, async ([job]) => runAudit(auditDeps(), job!.data.auditId));
   // Outbound webhooks (Phase 6): immediate delivery; the tick covers retries.
   await boss.work<DeliveryJob>(QUEUES.webhookDeliver, async ([job]) => {
     const hooks = webhookDeps(boss);
@@ -255,6 +273,7 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
     const deps = engineDeps(boss);
     if (deps) await runRetention(deps);
     await pruneDeliveries(getDb());
+    await scrubAudits(getDb(), new Date(), API_DATA_TTL_MS);
   });
   await boss.createQueue(QUEUES.websubRenew);
   await boss.schedule(QUEUES.websubRenew, "17 * * * *");

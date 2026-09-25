@@ -121,3 +121,83 @@ export function renewalRecapEmail(input: { to: string; renewalDate: string; life
     html: layout(input.productName, paragraphs, { label: "See the report", url: input.url }),
   };
 }
+
+export interface AuditReportInput {
+  to: string;
+  productName: string;
+  auditUrl: string;
+  // Where "see how it works" leads (the brand site); no button when null.
+  learnMoreUrl: string | null;
+  channelLabel: string;
+  auditedAt: Date;
+  result: import("@/lib/audit/result").AuditResult;
+  examples: import("@/lib/audit/result").AuditExamples;
+}
+
+const SEGMENT_LINE = {
+  ghl: `Your pages run on GoHighLevel, which connects natively.`,
+  other: `It works with any CRM or form tool through webhooks.`,
+  none: `It works with any CRM or form tool through webhooks.`,
+} as const;
+
+// P9-10: the full audit report. Counts, the score with its factors, titles and
+// links to the exact comments; never comment text.
+export function auditReportEmail(input: AuditReportInput): SendEmailJob {
+  const { result, examples, productName } = input;
+  const commentUrl = (videoId: string, commentId: string) =>
+    `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}&lc=${encodeURIComponent(commentId)}`;
+  const titleOf = (videoId: string) => examples.videos.find((v) => v.id === videoId)?.title || videoId;
+  const date = input.auditedAt.toISOString().slice(0, 10);
+
+  const sections: { heading: string; lines: string[] }[] = [];
+  const score = result.score.value;
+  sections.push({
+    heading: score === null ? "Comment Conversion Score" : `Comment Conversion Score: ${score} out of 100`,
+    lines:
+      score === null
+        ? ["There was not enough data for a score yet. It needs at least two of the four checks below to have something to measure."]
+        : result.score.factors.map((f) => `${f.label}: ${f.ratio === null ? "not enough data" : `${Math.round(f.ratio * 100)}%`} (${f.detail})`),
+  });
+  sections.push({ heading: "What we found", lines: result.findings.length > 0 ? result.findings.map((f) => f.text) : ["Nothing to flag on this sample."] });
+  if (result.keywords.length > 0) {
+    sections.push({ heading: "Keyword candidates", lines: result.keywords.map((k) => `"${k.word}": ${k.comments} different comments`) });
+  }
+  if (examples.buying.length > 0) {
+    sections.push({ heading: "Buying signals without a reply", lines: examples.buying.map((e) => `${titleOf(e.videoId)}: ${commentUrl(e.videoId, e.commentId)}`) });
+  }
+  if (examples.questions.length > 0) {
+    sections.push({ heading: "Questions without a reply", lines: examples.questions.map((e) => `${titleOf(e.videoId)}: ${commentUrl(e.videoId, e.commentId)}`) });
+  }
+  if (examples.links.length > 0) {
+    sections.push({
+      heading: "Links in your descriptions",
+      lines: examples.links.map((l) => {
+        const facts = [l.measured ? "measured" : "not measured", l.ownDomain ? "your own domain" : "shared platform address", ...(l.stacks.length > 0 ? [`runs on ${l.stacks.join(", ")}`] : [])];
+        return `${l.url} (${facts.join("; ")})`;
+      }),
+    });
+  }
+  sections.push({
+    heading: "How this was measured",
+    lines: [
+      `Your last ${result.sample.videos} videos and ${result.sample.comments} public comments, read on ${date}. Pattern matching, not a judgement: a comment that "looks like" a buying signal may not be one.`,
+      "We do not store comment text. Details from YouTube are deleted after 30 days.",
+    ],
+  });
+
+  const intro = `Here is the full audit of ${input.channelLabel}.`;
+  const outro = `${productName} measures which video makes money from your comments. ${SEGMENT_LINE[result.stack.segment]}`;
+  const footer = `You asked for this report at ${input.auditUrl}. Reply to this email if you want it removed.`;
+
+  const text = [intro, ...sections.map((s) => `${s.heading}\n${s.lines.map((l) => `- ${l}`).join("\n")}`), outro, input.learnMoreUrl ? `Learn more: ${input.learnMoreUrl}` : "", footer]
+    .filter(Boolean)
+    .join("\n\n");
+  const body = sections
+    .map((s) => `<h3 style="margin:24px 0 8px;font-size:16px">${escapeHtml(s.heading)}</h3><ul style="margin:0;padding-left:20px">${s.lines.map((l) => `<li style="margin:0 0 6px">${escapeHtml(l)}</li>`).join("")}</ul>`)
+    .join("");
+  const cta = input.learnMoreUrl
+    ? `<p style="margin:24px 0"><a href="${escapeHtml(input.learnMoreUrl)}" style="background:#111;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none">See how ${escapeHtml(productName)} works</a></p>`
+    : "";
+  const html = `<div style="font-family:system-ui,sans-serif;font-size:15px;line-height:1.5;color:#111;max-width:560px"><p style="margin:0 0 16px">${escapeHtml(intro)}</p>${body}<p style="margin:24px 0 16px">${escapeHtml(outro)}</p>${cta}<p style="color:#666;font-size:13px">${escapeHtml(footer)}</p></div>`;
+  return { to: input.to, subject: `Your channel audit: ${input.channelLabel} - ${productName}`, text: `${text}\n`, html };
+}

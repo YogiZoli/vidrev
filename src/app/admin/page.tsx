@@ -1,6 +1,8 @@
 import { getDb } from "@/db/client";
-import { listAccountsForAdmin, listPlans } from "@/server/admin";
+import { env } from "@/lib/env";
+import { auditOverview, listAccountsForAdmin, listPlans } from "@/server/admin";
 import { requireAdmin } from "@/server/auth/current";
+import { auditUnitsLeft } from "@/server/quota";
 import { Notice, styles } from "../ui";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +12,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   await requireAdmin();
   const { msg } = await searchParams;
   const db = getDb();
-  const [accountRows, planRows] = await Promise.all([listAccountsForAdmin(db), listPlans(db)]);
+  const auditLimit = env().AUDIT_DAILY_LIMIT;
+  const [accountRows, planRows, audit, auditLeft] = await Promise.all([listAccountsForAdmin(db), listPlans(db), auditOverview(db), auditUnitsLeft(db, auditLimit)]);
   const founding = accountRows.filter((a) => a.planCode === "founding").length;
   const foundingCap = planRows.find((p) => p.code === "founding")?.seatsCap ?? 100;
 
@@ -101,6 +104,41 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             ))}
           </tbody>
         </table>
+      </section>
+
+      <section style={styles.card}>
+        <h2 style={{ marginTop: 0 }}>Audit my channel</h2>
+        <p style={styles.muted}>
+          Last 7 days: {audit.requests} audits requested, {audit.done} finished, {audit.reports} full reports requested. Audit quota today: {auditLimit - auditLeft} of {auditLimit} units used.
+        </p>
+        {audit.recent.length === 0 ? (
+          <p style={styles.muted}>No report requests yet.</p>
+        ) : (
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={styles.cell}>Email</th>
+                <th style={styles.cell}>Channel</th>
+                <th style={styles.cell}>Score</th>
+                <th style={styles.cell}>Stack</th>
+                <th style={styles.cell}>Marketing consent</th>
+                <th style={styles.cell}>Requested</th>
+              </tr>
+            </thead>
+            <tbody>
+              {audit.recent.map((r, i) => (
+                <tr key={`${r.email}-${i}`}>
+                  <td style={styles.cell}>{r.email}</td>
+                  <td style={styles.cell}>{r.channel}</td>
+                  <td style={styles.cell}>{r.score ?? "-"}</td>
+                  <td style={styles.cell}>{r.segment ?? "-"}</td>
+                  <td style={styles.cell}>{r.marketing ? "yes" : "no"}</td>
+                  <td style={styles.cell}>{r.at ? r.at.toISOString().slice(0, 16).replace("T", " ") : "-"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </section>
     </main>
   );

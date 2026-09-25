@@ -13,7 +13,7 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 | 0 | Bootstrap: repo docs, decisions, PRD, SPEC, .gitignore, .env.example | **DONE** (2026-09-25) |
 | 1 | SPEC review: gaps, risks, owner decisions, proposed fixes | **DONE** (2026-09-25); answers in DECISIONS sections 5 and 6 |
 | 2 | Scaffold and deploy: app skeleton, Postgres, migrations, health check, CI, Railway project `c2c-saas`, first deploy | **DONE** (2026-09-25) |
-| 3 | Accounts: magic-link login, provisioning webhook, plans and seeds, OAuth connect with encrypted tokens | **DONE** (2026-09-25); end-to-end check waits on the owner setup below |
+| 3 | Accounts: magic-link login, provisioning webhook, plans and seeds, OAuth connect with encrypted tokens | **DONE** (2026-09-25); verified end to end on 2026-09-25: magic-link login, owner admin, the owner's channel connected |
 | 4 | Comment engine: channel polling tiers, PubSubHubbub, keyword rules, AI drafts, templates, approval queue, quota-budget scheduling, transparent queue, manual fallback, quota ledger, retention job | next, waiting for owner approval ("mehet") |
 | 5 | Tracked links on the user's own domain: CNAME onboarding, DNS check, Cloudflare for SaaS TLS, fallback domain, click ids, mapping | not started |
 | 6 | Integrations: outbound HMAC webhooks and tags, GHL OAuth, inbound opt-in and purchase webhooks | not started |
@@ -44,7 +44,7 @@ Phase plan changes (all accepted): compliance pack and quota extension request r
 4. Provisioning: the PowerShell test in [docs/GHL-PROVISIONING.md](docs/GHL-PROVISIONING.md) creates an account; `/admin` lists it.
 5. Automated: 71 tests (49 unit, 22 Postgres integration) pass in CI; `npm test` locally runs the unit tests.
 
-## Owner setup needed before the end-to-end check
+## Owner setup (done 2026-09-25)
 
 1. Run `scripts/set-secrets.ps1` (sets `ENCRYPTION_KEY`, `AUTH_SECRET`, `PROVISIONING_SECRET`).
 2. Create the GCP project `c2c-app` and OAuth client ([docs/SETUP-GOOGLE.md](docs/SETUP-GOOGLE.md)), then run the script again to set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
@@ -61,6 +61,13 @@ Phase plan changes (all accepted): compliance pack and quota extension request r
 - Proposals CC-01 to CC-06 and P3-01 to P3-07 in `DECISIONS.md` await owner review.
 - Drive doc 00 Index still says "decisions D-01...D-12" (Drive housekeeping).
 - The owner's build brief is in `docs/BUILD-BRIEF.md`; DECISIONS.md overrides it where they differ.
+
+## Phase 4 working notes (from the Phase 3 session)
+
+- Build Phase 4 in several PRs (schema, polling and PubSubHubbub, matching and drafts, approval queue, sending and quota budget, retention). Claude merges each PR itself after green CI (owner authorization, 2026-09-25).
+- AI model defaults (from secondary sources on 2026-09-25, verify at the start of Phase 4): Gemini `gemini-2.5-flash-lite` retires on 2026-10-16, so default to `gemini-3.1-flash-lite`; OpenAI `gpt-5.4-nano`; Anthropic `claude-haiku-4-5`. Model names are configuration.
+- Until Phase 5 builds tracked links, a sent reply may carry the campaign's destination URL; Phase 5 swaps in the tracked link.
+- The owner's account is on `internal`; the owner's channel is connected in production (Testing mode: reconnect every 7 days).
 
 ## Next phase
 

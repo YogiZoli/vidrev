@@ -7,6 +7,7 @@ export const QUEUES = {
   channelDisconnect: "channel.disconnect",
   engineTick: "engine.tick",
   websubRenew: "websub.renew",
+  retention: "retention.daily",
   channelPoll: "channel.poll",
   channelRss: "channel.rss",
   replyDraft: "reply.draft",

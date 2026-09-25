@@ -6,6 +6,7 @@ import { errorFields, log } from "@/lib/log";
 import { type ChannelDeps, disconnectChannel, syncChannel } from "./channels";
 import { EmailSendError, senderAddress, sendWithResend } from "./email";
 import { createDraft } from "./drafts";
+import { runRetention } from "./retention";
 import { sendReply } from "./sending";
 import { checkRss, type EngineDeps, engineTick, pollChannel, renewWebsub } from "./polling";
 
@@ -106,6 +107,13 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
   await boss.work(QUEUES.engineTick, async () => {
     const deps = engineDeps(boss);
     if (deps) await engineTick(deps);
+  });
+  // 30-day rule (Q-17 c), daily at 10:30 UTC.
+  await boss.createQueue(QUEUES.retention);
+  await boss.schedule(QUEUES.retention, "30 10 * * *");
+  await boss.work(QUEUES.retention, async () => {
+    const deps = engineDeps(boss);
+    if (deps) await runRetention(deps);
   });
   await boss.createQueue(QUEUES.websubRenew);
   await boss.schedule(QUEUES.websubRenew, "17 * * * *");

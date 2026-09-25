@@ -1,6 +1,6 @@
 import { and, eq, inArray, ne } from "drizzle-orm";
 import type { Db } from "@/db/client";
-import { accounts, channels } from "@/db/schema";
+import { accounts, channels, comments, replies, videos } from "@/db/schema";
 import { decryptSecret, encryptSecret } from "@/lib/crypto";
 import { log } from "@/lib/log";
 import { recordQuota } from "@/server/channels";
@@ -25,6 +25,14 @@ const WIPED = {
   title: null,
   titleRefreshedAt: null,
 } as const;
+
+// Comments, video titles and reply ids of a channel that is no longer
+// connected are deleted at once (Q-17 c: within 7 days).
+async function wipeYoutubeData(db: Db, channelId: string): Promise<void> {
+  await db.delete(comments).where(eq(comments.channelId, channelId));
+  await db.delete(videos).where(eq(videos.channelId, channelId));
+  await db.update(replies).set({ youtubeReplyId: null }).where(eq(replies.channelId, channelId));
+}
 
 export class ChannelRevokedError extends Error {
   constructor() {
@@ -57,6 +65,7 @@ export async function getAccessToken(deps: ChannelDeps, channel: ChannelRow): Pr
         .update(channels)
         .set({ ...WIPED, status: "revoked", statusReason: "access_revoked", disconnectedAt: now })
         .where(eq(channels.id, channel.id));
+      await wipeYoutubeData(deps.db, channel.id);
       log("warn", "channel grant revoked", { channelId: channel.id });
       throw new ChannelRevokedError();
     }
@@ -161,5 +170,6 @@ export async function disconnectChannel(deps: ChannelDeps, channelId: string): P
     .update(channels)
     .set({ ...WIPED, status: "disconnected", statusReason: "disconnected_by_user", disconnectedAt: deps.now?.() ?? new Date() })
     .where(eq(channels.id, channel.id));
+  await wipeYoutubeData(deps.db, channel.id);
   log("info", "channel disconnected", { channelId });
 }

@@ -16,6 +16,7 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 | 3 | Accounts: magic-link login, provisioning webhook, plans and seeds, OAuth connect with encrypted tokens | **DONE** (2026-09-25); verified end to end on 2026-09-25 |
 | 4 | Comment engine: channel polling tiers, PubSubHubbub, keyword rules, AI drafts, templates, approval queue, quota-budget sending, transparent queue, manual fallback, quota ledger, retention job | **DONE** (2026-09-25), PRs #2 to #7; end-to-end check on the owner's channel pending (owner setup below) |
 | 5 | Tracked links on the user's own domain: CNAME onboarding, DNS check, Cloudflare for SaaS TLS, fallback domain, click ids, mapping | **DONE** (2026-09-25), PRs #8 to #10; live on vidrev.app since 2026-09-25 (PR #11 adds the spend cap and the Worker) |
+| 5b | Compliance pack (Q-17 a): Privacy/Terms drafts, OAuth verification pack, quota extension request | **Prepared** (2026-09-25), [docs/compliance/](docs/compliance/README.md); submission waits for the LLC (EIN not needed) |
 | 6 | Integrations: outbound HMAC webhooks and tags, GHL OAuth, inbound opt-in and purchase webhooks | not started |
 | 7 | Attribution and reporting | not started |
 | 8 | Stripe revenue ingestion (read-only; Stripe App or restricted key, Q-17 e) | not started |
@@ -67,4 +68,4 @@ Still deferred from Phase 4 (no billing yet): platform Gemini key and `WEBSUB_SE
 
 ## Next phase
 
-Per Q-17 (a): compliance pack right after Phase 5 (Privacy/Terms drafts on vidrev.app, OAuth verification pack with `app.vidrev.app`, quota extension request), then Phase 6 integrations. Starts only after "mehet".
+Phase 6: integrations (outbound HMAC webhooks and tags, GHL OAuth with the Private Marketplace app, inbound opt-in and purchase webhooks). Starts only after "mehet". In parallel, once the LLC exists: fill the compliance placeholders and submit (docs/compliance/README.md).

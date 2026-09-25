@@ -1,0 +1,93 @@
+# vidrev Privacy Policy
+
+**DRAFT - needs legal review.** Not published. Placeholders: `[LEGAL ENTITY]` (e.g. vidrev LLC, a Wyoming limited liability company), `[ADDRESS]`, `[EFFECTIVE DATE]`, `[SUPPORT EMAIL]` (e.g. support@vidrev.app). To be published at `https://vidrev.app/privacy` once the LLC exists.
+
+Effective date: [EFFECTIVE DATE]
+
+This policy explains how [LEGAL ENTITY] ("vidrev", "we") handles data when you use vidrev at vidrev.app and app.vidrev.app, and when someone clicks a vidrev tracked link.
+
+## 1. Who we are
+
+vidrev helps YouTube creators reply to keyword comments with approved replies and measure which videos and keywords bring subscribers, buyers and revenue. Operator: [LEGAL ENTITY], [ADDRESS]. Contact: [SUPPORT EMAIL].
+
+## 2. YouTube API Services
+
+vidrev uses YouTube API Services. By connecting a YouTube channel you agree to the YouTube Terms of Service (https://www.youtube.com/t/terms). Google's handling of your data is described in the Google Privacy Policy (https://policies.google.com/privacy).
+
+You can revoke vidrev's access to your Google account at any time at https://myaccount.google.com/permissions, or by clicking "Disconnect" in vidrev. Either way we stop all access and delete the YouTube data described in section 4.
+
+## 3. What we collect
+
+**From you (the creator):**
+- Account data: email address, plan, sign-in times.
+- Google account data through OAuth: your YouTube channel id and title, and an access token for the scope `youtube.force-ssl`, stored encrypted (AES-256-GCM).
+- Your settings: keywords, reply templates, destination URLs, link domain, and optionally your own AI provider key (stored encrypted).
+
+**From YouTube, on your behalf (YouTube API data):**
+- Top-level comments on your videos that contain one of your keywords: comment text, commenter display name and channel id, video id and title, published time. Comments without a keyword are read but not stored.
+- The ids of replies we post for you.
+
+**First-party data we create:**
+- Replies you approved (text, keyword, language, time of approval and sending).
+- Clicks on your tracked links: time, link, keyword, video id, a daily-changing one-way hash of the IP address (the IP itself is not stored), browser type, country, referring site. Automated clicks (bots) are marked.
+- Later features: opt-ins and purchases your own systems send us, used to show you which video and keyword brought them.
+
+## 4. Data retention (YouTube API data: 30 days)
+
+- YouTube API data (comment text, commenter names and channel ids, video and channel titles, reply ids) is deleted or refreshed within 30 days of being fetched. A daily job enforces this.
+- When you disconnect YouTube or revoke access, all YouTube-derived data of that channel is deleted at once (always within 7 days).
+- First-party data (replies you approved, clicks, opt-ins, purchases, aggregate counts) is kept while your account is active, so your reports stay complete.
+- When you close your account, all data of the account is deleted within 30 days, except records we must keep by law (e.g. invoices).
+
+## 5. How we use data
+
+- To find keyword comments, draft replies, show them for your approval and post only the replies you approve.
+- To redirect tracked links and count clicks, subscribers, buyers and revenue per video and keyword.
+- To run the service: sign-in emails, notifications, security, abuse prevention, support.
+
+We never sell data, never use it for advertising, and never use Google user data to train AI models.
+
+## 6. Google API Services User Data Policy (Limited Use)
+
+vidrev's use and transfer of information received from Google APIs to any other app will adhere to the Google API Services User Data Policy (https://developers.google.com/terms/api-services-user-data-policy), including the Limited Use requirements.
+
+In particular: we use Google user data only to provide the features you see in vidrev; we transfer it only as needed for those features, for security, or to comply with law; we do not use it for advertising; humans do not read it unless you ask us to (support), it is needed for security or by law, or it is aggregated and anonymized.
+
+## 7. AI drafting
+
+To draft a reply, the comment text and your approved templates are sent to an AI model. The commenter's name is never sent. By default we use Google Gemini through a paid Google Cloud project, under terms that do not allow Google to train on this data. If you add your own key (Anthropic, OpenAI or Google Gemini), drafts are made with that provider under your agreement with them. Every draft needs your approval before anything is posted.
+
+## 8. Cookies
+
+- app.vidrev.app uses one session cookie to keep you signed in.
+- When a viewer clicks a tracked link on your own domain, we set a first-party cookie `c2c_tid` (a random click id, 180 days) on your domain, so your opt-in page can attribute a later sign-up. It contains no personal data. The optional `c2c.js` script reads it on your own pages.
+
+## 9. Who processes data for us
+
+| Provider | Purpose | Location |
+| --- | --- | --- |
+| Railway | Hosting, database | United States |
+| Cloudflare | DNS, TLS, link routing | Global |
+| Resend | Sending emails | United States |
+| Google (Gemini API) | AI drafts (default) | United States |
+| Anthropic, OpenAI | AI drafts, only with your own key | United States |
+
+## 10. Viewers who click links or comment
+
+If you commented on a creator's video or clicked a creator's link, the creator decides why the data is used; we process it on their behalf. Contact the creator, or write to [SUPPORT EMAIL] and we forward your request.
+
+## 11. Your rights
+
+You can access, export, correct or delete your data from your account or by writing to [SUPPORT EMAIL]. Depending on where you live (EU/UK GDPR, California CCPA and others) you may have further rights, including a complaint to your data protection authority.
+
+## 12. Security
+
+Tokens and keys are encrypted at rest, traffic uses TLS, access is limited to what the service needs.
+
+## 13. Children
+
+vidrev is for creators aged 18 and over.
+
+## 14. Changes
+
+We will email account holders about material changes before they take effect.

@@ -180,3 +180,10 @@ Brand domain: **vidrev.app** (owner, 2026-09-25), on Cloudflare. Brand site `vid
 | P5-10 | Owner kill switch per account blocks links on the shared fallback host only (410); links on the creator's own domain keep working. | R-20. |
 | P5-11 | **Owner request (2026-09-25):** Cloudflare for SaaS spend is capped in the app: at most `CUSTOM_HOSTNAME_LIMIT` (default 150) live custom domains across all accounts, so the bill stays at or below 5 USD a month (100 free, then 0.10 USD each). Over the cap, new domains are refused with an honest message, links use go.vidrev.app, and the owner is emailed. | Cloudflare has no hard spend cap. |
 | P5-12 | The Free plan has no Origin Rule Host rewrite, so a Worker on route `*/*` forwards link traffic to Railway with `X-Original-Host` (`workers/vidrev-links.js`). Workers Free: 100,000 requests a day. | Replaces P5-05's origin and transform rules. |
+
+## 10. Compliance timing (owner, 2026-09-25)
+
+| Topic | Answer |
+| --- | --- |
+| Submission timing | Google OAuth verification and the YouTube quota request are submitted after the Wyoming LLC is formed (Northwest), so the Privacy Policy and Terms name the entity from the start. The EIN is not required by Google and is not waited for. Drafts are ready in docs/compliance/. |
+| Product name | `vidrev`, lowercase, domain vidrev.app (P5-09). |

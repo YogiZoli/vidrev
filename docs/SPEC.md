@@ -101,7 +101,7 @@ Environment variables (see `.env.example`): `PRODUCT_NAME`, `BRAND_BASE_URL`, `A
 | quota_ledger | id, gcp_project (app, audit), date_pt, method, units, account_id, created_at |
 | audits | id, channel_handle, requester_email, result (jsonb), created_at, expires_at |
 
-Accounts, users, sessions, magic_link_tokens, plans, provisioning_events, channels, quota_ledger and audit_log exist since Phase 3; the other tables follow the SPEC-REVIEW R-06 additions in their phases. All `*_enc` fields are encrypted with AES-256-GCM using `ENCRYPTION_KEY`, stored as `v1:<base64(iv, tag, ciphertext)>` so the key can be rotated. Emails are normalized (trimmed, lowercased) for matching.
+Accounts, users, sessions, magic_link_tokens, plans, provisioning_events, channels, quota_ledger and audit_log exist since Phase 3; the other tables follow the SPEC-REVIEW R-06 additions in their phases. Phase 6 adds `integrations` (with `sync_state`, `external_ref`, `events`), `outbound_deliveries` (the outbox: `event_id`, `payload`, `attempt`, `status`, `next_attempt_at`), `inbound_hook_secrets`, `subscribers` (one row per opt-in touch, with the click's campaign, video and keyword copied in) and `purchases` (`source`, `kind` payment or buyer_marker, `external_id`, nullable amount, `refunded_cents`, `subscription_ref`, `canonical_purchase_id` and `attributed_subscriber_id` for Phase 7); see DECISIONS section 11. Environment additions: `GHL_SCOPES`, `GHL_WEBHOOK_PUBLIC_KEY`. All `*_enc` fields are encrypted with AES-256-GCM using `ENCRYPTION_KEY`, stored as `v1:<base64(iv, tag, ciphertext)>` so the key can be rotated. Emails are normalized (trimmed, lowercased) for matching.
 
 ## 6. Plans and provisioning (billing lives in GHL)
 

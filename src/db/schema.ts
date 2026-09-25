@@ -62,6 +62,8 @@ export const accounts = pgTable("accounts", {
   aiModel: text("ai_model"),
   // Last "drafts are waiting" email, so the notification is throttled.
   draftsNotifiedAt: timestamp("drafts_notified_at", { withTimezone: true }),
+  // Owner kill switch for the shared fallback link host (R-20).
+  fallbackLinksBlocked: boolean("fallback_links_blocked").notNull().default(false),
   createdAt: createdAt(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -346,6 +348,8 @@ export const replies = pgTable(
     queuedForDatePt: date("queued_for_date_pt"),
     sentAt: timestamp("sent_at", { withTimezone: true }),
     youtubeReplyId: text("youtube_reply_id"),
+    // Tracked link minted for this reply (Phase 5).
+    linkId: uuid("link_id"),
     attempts: integer("attempts").notNull().default(0),
     createdAt: createdAt(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -354,5 +358,113 @@ export const replies = pgTable(
     index("replies_account_status_idx").on(t.accountId, t.status),
     index("replies_status_idx").on(t.status, t.queuedForDatePt),
     uniqueIndex("replies_comment_uq").on(t.commentId),
+  ],
+);
+
+export type CustomDomainStatus = "pending" | "active" | "failed" | "removed";
+
+// The creator's own link host, e.g. go.userdomain.com (D-33, D-38). TLS via
+// Cloudflare for SaaS custom hostnames on the owner's zone. Rows are kept
+// after removal (first-party history); one live domain per account.
+export const customDomains = pgTable(
+  "custom_domains",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    hostname: text("hostname").notNull(),
+    status: text("status").$type<CustomDomainStatus>().notNull().default("pending"),
+    // Cloudflare custom hostname id and its raw statuses.
+    cloudflareHostnameId: text("cloudflare_hostname_id"),
+    hostnameStatus: text("hostname_status"),
+    sslStatus: text("ssl_status"),
+    // Our own DNS check: does the CNAME point at CUSTOM_HOSTNAME_CNAME_TARGET?
+    dnsOk: boolean("dns_ok").notNull().default(false),
+    dnsTarget: text("dns_target"),
+    // DNS provider detected by NS lookup (D-38), e.g. "cloudflare", "godaddy".
+    dnsProvider: text("dns_provider"),
+    nameservers: text("nameservers").array(),
+    domainConnect: jsonb("domain_connect").$type<{ providerId: string; urlSyncUX: string } | null>(),
+    lastError: text("last_error"),
+    checks: integer("checks").notNull().default(0),
+    lastCheckedAt: timestamp("last_checked_at", { withTimezone: true }),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    removedAt: timestamp("removed_at", { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("custom_domains_live_host_uq").on(t.hostname).where(sql`status <> 'removed'`),
+    uniqueIndex("custom_domains_live_account_uq").on(t.accountId).where(sql`status <> 'removed'`),
+  ],
+);
+
+export type LinkKind = "reply" | "static";
+
+// A tracked link (SPEC-REVIEW R-07). Slugs are globally unique, so any link
+// host resolves them. `host` is the host the link was published on and never
+// changes once a reply is posted. `destinationUrl` is a snapshot: links keep
+// redirecting after a campaign is deleted or the account cancels (R-35).
+export const links = pgTable(
+  "links",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    kind: text("kind").$type<LinkKind>().notNull(),
+    slug: text("slug").notNull(),
+    host: text("host").notNull(),
+    campaignId: uuid("campaign_id").references(() => campaigns.id, { onDelete: "set null" }),
+    replyId: uuid("reply_id"),
+    youtubeVideoId: text("youtube_video_id"),
+    keyword: text("keyword").notNull(),
+    intent: text("intent").$type<Intent>(),
+    destinationUrl: text("destination_url").notNull(),
+    // Set once the reply carrying the link is posted; host and campaign freeze.
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("links_slug_uq").on(t.slug),
+    uniqueIndex("links_reply_uq").on(t.replyId),
+    uniqueIndex("links_static_uq").on(t.campaignId, t.youtubeVideoId).where(sql`kind = 'static'`),
+    index("links_account_idx").on(t.accountId),
+  ],
+);
+
+// One row per click, first-party data (DECISIONS section 8). The tid is the
+// click id carried to the opt-in page as c2c_tid. Campaign, video and keyword
+// are copied from the link so reports survive campaign deletion.
+export const clicks = pgTable(
+  "clicks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tid: text("tid").notNull(),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    linkId: uuid("link_id")
+      .notNull()
+      .references(() => links.id, { onDelete: "cascade" }),
+    replyId: uuid("reply_id"),
+    campaignId: uuid("campaign_id"),
+    youtubeVideoId: text("youtube_video_id"),
+    keyword: text("keyword").notNull(),
+    host: text("host").notNull(),
+    ipHash: text("ip_hash"),
+    userAgent: text("user_agent"),
+    userAgentClass: text("user_agent_class").notNull(),
+    isBot: boolean("is_bot").notNull(),
+    country: text("country"),
+    referrerHost: text("referrer_host"),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("clicks_tid_uq").on(t.tid),
+    index("clicks_account_created_idx").on(t.accountId, t.createdAt),
+    index("clicks_link_idx").on(t.linkId),
   ],
 );

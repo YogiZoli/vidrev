@@ -3,6 +3,7 @@ import type { Db } from "@/db/client";
 import { accounts, campaigns, channels, plans, replies, type ReplyStatus } from "@/db/schema";
 import { checkReplyAllowance } from "@/lib/plans";
 import { type TemplateProblem, templateProblems } from "@/lib/templates";
+import { publishLink } from "./links";
 import { replyUsage } from "./replies";
 
 // Creator actions on drafts. Every reply is approved one by one (D-25, Q-12);
@@ -63,14 +64,19 @@ export function dismissReply(db: Db, accountId: string, replyId: string) {
 
 // "Copy reply and open comment" fallback (0 units): the creator posted it by
 // hand. Counts as a reply for the plan caps like any other.
-export function markSentManually(db: Db, accountId: string, replyId: string, body?: string, now = new Date()) {
-  return setStatus(db, accountId, replyId, ["pending_approval", "queued", "failed", "skipped"], {
+// The tracked link it carried is frozen like an API-posted one.
+export async function markSentManually(db: Db, accountId: string, replyId: string, body?: string, now = new Date()): Promise<boolean> {
+  const changed = await setStatus(db, accountId, replyId, ["pending_approval", "queued", "failed", "skipped"], {
     status: "sent_manually",
     sentAt: now,
     approvedAt: now,
     queuedForDatePt: null,
     ...(body && templateProblems(body.trim()).length === 0 ? { body: body.trim() } : {}),
   });
+  if (!changed) return false;
+  const [reply] = await db.select({ linkId: replies.linkId }).from(replies).where(eq(replies.id, replyId));
+  if (reply?.linkId) await publishLink(db, reply.linkId, now);
+  return true;
 }
 
 // Switches a draft to another keyword that matched the same comment (Q-10b).

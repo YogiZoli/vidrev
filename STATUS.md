@@ -1,6 +1,6 @@
 # STATUS
 
-Last updated: 2026-09-26 (Phase 10)
+Last updated: 2026-09-26 (Phase 12)
 
 ## End goal
 
@@ -23,7 +23,7 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 | 8 | Stripe revenue ingestion (read-only, creator-provided restricted key) | **DONE** (2026-09-26), PR #24; waits for the first real Stripe key |
 | 9 | Audit my channel | **DONE** (2026-09-26), PRs #26 to #28; needs the owner setup below before it works live |
 | 10 | GHL Marketplace connector | **DONE** (2026-09-26), PRs #30 to #32; the app is ready for "Start Public review", which waits for the LLC ([docs/MARKETPLACE-LISTING.md](docs/MARKETPLACE-LISTING.md)) |
-| 12 | Compliance and launch readiness | not started |
+| 12 | Compliance and launch readiness | **DONE** (2026-09-26), PRs #34 and #35; submission waits for the LLC and owner steps ([docs/compliance/LAUNCH-CHECKLIST.md](docs/compliance/LAUNCH-CHECKLIST.md)) |
 
 Phase plan changes (all accepted): compliance pack and quota extension request right after Phase 5 (Q-17 a); one GHL Marketplace app created Private in Phase 6 and made Public in Phase 10 (Q-17 b); retention job in Phase 4 (Q-17 c, done); Cloudflare for SaaS spike once the brand domain exists (Q-17 d).
 
@@ -34,6 +34,15 @@ Phase plan changes (all accepted): compliance pack and quota extension request r
 - Reports count people once (`src/lib/report.ts`): new Commenters and New commenters, Subscribers and Buyers are distinct Contacts; attribution follows the Contact whatever email was used. Outbound events carry an opaque `contact_id`.
 - 30 day rule kept intact (Q-24): the commenter's channel id is confirmed with YouTube every 30 days (comments.list by id, 1 unit per 50, from 5 days before it is due) or deleted; wiped at disconnect; never leaves the app. A legal way to recognise people longer is parked as L-01 for a later review. Privacy draft updated.
 - Not built yet: a Contact page with the timeline in the app, the merge undo tool (the data for it is logged), open questions O-1 to O-6 (defaults are built).
+
+## Phase 12: what was built
+
+- `npm run launch:check` (`src/lib/launch-check.ts`): lists missing or wrong production settings by name (never values), warns when the app is not on `app.<brand domain>` over https; exit 1 until launch ready. Run with `railway run --service web npm run launch:check`.
+- `npm run quota:report -- 14` (`src/lib/quota-sizing.ts`): units per method and per connected channel from the real `quota_ledger`, projection for 13/50/100/250 channels, suggested request with 30% headroom, for [docs/compliance/QUOTA-EXTENSION.md](docs/compliance/QUOTA-EXTENSION.md).
+- Compliance pack updated for Phases 6 to 10: Marketplace install grant and uninstall in the Privacy draft, audit and connector clause in the Terms draft, reviewer answers (Limited Use, retention, logo) in the OAuth pack, one ordered [LAUNCH-CHECKLIST.md](docs/compliance/LAUNCH-CHECKLIST.md).
+- Retention audit: every YouTube-derived table is covered by the daily job (comments, videos, reply ids, commenter identities, channel titles, audit examples) plus delivery logs and expired Marketplace grants; no gap found.
+- Logo redrawn as a clean SVG in the brand azure on a solid background, PNG 512 and 120 (`docs/brand/`); the earlier Gemini JPG had a checkerboard baked in and a turquoise gradient.
+- Not submitted: Google verification and the quota request (LLC), Public review of the HighLevel app.
 
 ## Phase 10: what was built
 
@@ -135,4 +144,4 @@ Still deferred from Phase 4 (no billing yet): platform Gemini key and `WEBSUB_SE
 
 ## Next phase
 
-Phase 12: compliance and launch readiness (Privacy Policy and Terms for the brand site, the Google OAuth verification checklist and demo video script, the quota extension request sized to real usage; the drafts already exist in docs/compliance/). Starts only after "mehet". Before it, the owner does the Phase 9 and Phase 10 setup above so both can be tried live. In parallel, once the LLC exists: fill the compliance placeholders and submit (docs/compliance/README.md), and press "Start Public review" for the HighLevel app.
+None scheduled (Phase 11 was removed, Q-25). Owner work first: [docs/compliance/LAUNCH-CHECKLIST.md](docs/compliance/LAUNCH-CHECKLIST.md) section A, plus the Phase 9 and 10 setup above. A proposed UI restyle to Tailwind CSS and shadcn/ui in the brand design-system (owner asked 2026-09-26) is not started; it needs "mehet". In parallel, once the LLC exists: fill the compliance placeholders and submit (docs/compliance/README.md), and press "Start Public review" for the HighLevel app.

@@ -136,6 +136,11 @@ export function createGhlApi(fetchImpl: FetchLike, accessToken: string) {
       await call(`/contacts/${contactId}/tags`, { method: "POST", body: { tags } });
     },
 
+    // verify live: `userId` may be optional; the installing user's id is sent when known.
+    async addNote(contactId: string, body: string, userId?: string | null): Promise<void> {
+      await call(`/contacts/${contactId}/notes`, { method: "POST", body: { body, ...(userId ? { userId } : {}) } });
+    },
+
     // verify live: deprecated list endpoint, newest first; paged with startAfterId.
     async listContacts(locationId: string, page: { startAfterId?: string; startAfter?: string | number } = {}) {
       const json = await call<{ contacts?: GhlContact[]; meta?: { startAfterId?: string; startAfter?: string | number; nextPageUrl?: string | null } }>(`/contacts/`, {

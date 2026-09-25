@@ -72,3 +72,34 @@ The connector was built from the public OpenAPI files and tested against a faked
 | Refunds | a `refunds[]` array or status `refunded` | `refundedOf` in `src/worker/ghl.ts` |
 | Webhook contact payload | only the contact id is trusted; the contact is read back through the API | none needed |
 | Scope names | as listed above | `GHL_SCOPES` |
+
+## 6. Workflow action "Find the video behind this contact" (Phase 10)
+
+An optional step creators can drop into a HighLevel workflow. It answers with the video and keyword behind the contact, as variables for the steps after it, and can leave a note on the contact. Without this setup nothing else changes.
+
+1. Make up a long random secret and set it on **both** Railway services as `GHL_ACTION_SECRET` (for example `powershell -Command "[Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Maximum 256 }) -as [byte[]])"`). Redeploy both.
+2. In the Marketplace developer portal, open the app, **Workflow**, **Actions**, **Create Action**:
+   - Name: `Find the video behind this contact`. Key: `find_source`.
+   - **Execution URL** (Send Data API): `<APP_BASE_URL>/api/hooks/crm/action`
+   - Header: name `X-Vidrev-Key`, value the secret from step 1.
+   - Custom field: name `add_note`, key `add_note`, a dropdown or text with the values `yes` and `no` (default `yes`).
+   - Sample response (paste exactly, it defines the variables the workflow sees):
+
+```json
+{
+  "found": "yes",
+  "video_id": "dQw4w9WgXcQ",
+  "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+  "keyword": "guide",
+  "intent": "hot",
+  "stage": "subscriber",
+  "opted_in_at": "2026-09-26T10:12:30.000Z"
+}
+```
+
+3. Save the action and add the scope `contacts.write` if it is not on the app yet (it is: the notes use it).
+4. Try it: in a sub-account with the app installed, build a workflow that starts with a contact who came through a tracked link, add the action, and run it on that contact. The step returns `found: yes` and the note appears on the contact. For a contact we cannot trace it returns `found: no` with empty variables.
+
+What to confirm on the first live run: the note endpoint (`POST /contacts/{id}/notes`, `addNote` in `src/server/ghl/api.ts`, marked "verify live") accepts a body with and without `userId`, and HighLevel sends the header exactly as configured.
+
+There is no custom workflow trigger on purpose (DECISIONS P10-06): use HighLevel's built-in **Contact Tag** trigger with `c2c`, `c2c_kw_<keyword>` or `c2c_vid_<videoId>`.

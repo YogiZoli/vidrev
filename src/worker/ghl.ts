@@ -318,6 +318,16 @@ export async function handleGhlEvent(deps: GhlWorkerDeps, integrationId: string,
   }
 }
 
+// The note of the workflow action (P10-05). A refused connection is dropped:
+// the creator already gets the reconnect email.
+export async function addContactNote(deps: GhlWorkerDeps, integrationId: string, ghlContactId: string, text: string): Promise<void> {
+  try {
+    await withGhlApi(deps, integrationId, (api, config) => api.addNote(ghlContactId, text, config.userId));
+  } catch (error) {
+    if (!(error instanceof GhlReauthError)) throw error;
+  }
+}
+
 // Outbox target (see webhooks.ts): a subscriber or buyer that came from a
 // comment gets the contact upserted, the c2c_tid field set and the tags added.
 export async function deliverToGhl(deps: GhlWorkerDeps, integrationId: string, payload: Record<string, unknown>): Promise<{ skipped: string | null }> {

@@ -4,7 +4,7 @@ Source of truth: Drive doc "02 C2C SaaS Döntési napló" (last updated 2026-09-
 
 Sections:
 
-Later sections 5 to 11 record owner answers and the implementation choices of each phase.
+Later sections 5 to 12 record owner answers and the implementation choices of each phase.
 
 1. Valid decisions D-01 to D-37 (owner decisions from 02)
 2. Build brief decisions B-01 to B-09 (owner instructions given to Claude Code on 2026-09-25)
@@ -208,3 +208,22 @@ Brand domain: **vidrev.app** (owner, 2026-09-25), on Cloudflare. Brand site `vid
 | P6-12 | `comment_matched` fires when the draft is created (also for drafts skipped by the monthly cap); `reply_posted` when the reply is posted by the API or marked as posted by hand; `link_clicked` for measured, non-bot clicks, emitted after the redirect is decided. | Events must never slow a click or fail a reply. |
 | P6-13 | The hosted opt-in fallback (SPEC section 9, D-08) is not part of Phase 6, which the brief limits to webhooks and GHL. Proposal: build it with the Resend resource email in Phase 7 or later, when a creator without any CRM appears. | Scope of the phase brief. |
 | P6-14 | Several details of the HighLevel API can only be confirmed against a real location; they are listed in docs/SETUP-GHL.md section 5 with the single place to change each. | Built from the public OpenAPI files, tested against a fake. |
+
+## 12. Phase 7 implementation choices (proposals, 2026-09-26)
+
+| ID | Choice | Why |
+| --- | --- | --- |
+| P7-01 | Duplicates across sources (Q-05): a payment from another source with the same buyer (email or tracking id), currency and amount within 72 hours links to one canonical purchase, at most one row per source. Canonical source order: Stripe, then GHL, then the inbound webhook. The largest refund in a group counts once. Buyer markers are never merged; buyers are distinct people, so a marker never adds a second buyer or revenue. | Revenue counts once; a processor of record is the most exact source. |
+| P7-02 | Touch: the purchase's own `c2c_tid` first (SPEC section 10), else the latest attributed opt-in of the same email; the touch must be within 180 days before the purchase (B-08), with 10 minutes of clock skew allowed after it. Clicks never touch by email (they carry none). | Checkout, CRM and form clocks differ; the checkout often creates the contact seconds after the payment. |
+| P7-03 | Recurring (Q-07): every later payment with the same subscription reference follows the first payment's attribution for life; if the first payment was not from a comment, its renewals are not either. A separate new purchase needs its own touch within 180 days (Claude's reading of Q-07, to confirm). | Owner core principle. |
+| P7-04 | Attribution is recomputed for the whole account after any new data; a late opt-in (CRM sync after the purchase webhook) can move a purchase to a closer touch. The outbound `purchase` event keeps the enrichment it had when sent (P6-07). | One deterministic function of stored first-party data. |
+| P7-05 | Reports are snapshots per account and period (`report_snapshots`), rebuilt by the worker; every emitted event and every refund marks the account, the engine tick (1 min) queues the refresh, an hourly pass refreshes every account. The dashboard only reads. | D-36: dashboards read precomputed aggregates. |
+| P7-06 | Periods are calendar days in the account's time zone (setting, default UTC): this month, last 7, 30 and 90 days, all time. | "This month" must mean the creator's month. |
+| P7-07 | Definitions: comments = drafts created (every matched comment, also those skipped by the cap); replies = posted by API or by hand, by posting day; clicks = non-bot clicks; subscribers = distinct emails of opt-ins traced to a comment; buyers = distinct buyers (email, else tid) of attributed canonical purchases; revenue = net of attributed canonical payments in the reporting currency; recurring = payments of a subscription. Other currencies are listed separately, never converted (Q-08). | Real numbers only (D-05). |
+| P7-08 | Headline (Q-09): this month and lifetime revenue, the recurring part, and the subscription as a share and a multiple of this month's revenue, using the plan's monthly price (annual / 12, R-21). Plans get `price_cents` and `price_currency` (founding 97 USD a year; `standard_monthly` stays empty until the price is decided, then set it in the plans table). Omitted without a price, at zero revenue or when the currencies differ. A trial shows the plan's price. No lifetime ROI: it would need the real billing history, which lives in GHL. | Never estimated. |
+| P7-09 | Reporting currency follows the latest paid GHL (later Stripe) purchase unless the creator sets one in report settings. | Q-08. |
+| P7-10 | Reply speed (R-35 item 2): replies posted in the period, grouped by time from draft to posted reply (under 1 h, 1 to 6 h, 6 to 24 h, over 24 h), with every click, subscriber, buyer and revenue they led to. Comment publish times are YouTube data and are not kept, so the draft time stands in for it. | First-party only (Q-17 c). |
+| P7-11 | Template test (R-35 item 1): each reply is keyed as AI draft, its approved template, or the default reply; traffic from static links is its own row; each row shows the keyword intent. | Clicks and buyers per wording. |
+| P7-12 | Emails: weekly summary on Mondays from 9:00 local time with the last 7 days, skipped for weeks without any activity, opt-out in report settings; milestone emails for the first click, subscriber and buyer, each recorded before it is sent (only the highest one when several are reached at once); renewal recap for yearly plans in the week that starts 14 days before the renewal, the renewal being a year after the latest paid provisioning event. Suspended accounts get none. | R-35 items 3 and 4. |
+| P7-13 | `/app/cancel` shows attributed revenue and says that links keep working while measurement stops; it links to `BILLING_PORTAL_URL` when set (cancelling happens in the checkout, B-04). | R-35 item 4. |
+| P7-14 | Not built in Phase 7: the hosted opt-in fallback (P6-13) stays open until a creator without a CRM appears. Video titles show only while stored (30-day rule), otherwise the video id with a watch link. | Scope; YouTube data rule. |

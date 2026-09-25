@@ -19,6 +19,7 @@ import { deliver, deliverDue, type WebhookDeps } from "./webhooks";
 import { type GhlWorkerDeps, handleGhlEvent, queueGhlWork, setupGhl, syncGhl } from "./ghl";
 import { queueReportRefreshes, refreshAccountReports, type ReportDeps } from "./reports";
 import { markAllReportsDirty } from "@/server/attribution";
+import { backfillContacts } from "@/server/contacts-backfill";
 
 function ghlDeps(boss: PgBoss): GhlWorkerDeps | null {
   const { ENCRYPTION_KEY, GHL_CLIENT_ID, GHL_CLIENT_SECRET, PRODUCT_NAME } = env();
@@ -206,8 +207,15 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
   await boss.createQueue(QUEUES.reportHourly);
   await boss.schedule(QUEUES.reportHourly, "7 * * * *");
   await boss.work(QUEUES.reportHourly, async () => {
+    await backfillContacts(getDb());
     await markAllReportsDirty(getDb());
   });
+  // Contacts for rows older than the Contact model (DECISIONS section 13.10):
+  // once at start, so a deploy does not wait for the hourly pass.
+  void backfillContacts(getDb()).then(
+    (done) => log("info", "contacts backfill", { ...done }),
+    (error: unknown) => log("error", "contacts backfill failed", errorFields(error)),
+  );
   // Custom link domains (Phase 5): DNS and Cloudflare checks.
   await boss.work<DomainJob>(QUEUES.domainCheck, async ([job]) => checkDomain(domainDeps(boss), job!.data.domainId));
   await boss.work<DomainJob>(QUEUES.domainRemove, async ([job]) => removeDomainHostname(domainDeps(boss), job!.data.domainId));

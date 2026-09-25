@@ -298,6 +298,94 @@ export const templates = pgTable(
   (t) => [index("templates_campaign_idx").on(t.campaignId, t.language)],
 );
 
+export type ContactStage = "commenter" | "subscriber" | "buyer";
+export type ContactCreatedVia = "comment" | "opt_in" | "purchase" | "crm_sync" | "backfill";
+export type ContactIdentityKind = "youtube_channel" | "email" | "ghl_contact" | "stripe_customer" | "comment";
+
+// One person per account for the whole life of the account (DECISIONS Q-23,
+// section 13). Created only when no existing Contact can be recognised; every
+// later event enriches it, and two Contacts found by one event are merged into
+// the older one (`mergedIntoId` marks the loser, kept as a tombstone).
+export const contacts = pgTable(
+  "contacts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    stage: text("stage").$type<ContactStage>().notNull().default("commenter"),
+    // Earliest attributed opt-in email; other emails are aliases (identities).
+    primaryEmailNorm: text("primary_email_norm"),
+    // Only what the person gave in an opt-in or purchase, never a YouTube name.
+    displayName: text("display_name"),
+    createdVia: text("created_via").$type<ContactCreatedVia>().notNull(),
+    firstSeenAt: timestamp("first_seen_at", { withTimezone: true }).notNull(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull(),
+    firstCommentSeenAt: timestamp("first_comment_seen_at", { withTimezone: true }),
+    subscribedAt: timestamp("subscribed_at", { withTimezone: true }),
+    firstPurchaseAt: timestamp("first_purchase_at", { withTimezone: true }),
+    mergedIntoId: uuid("merged_into_id"),
+    createdAt: createdAt(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("contacts_account_idx").on(t.accountId, t.firstSeenAt),
+    index("contacts_account_stage_idx").on(t.accountId, t.stage),
+    index("contacts_email_idx").on(t.accountId, t.primaryEmailNorm),
+  ],
+);
+
+// The keys that recognise a Contact. Unique per account, kind and value, so a
+// key can point to one Contact only, by construction (invariant I-8). The
+// `youtube_channel` kind is YouTube API data: refreshed every 30 days and
+// wiped on disconnect (section 13.9).
+export const contactIdentities = pgTable(
+  "contact_identities",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    contactId: uuid("contact_id")
+      .notNull()
+      .references(() => contacts.id, { onDelete: "cascade" }),
+    kind: text("kind").$type<ContactIdentityKind>().notNull(),
+    value: text("value").notNull(),
+    source: text("source").notNull(),
+    // Channel the YouTube identity came from, so a disconnect can wipe it.
+    channelId: uuid("channel_id"),
+    // The comment that last showed this channel id: the retention job asks
+    // YouTube for it again to confirm the id for another 30 days.
+    refCommentId: text("ref_comment_id"),
+    refreshDueAt: timestamp("refresh_due_at", { withTimezone: true }),
+    firstSeenAt: timestamp("first_seen_at", { withTimezone: true }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("contact_identities_key_uq").on(t.accountId, t.kind, t.value),
+    index("contact_identities_contact_idx").on(t.contactId),
+    index("contact_identities_refresh_idx").on(t.kind, t.refreshDueAt),
+  ],
+);
+
+// Audit log of merges: what joined two Contacts and what moved, the basis for
+// an undo (section 13.6, M-4).
+export const contactMerges = pgTable(
+  "contact_merges",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    winnerId: uuid("winner_id").notNull(),
+    loserId: uuid("loser_id").notNull(),
+    reason: text("reason").notNull(),
+    moved: jsonb("moved").$type<Record<string, number>>().notNull().default({}),
+    createdAt: createdAt(),
+  },
+  (t) => [index("contact_merges_winner_idx").on(t.accountId, t.winnerId)],
+);
+
 // A top-level keyword comment (Q-19). YouTube API data: deleted after 30 days
 // by the retention job (Q-17 c). Only matching comments are stored.
 export const comments = pgTable(
@@ -351,6 +439,8 @@ export const replies = pgTable(
       .notNull()
       .references(() => channels.id, { onDelete: "cascade" }),
     commentId: uuid("comment_id").references(() => comments.id, { onDelete: "set null" }),
+    // The person who wrote the comment (section 13); first-party, kept.
+    contactId: uuid("contact_id"),
     campaignId: uuid("campaign_id").references(() => campaigns.id, { onDelete: "set null" }),
     templateId: uuid("template_id").references(() => templates.id, { onDelete: "set null" }),
     youtubeVideoId: text("youtube_video_id").notNull(),
@@ -376,6 +466,7 @@ export const replies = pgTable(
   (t) => [
     index("replies_account_status_idx").on(t.accountId, t.status),
     index("replies_status_idx").on(t.status, t.queuedForDatePt),
+    index("replies_contact_idx").on(t.contactId),
     uniqueIndex("replies_comment_uq").on(t.commentId),
   ],
 );
@@ -471,6 +562,9 @@ export const clicks = pgTable(
       .notNull()
       .references(() => links.id, { onDelete: "cascade" }),
     replyId: uuid("reply_id"),
+    // From the reply the link was minted for; set later by an opt-in for a
+    // static-link click (section 13).
+    contactId: uuid("contact_id"),
     campaignId: uuid("campaign_id"),
     youtubeVideoId: text("youtube_video_id"),
     keyword: text("keyword").notNull(),
@@ -487,6 +581,7 @@ export const clicks = pgTable(
     uniqueIndex("clicks_tid_uq").on(t.tid),
     index("clicks_account_created_idx").on(t.accountId, t.createdAt),
     index("clicks_link_idx").on(t.linkId),
+    index("clicks_contact_idx").on(t.contactId),
   ],
 );
 
@@ -595,6 +690,7 @@ export const subscribers = pgTable(
       .notNull()
       .references(() => accounts.id, { onDelete: "cascade" }),
     emailNorm: text("email_norm").notNull(),
+    contactId: uuid("contact_id"),
     name: text("name"),
     source: text("source").$type<SubscriberSource>().notNull(),
     externalId: text("external_id"),
@@ -618,6 +714,7 @@ export const subscribers = pgTable(
     index("subscribers_account_email_idx").on(t.accountId, t.emailNorm),
     index("subscribers_account_occurred_idx").on(t.accountId, t.occurredAt),
     index("subscribers_tid_idx").on(t.tid),
+    index("subscribers_contact_idx").on(t.contactId),
   ],
 );
 
@@ -640,6 +737,7 @@ export const purchases = pgTable(
     kind: text("kind").$type<PurchaseKind>().notNull().default("payment"),
     externalId: text("external_id").notNull(),
     emailNorm: text("email_norm"),
+    contactId: uuid("contact_id"),
     tid: text("tid"),
     amountCents: bigint("amount_cents", { mode: "number" }),
     currency: text("currency"),
@@ -676,6 +774,7 @@ export const purchases = pgTable(
     index("purchases_account_occurred_idx").on(t.accountId, t.occurredAt),
     index("purchases_tid_idx").on(t.tid),
     index("purchases_subscription_idx").on(t.accountId, t.subscriptionRef),
+    index("purchases_contact_idx").on(t.contactId),
   ],
 );
 

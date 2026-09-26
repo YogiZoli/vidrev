@@ -1,9 +1,15 @@
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input, Select } from "@/components/ui/input";
+import { Meta, Page, PageHeader, SectionTitle } from "@/components/ui/page";
+import { Table, TableWrap, Td, Th } from "@/components/ui/table";
 import { getDb } from "@/db/client";
 import { env } from "@/lib/env";
 import { auditOverview, listAccountsForAdmin, listPlans } from "@/server/admin";
 import { requireAdmin } from "@/server/auth/current";
 import { auditUnitsLeft } from "@/server/quota";
-import { Notice, styles } from "../ui";
+import { Notice } from "../ui";
 
 export const dynamic = "force-dynamic";
 
@@ -18,128 +24,131 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const foundingCap = planRows.find((p) => p.code === "founding")?.seatsCap ?? 100;
 
   const planSelect = (name: string, selected?: string) => (
-    <select name={name} defaultValue={selected} style={{ ...styles.input, width: "auto" }}>
+    <Select name={name} defaultValue={selected} className="w-auto min-w-40" aria-label="Plan">
       {planRows.map((p) => (
         <option key={p.code} value={p.code}>
           {p.code}
         </option>
       ))}
-    </select>
+    </Select>
   );
 
   return (
-    <main style={{ ...styles.main, maxWidth: 1000 }}>
-      <p>
-        <a href="/app">Back to app</a>
-      </p>
-      <h1>Owner admin</h1>
+    <Page width="xl">
+      <PageHeader title="Owner admin" />
       {msg ? <Notice tone="info">{msg}</Notice> : null}
 
-      <section style={styles.card}>
-        <h2 style={{ marginTop: 0 }}>Grant access</h2>
-        <p style={styles.muted}>Creates the account (or updates its plan) and emails a sign-in link. Use it for partner access (ghl_affiliate_free).</p>
-        <form method="post" action="/api/admin" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+      <Card className="grid gap-3">
+        <SectionTitle>Grant access</SectionTitle>
+        <Meta className="text-[15px]">Creates the account (or updates its plan) and emails a sign-in link. Use it for partner access (ghl_affiliate_free).</Meta>
+        <form method="post" action="/api/admin" className="flex flex-wrap gap-2">
           <input type="hidden" name="kind" value="grant" />
-          <input name="email" type="email" required placeholder="email" style={{ ...styles.input, width: 280 }} />
+          <Input name="email" type="email" required placeholder="email" aria-label="Email" className="w-full sm:w-[280px]" />
           {planSelect("planCode", "ghl_affiliate_free")}
-          <button type="submit" style={styles.button}>
+          <Button type="submit" pulse>
             Grant
-          </button>
+          </Button>
         </form>
-      </section>
+      </Card>
 
-      <section style={styles.card}>
-        <h2 style={{ marginTop: 0 }}>Accounts</h2>
-        <p style={styles.muted}>
+      <section className="grid gap-3">
+        <SectionTitle>Accounts</SectionTitle>
+        <Meta className="text-[15px]">
           Founding seats: {founding} of {foundingCap}. Total accounts: {accountRows.length}.
-        </p>
-        <table style={styles.table}>
-          <thead>
-            <tr>
-              <th style={styles.cell}>Email</th>
-              <th style={styles.cell}>Status</th>
-              <th style={styles.cell}>Plan</th>
-              <th style={styles.cell}>Channels</th>
-              <th style={styles.cell}>Created</th>
-              <th style={styles.cell}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {accountRows.map((a) => (
-              <tr key={a.accountId}>
-                <td style={styles.cell}>{a.email}</td>
-                <td style={styles.cell}>
-                  {a.status}
-                  {a.trialEndsAt ? ` (trial to ${a.trialEndsAt.toISOString().slice(0, 10)})` : ""}
-                </td>
-                <td style={styles.cell}>
-                  <form method="post" action="/api/admin" style={{ display: "flex", gap: 6 }}>
-                    <input type="hidden" name="kind" value="set_plan" />
-                    <input type="hidden" name="accountId" value={a.accountId} />
-                    {planSelect("planCode", a.planCode)}
-                    <button type="submit" style={styles.secondary}>
-                      Save
-                    </button>
-                  </form>
-                </td>
-                <td style={styles.cell}>{a.liveChannels}</td>
-                <td style={styles.cell}>{a.createdAt.toISOString().slice(0, 10)}</td>
-                <td style={styles.cell}>
-                  <form method="post" action="/api/admin">
-                    <input type="hidden" name="kind" value={a.status === "active" ? "suspend" : "unsuspend"} />
-                    <input type="hidden" name="accountId" value={a.accountId} />
-                    <button type="submit" style={styles.secondary}>
-                      {a.status === "active" ? "Suspend" : "Reactivate"}
-                    </button>
-                  </form>
-                  <form method="post" action="/api/admin" style={{ marginTop: 6 }}>
-                    <input type="hidden" name="kind" value={a.fallbackLinksBlocked ? "unblock_links" : "block_links"} />
-                    <input type="hidden" name="accountId" value={a.accountId} />
-                    <button type="submit" style={styles.secondary}>
-                      {a.fallbackLinksBlocked ? "Allow fallback links" : "Block fallback links"}
-                    </button>
-                  </form>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
-
-      <section style={styles.card}>
-        <h2 style={{ marginTop: 0 }}>Audit my channel</h2>
-        <p style={styles.muted}>
-          Last 7 days: {audit.requests} audits requested, {audit.done} finished, {audit.reports} full reports requested. Audit quota today: {auditLimit - auditLeft} of {auditLimit} units used.
-        </p>
-        {audit.recent.length === 0 ? (
-          <p style={styles.muted}>No report requests yet.</p>
-        ) : (
-          <table style={styles.table}>
+        </Meta>
+        <TableWrap>
+          <Table>
             <thead>
               <tr>
-                <th style={styles.cell}>Email</th>
-                <th style={styles.cell}>Channel</th>
-                <th style={styles.cell}>Score</th>
-                <th style={styles.cell}>Stack</th>
-                <th style={styles.cell}>Marketing consent</th>
-                <th style={styles.cell}>Requested</th>
+                <Th>Email</Th>
+                <Th>Status</Th>
+                <Th>Plan</Th>
+                <Th>Channels</Th>
+                <Th>Created</Th>
+                <Th>Actions</Th>
               </tr>
             </thead>
             <tbody>
-              {audit.recent.map((r, i) => (
-                <tr key={`${r.email}-${i}`}>
-                  <td style={styles.cell}>{r.email}</td>
-                  <td style={styles.cell}>{r.channel}</td>
-                  <td style={styles.cell}>{r.score ?? "-"}</td>
-                  <td style={styles.cell}>{r.segment ?? "-"}</td>
-                  <td style={styles.cell}>{r.marketing ? "yes" : "no"}</td>
-                  <td style={styles.cell}>{r.at ? r.at.toISOString().slice(0, 16).replace("T", " ") : "-"}</td>
+              {accountRows.map((a) => (
+                <tr key={a.accountId}>
+                  <Td className="[overflow-wrap:anywhere]">{a.email}</Td>
+                  <Td>
+                    <Badge tone={a.status === "active" ? "success" : "danger"}>{a.status}</Badge>
+                    {a.trialEndsAt ? <span className="ml-1.5 text-[13px] text-muted-foreground">trial to {a.trialEndsAt.toISOString().slice(0, 10)}</span> : null}
+                  </Td>
+                  <Td>
+                    <form method="post" action="/api/admin" className="flex gap-1.5">
+                      <input type="hidden" name="kind" value="set_plan" />
+                      <input type="hidden" name="accountId" value={a.accountId} />
+                      {planSelect("planCode", a.planCode)}
+                      <Button type="submit" variant="outline" size="sm">
+                        Save
+                      </Button>
+                    </form>
+                  </Td>
+                  <Td>{a.liveChannels}</Td>
+                  <Td className="whitespace-nowrap font-mono text-[13px]">{a.createdAt.toISOString().slice(0, 10)}</Td>
+                  <Td>
+                    <div className="grid gap-1.5">
+                      <form method="post" action="/api/admin">
+                        <input type="hidden" name="kind" value={a.status === "active" ? "suspend" : "unsuspend"} />
+                        <input type="hidden" name="accountId" value={a.accountId} />
+                        <Button type="submit" variant="outline" size="sm">
+                          {a.status === "active" ? "Suspend" : "Reactivate"}
+                        </Button>
+                      </form>
+                      <form method="post" action="/api/admin">
+                        <input type="hidden" name="kind" value={a.fallbackLinksBlocked ? "unblock_links" : "block_links"} />
+                        <input type="hidden" name="accountId" value={a.accountId} />
+                        <Button type="submit" variant="outline" size="sm">
+                          {a.fallbackLinksBlocked ? "Allow fallback links" : "Block fallback links"}
+                        </Button>
+                      </form>
+                    </div>
+                  </Td>
                 </tr>
               ))}
             </tbody>
-          </table>
+          </Table>
+        </TableWrap>
+      </section>
+
+      <section className="grid gap-3">
+        <SectionTitle>Audit my channel</SectionTitle>
+        <Meta className="text-[15px]">
+          Last 7 days: {audit.requests} audits requested, {audit.done} finished, {audit.reports} full reports requested. Audit quota today: {auditLimit - auditLeft} of {auditLimit} units used.
+        </Meta>
+        {audit.recent.length === 0 ? (
+          <Meta className="text-[15px]">No report requests yet.</Meta>
+        ) : (
+          <TableWrap>
+            <Table>
+              <thead>
+                <tr>
+                  <Th>Email</Th>
+                  <Th>Channel</Th>
+                  <Th>Score</Th>
+                  <Th>Stack</Th>
+                  <Th>Marketing consent</Th>
+                  <Th>Requested</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {audit.recent.map((r, i) => (
+                  <tr key={`${r.email}-${i}`}>
+                    <Td className="[overflow-wrap:anywhere]">{r.email}</Td>
+                    <Td>{r.channel}</Td>
+                    <Td>{r.score ?? "-"}</Td>
+                    <Td>{r.segment ?? "-"}</Td>
+                    <Td>{r.marketing ? "yes" : "no"}</Td>
+                    <Td className="whitespace-nowrap font-mono text-[13px]">{r.at ? r.at.toISOString().slice(0, 16).replace("T", " ") : "-"}</Td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </TableWrap>
         )}
       </section>
-    </main>
+    </Page>
   );
 }

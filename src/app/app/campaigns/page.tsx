@@ -1,3 +1,9 @@
+import type { ReactNode } from "react";
+import { Badge, IntentTag, Keyword } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Field, Input, Select, Textarea } from "@/components/ui/input";
+import { Meta, Page, PageHeader, SectionTitle } from "@/components/ui/page";
 import { getDb } from "@/db/client";
 import { LANGUAGE_OPTIONS } from "@/lib/language";
 import { fallbackHost } from "@/lib/link-host";
@@ -6,31 +12,26 @@ import { requireSession } from "@/server/auth/current";
 import { listCampaigns, parseVideoIds } from "@/server/campaigns";
 import { ensureStaticLink } from "@/server/links";
 import { listChannels } from "@/server/channels";
-import { Notice, styles } from "../../ui";
+import { Notice } from "../../ui";
 
 export const dynamic = "force-dynamic";
 
 const INTENT_LABEL = { hot: "HOT", warm: "WARM", cold: "COLD" } as const;
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label style={{ display: "block", margin: "10px 0" }}>
-      <span style={{ display: "block", fontSize: 14, marginBottom: 4 }}>{label}</span>
-      {children}
-    </label>
-  );
-}
-
 function LanguageSelect({ name, value }: { name: string; value?: string }) {
   return (
-    <select name={name} defaultValue={value ?? "en"} style={styles.input}>
+    <Select name={name} defaultValue={value ?? "en"}>
       {LANGUAGE_OPTIONS.map((code) => (
         <option key={code} value={code}>
           {code}
         </option>
       ))}
-    </select>
+    </Select>
   );
+}
+
+function Mono({ children }: { children: ReactNode }) {
+  return <code className="break-all font-mono text-[13px]">{children}</code>;
 }
 
 export default async function CampaignsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
@@ -54,173 +55,176 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
       : null;
 
   return (
-    <main style={styles.main}>
-      <p>
-        <a href="/app">Back</a> · <a href="/app/queue">Approval queue</a>
-      </p>
-      <h1>Keywords and replies</h1>
+    <Page width="md">
+      <PageHeader title="Keywords and replies" lead="A viewer comments the keyword, you approve the reply, the link carries the tracking id." />
       {params.error ? <Notice tone="error">{params.error}</Notice> : null}
       {params.saved ? <Notice tone="info">Saved.</Notice> : null}
       {!channel ? <Notice tone="error">Connect your channel first.</Notice> : null}
 
       {campaignRows.map((campaign) => (
-        <section key={campaign.id} style={styles.card}>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-            <div>
-              <strong>{campaign.name}</strong> <span style={styles.muted}>({campaign.active ? "on" : "paused"})</span>
-              <br />
-              Keyword: <code>{campaign.keyword}</code>
-              {campaign.aliases.length ? ` (also: ${campaign.aliases.join(", ")})` : ""} · {INTENT_LABEL[campaign.intent]}
-              <br />
-              <span style={styles.muted}>
+        <Card key={campaign.id} className="grid gap-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="grid min-w-0 gap-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <strong className="text-lg">{campaign.name}</strong>
+                <Badge tone={campaign.active ? "success" : "neutral"}>{campaign.active ? "on" : "paused"}</Badge>
+                <IntentTag>{INTENT_LABEL[campaign.intent]}</IntentTag>
+              </div>
+              <p className="m-0 text-[15px]">
+                Keyword: <Keyword>{campaign.keyword}</Keyword>
+                {campaign.aliases.length ? ` (also: ${campaign.aliases.join(", ")})` : ""}
+              </p>
+              <Meta className="[overflow-wrap:anywhere]">
                 {campaign.videoIds ? `${campaign.videoIds.length} video(s)` : "All videos"} · {campaign.destinationUrl}
-              </span>
+              </Meta>
               {staticLinks.get(campaign.id) ? (
                 <>
-                  <br />
-                  <span style={{ fontSize: 14 }}>
-                    Link for descriptions and pinned comments: <code>{staticLinks.get(campaign.id)}</code>
-                  </span>
+                  <p className="m-0 text-sm">
+                    Link for descriptions and pinned comments: <Mono>{staticLinks.get(campaign.id)}</Mono>
+                  </p>
                   {videoLink && params.campaign === campaign.id ? (
-                    <>
-                      <br />
-                      <span style={{ fontSize: 14 }}>
-                        Link for video {videoId}: <code>{videoLink.url}</code>
-                      </span>
-                    </>
+                    <p className="m-0 text-sm">
+                      Link for video {videoId}: <Mono>{videoLink.url}</Mono>
+                    </p>
                   ) : null}
-                  <form method="get" action="/app/campaigns" style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                  <form method="get" action="/app/campaigns" className="mt-1.5 flex flex-wrap gap-2">
                     <input type="hidden" name="campaign" value={campaign.id} />
-                    <input name="video" placeholder="Video link for a per-video link" style={{ ...styles.input, width: 260 }} />
-                    <button type="submit" style={styles.secondary}>
+                    <Input name="video" placeholder="Video link for a per-video link" aria-label="Video link" className="w-full sm:w-[280px]" />
+                    <Button type="submit" variant="outline">
                       Get link
-                    </button>
+                    </Button>
                   </form>
                 </>
               ) : null}
             </div>
-            <div style={{ display: "flex", gap: 8 }}>
+            <div className="flex gap-2">
               <form method="post" action="/api/campaigns">
                 <input type="hidden" name="campaignId" value={campaign.id} />
-                <button name="action" value={campaign.active ? "pause" : "resume"} style={styles.secondary}>
+                <Button name="action" value={campaign.active ? "pause" : "resume"} variant="outline" size="sm">
                   {campaign.active ? "Pause" : "Resume"}
-                </button>
+                </Button>
               </form>
               <form method="post" action="/api/campaigns">
                 <input type="hidden" name="campaignId" value={campaign.id} />
-                <button name="action" value="delete" style={styles.secondary}>
+                <Button name="action" value="delete" variant="outline" size="sm">
                   Delete
-                </button>
+                </Button>
               </form>
             </div>
           </div>
 
-          <h3 style={{ fontSize: 15 }}>Approved reply templates</h3>
-          {campaign.templates.length === 0 ? (
-            <p style={styles.muted}>No templates yet. AI drafts are written in your default language.</p>
-          ) : null}
-          {campaign.templates.map((template) => (
-            <form key={template.id} method="post" action="/api/campaigns" style={{ display: "flex", gap: 8, alignItems: "center", padding: "4px 0" }}>
-              <input type="hidden" name="templateId" value={template.id} />
-              <code>{template.language}</code>
-              <span style={{ flex: 1 }}>{template.body}</span>
-              <button name="action" value="template_delete" style={styles.secondary}>
-                Remove
-              </button>
+          <div className="grid gap-2 border-t border-border pt-4">
+            <SectionTitle className="text-[15px]">Approved reply templates</SectionTitle>
+            {campaign.templates.length === 0 ? <Meta className="text-[15px]">No templates yet. AI drafts are written in your default language.</Meta> : null}
+            {campaign.templates.map((template) => (
+              <form key={template.id} method="post" action="/api/campaigns" className="flex items-center gap-3 rounded-md bg-background p-2.5">
+                <input type="hidden" name="templateId" value={template.id} />
+                <Keyword>{template.language}</Keyword>
+                <span className="min-w-0 flex-1 text-[15px] [overflow-wrap:anywhere]">{template.body}</span>
+                <Button name="action" value="template_delete" variant="outline" size="sm" className="flex-none">
+                  Remove
+                </Button>
+              </form>
+            ))}
+            <form method="post" action="/api/campaigns" className="grid gap-3">
+              <input type="hidden" name="campaignId" value={campaign.id} />
+              <Field label="Language">
+                <LanguageSelect name="language" value={channel?.defaultLanguage} />
+              </Field>
+              <Field label="Reply text (use {link} once where the link goes)">
+                <Textarea name="body" rows={2} required defaultValue="Here you go: {link}" />
+              </Field>
+              <div>
+                <Button name="action" value="template_add" variant="outline">
+                  Add template
+                </Button>
+              </div>
             </form>
-          ))}
-          <form method="post" action="/api/campaigns">
-            <input type="hidden" name="campaignId" value={campaign.id} />
-            <Field label="Language">
-              <LanguageSelect name="language" value={channel?.defaultLanguage} />
-            </Field>
-            <Field label="Reply text (use {link} once where the link goes)">
-              <textarea name="body" rows={2} required style={styles.input} defaultValue="Here you go: {link}" />
-            </Field>
-            <button name="action" value="template_add" style={styles.secondary}>
-              Add template
-            </button>
-          </form>
-        </section>
+          </div>
+        </Card>
       ))}
 
       {channel ? (
-        <section style={styles.card}>
-          <h2 style={{ marginTop: 0 }}>New keyword</h2>
-          <form method="post" action="/api/campaigns">
+        <Card className="grid gap-4">
+          <SectionTitle>New keyword</SectionTitle>
+          <form method="post" action="/api/campaigns" className="grid gap-3">
             <input type="hidden" name="channelId" value={channel.id} />
             <Field label="Keyword viewers comment (whole word, any case)">
-              <input name="keyword" required maxLength={50} style={styles.input} placeholder="GUIDE" />
+              <Input name="keyword" required maxLength={50} placeholder="GUIDE" className="font-mono" />
             </Field>
             <Field label="Other spellings (comma separated, optional)">
-              <input name="aliases" style={styles.input} placeholder="guides, pdf" />
+              <Input name="aliases" placeholder="guides, pdf" />
             </Field>
             <Field label="Name (what the viewer gets)">
-              <input name="name" style={styles.input} placeholder="Free guide" />
+              <Input name="name" placeholder="Free guide" />
             </Field>
             <Field label="Intent">
-              <select name="intent" defaultValue="warm" style={styles.input}>
+              <Select name="intent" defaultValue="warm">
                 <option value="hot">HOT (ready to buy)</option>
                 <option value="warm">WARM</option>
                 <option value="cold">COLD</option>
-              </select>
+              </Select>
             </Field>
             <Field label="Your opt-in page">
-              <input name="destinationUrl" type="url" required style={styles.input} placeholder="https://yourdomain.com/guide" />
+              <Input name="destinationUrl" type="url" required placeholder="https://yourdomain.com/guide" />
             </Field>
             <Field label="Only these videos (links, optional; empty means all videos)">
-              <textarea name="videos" rows={2} style={styles.input} />
+              <Textarea name="videos" rows={2} />
             </Field>
-            <button name="action" value="create" style={styles.button}>
-              Start watching
-            </button>
+            <div>
+              <Button name="action" value="create" pulse>
+                Start watching
+              </Button>
+            </div>
           </form>
-          <p style={styles.muted}>Only comments posted after you start watching get a draft. Nothing is posted until you approve it.</p>
-        </section>
+          <Meta>Only comments posted after you start watching get a draft. Nothing is posted until you approve it.</Meta>
+        </Card>
       ) : null}
 
       {channel ? (
-        <section style={styles.card}>
-          <h2 style={{ marginTop: 0 }}>Default reply language</h2>
-          <form method="post" action="/api/campaigns" style={{ display: "flex", gap: 8 }}>
+        <Card className="grid gap-3">
+          <SectionTitle>Default reply language</SectionTitle>
+          <form method="post" action="/api/campaigns" className="flex flex-wrap gap-2">
             <input type="hidden" name="channelId" value={channel.id} />
-            <LanguageSelect name="language" value={channel?.defaultLanguage} />
-            <button name="action" value="language" style={styles.secondary}>
+            <div className="w-40">
+              <LanguageSelect name="language" value={channel?.defaultLanguage} />
+            </div>
+            <Button name="action" value="language" variant="outline">
               Save
-            </button>
+            </Button>
           </form>
-          <p style={styles.muted}>
-            A reply uses the commenter&apos;s language only when you have a template in it; otherwise this language, then English.
-          </p>
-        </section>
+          <Meta>A reply uses the commenter&apos;s language only when you have a template in it; otherwise this language, then English.</Meta>
+        </Card>
       ) : null}
 
-      <section style={styles.card}>
-        <h2 style={{ marginTop: 0 }}>AI drafts</h2>
-        <p style={styles.muted}>
+      <Card className="grid gap-3">
+        <SectionTitle>AI drafts</SectionTitle>
+        <Meta className="text-[15px]">
           Current: {account.aiProvider === "platform" ? "included AI (no setup needed)" : `your own ${account.aiProvider} key`}. The
           commenter&apos;s name is never sent to the AI.
-        </p>
-        <form method="post" action="/api/campaigns">
+        </Meta>
+        <form method="post" action="/api/campaigns" className="grid gap-3">
           <Field label="Provider">
-            <select name="provider" defaultValue={account.aiProvider} style={styles.input}>
+            <Select name="provider" defaultValue={account.aiProvider}>
               <option value="platform">Included AI</option>
               <option value="gemini">My own Gemini key (billing enabled)</option>
               <option value="openai">My own OpenAI key</option>
               <option value="anthropic">My own Anthropic key</option>
-            </select>
+            </Select>
           </Field>
           <Field label="API key (stored encrypted, leave empty to keep the saved one)">
-            <input name="apiKey" type="password" autoComplete="off" style={styles.input} />
+            <Input name="apiKey" type="password" autoComplete="off" />
           </Field>
           <Field label={`Model (optional, e.g. ${Object.values(DEFAULT_MODELS).join(", ")})`}>
-            <input name="model" defaultValue={account.aiModel ?? ""} style={styles.input} />
+            <Input name="model" defaultValue={account.aiModel ?? ""} />
           </Field>
-          <button name="action" value="ai" style={styles.secondary}>
-            Save AI settings
-          </button>
+          <div>
+            <Button name="action" value="ai" variant="outline">
+              Save AI settings
+            </Button>
+          </div>
         </form>
-      </section>
-    </main>
+      </Card>
+    </Page>
   );
 }

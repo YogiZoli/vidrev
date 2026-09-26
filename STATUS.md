@@ -1,6 +1,6 @@
 # STATUS
 
-Last updated: 2026-09-26 (Phase 12)
+Last updated: 2026-09-26 (Phase 13, restyle)
 
 ## End goal
 
@@ -24,6 +24,7 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 | 9 | Audit my channel | **DONE** (2026-09-26), PRs #26 to #28; needs the owner setup below before it works live |
 | 10 | GHL Marketplace connector | **DONE** (2026-09-26), PRs #30 to #32; the app is ready for "Start Public review", which waits for the LLC ([docs/MARKETPLACE-LISTING.md](docs/MARKETPLACE-LISTING.md)) |
 | 12 | Compliance and launch readiness | **DONE** (2026-09-26), PRs #34 and #35; submission waits for the LLC and owner steps ([docs/compliance/LAUNCH-CHECKLIST.md](docs/compliance/LAUNCH-CHECKLIST.md)) |
+| 13 | Restyle to the Shine design (v3): tokens, shells, every page, micro-interactions | **DONE** (2026-09-26), PRs #40 to #57 |
 
 Phase plan changes (all accepted): compliance pack and quota extension request right after Phase 5 (Q-17 a); one GHL Marketplace app created Private in Phase 6 and made Public in Phase 10 (Q-17 b); retention job in Phase 4 (Q-17 c, done); Cloudflare for SaaS spike once the brand domain exists (Q-17 d).
 
@@ -34,6 +35,16 @@ Phase plan changes (all accepted): compliance pack and quota extension request r
 - Reports count people once (`src/lib/report.ts`): new Commenters and New commenters, Subscribers and Buyers are distinct Contacts; attribution follows the Contact whatever email was used. Outbound events carry an opaque `contact_id`.
 - 30 day rule kept intact (Q-24): the commenter's channel id is confirmed with YouTube every 30 days (comments.list by id, 1 unit per 50, from 5 days before it is due) or deleted; wiped at disconnect; never leaves the app. A legal way to recognise people longer is parked as L-01 for a later review. Privacy draft updated.
 - Not built yet: a Contact page with the timeline in the app, the merge undo tool (the data for it is logged), open questions O-1 to O-6 (defaults are built).
+
+## Phase 13: what was built
+
+- Design source: `design-system/shine/` (BRAND-GUIDE.md, tokens.css, VidRev App v3.dc.html). Light theme only, fuchsia primary, blue-green live accent, ink secondary, warm danger, Open Sans, dot-grid ground. Visual only: no business logic, routes or copy changed (UI words Comment, Subscriber, Buyer, Revenue).
+- Tokens in `src/app/globals.css`; components in `src/components/ui` (Button with the pulsing primary, Badge tones, Keyword, IntentTag, Eyebrow, Card focus and hero, Input, Select, Textarea, Field, Table, Page, PageHeader, PublicCard, EmptyState, Skeleton). `src/app/ui.tsx` no longer holds inline styles.
+- Shells: `src/components/shell` (AppShell with hairline header, underline tabs and the phone bottom tab bar; PublicShell), applied through `layout.tsx` of `/app`, `/admin`, `/login`, `/audit`, `/connect`, `/auth`.
+- Pages restyled one PR each: /app, /app/queue, /app/campaigns, /app/reports, /app/domain, /app/cancel, /app/integrations, /admin, /login, /auth/verify, /audit, /audit/[id], /connect/crm. `src/app/page.tsx` content kept.
+- Micro-interactions (`src/components/motion`): CountUp with num-pop, toast, card-in, quota bar with a bump, copy feedback, skeleton loading, radar empty state; all off under `prefers-reduced-motion`. Not built: the Live activity feed of the design (needs a new data source).
+- Brand rule 9: the name is always lowercase, `vidrev`; wordmark "vid" in ink, "rev" in primary; PRODUCT_NAME default is `vidrev`. Logo 1a (512x512, `public/vidrev-logo.png`, `src/app/icon.png`).
+- Local check recipe: embedded Postgres (npm `embedded-postgres`, outside the repo), `npx tsx --env-file=.env src/scripts/migrate.ts`, seed a session and demo rows, `next start`, browser at 390 and 1280.
 
 ## Phase 12: what was built
 

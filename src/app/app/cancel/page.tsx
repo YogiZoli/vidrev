@@ -1,9 +1,11 @@
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Page, PageHeader, SectionTitle } from "@/components/ui/page";
 import { getDb } from "@/db/client";
 import { env } from "@/lib/env";
 import { formatMoney } from "@/lib/money";
 import { requireSession } from "@/server/auth/current";
 import { readSnapshots } from "@/server/reports";
-import { styles } from "../../ui";
 
 export const dynamic = "force-dynamic";
 
@@ -17,46 +19,41 @@ export default async function CancelPage() {
   const portal = env().BILLING_PORTAL_URL;
 
   return (
-    <main style={styles.main}>
-      <p>
-        <a href="/app">Back</a>
-      </p>
-      <h1>Before you cancel</h1>
-      <section style={styles.card}>
+    <Page width="md">
+      <PageHeader title="Before you cancel" />
+      <Card variant="hero" className="grid gap-2">
         {all ? (
           <>
-            <p style={{ fontSize: 20, marginTop: 0 }}>
-              Your comments made <strong>{formatMoney(all.totals.revenueCents, all.currency)}</strong> since you started
+            <p className="m-0 text-xl">
+              Your comments made <strong className="text-primary-700">{formatMoney(all.totals.revenueCents, all.currency)}</strong> since you started
               {month ? `, ${formatMoney(month.totals.revenueCents, month.currency)} of it this month` : ""}.
             </p>
-            <p>
+            <p className="m-0 text-base text-ink-2">
               {all.totals.clicks} clicks, {all.totals.subscribers} subscribers and {all.totals.buyers} buyers were traced back to your comment replies.
             </p>
           </>
         ) : (
-          <p style={{ marginTop: 0 }}>Your first report is still being calculated.</p>
+          <p className="m-0">Your first report is still being calculated.</p>
         )}
-      </section>
-      <section style={styles.card}>
-        <h2 style={{ marginTop: 0 }}>What happens when you cancel</h2>
-        <ul>
+      </Card>
+      <Card className="grid gap-3">
+        <SectionTitle>What happens when you cancel</SectionTitle>
+        <ul className="m-0 grid gap-2 pl-5 text-[15px] text-ink-2">
           <li>Every link you already posted keeps working and keeps sending viewers to your page. We never hold your links hostage.</li>
           <li>Measurement stops: new clicks, subscribers and buyers are no longer counted or attributed.</li>
           <li>No new comments are read and no replies are drafted or posted.</li>
           <li>You can still sign in and see the reports recorded so far.</li>
         </ul>
-      </section>
-      <section style={styles.card}>
+      </Card>
+      <Card>
         {portal ? (
-          <p style={{ margin: 0 }}>
-            <a href={portal} style={styles.secondary}>
-              Manage or cancel my subscription
-            </a>
-          </p>
+          <Button asChild variant="outline">
+            <a href={portal}>Manage or cancel my subscription</a>
+          </Button>
         ) : (
-          <p style={{ margin: 0 }}>To cancel, use the manage link in your purchase receipt email, or reply to any email from us and we cancel it for you.</p>
+          <p className="m-0 text-[15px]">To cancel, use the manage link in your purchase receipt email, or reply to any email from us and we cancel it for you.</p>
         )}
-      </section>
-    </main>
+      </Card>
+    </Page>
   );
 }

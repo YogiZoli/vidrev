@@ -43,3 +43,13 @@ export function Facts({ items }: { items: [string, ReactNode][] }) {
     </dl>
   );
 }
+
+// Public pages: one centred card, 440 to 600px wide, inputs at 48px.
+export function PublicCard({ width = "sm", className, children }: { width?: "xs" | "sm" | "md"; className?: string; children: ReactNode }) {
+  const max = { xs: "max-w-[440px]", sm: "max-w-[520px]", md: "max-w-[600px]" }[width];
+  return (
+    <main className={cn("mx-auto grid gap-4 px-4 pb-16 pt-4", max, className)}>
+      <div className="grid gap-4 rounded-xl border border-border bg-surface p-6 shadow-md [background-image:var(--hero-glow)]">{children}</div>
+    </main>
+  );
+}

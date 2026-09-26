@@ -8,7 +8,7 @@ const optional = z.string().trim().min(1).optional();
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   DATABASE_URL: z.string().url(),
-  PRODUCT_NAME: z.string().trim().min(1).default("ProductName"),
+  PRODUCT_NAME: z.string().trim().min(1).default("vidrev"),
   BRAND_BASE_URL: z.string().trim().url().optional(),
   APP_BASE_URL: z.string().trim().url().optional(),
   LINK_FALLBACK_BASE_URL: z.string().trim().url().optional(),

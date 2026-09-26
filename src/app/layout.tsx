@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Open_Sans } from "next/font/google";
 import type { ReactNode } from "react";
+import { ToastProvider } from "@/components/motion/Toast";
 import "./globals.css";
 
 const openSans = Open_Sans({ subsets: ["latin", "latin-ext"], variable: "--font-open-sans", display: "swap" });
@@ -13,7 +14,9 @@ export function generateMetadata(): Metadata {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${openSans.variable} ${geistMono.variable}`}>
-      <body>{children}</body>
+      <body>
+        <ToastProvider>{children}</ToastProvider>
+      </body>
     </html>
   );
 }

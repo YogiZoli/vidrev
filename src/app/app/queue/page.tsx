@@ -95,7 +95,7 @@ export default async function QueuePage() {
           </>
         }
       />
-      <PendingCards cards={pending} />
+      <PendingCards cards={pending} usage={{ today: usage.today, dailyCap: plan.dailyReplyCap }} />
 
       {waiting.length ? (
         <section className="grid gap-3">

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { CountUp } from "@/components/motion/CountUp";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/empty";
 import { Card } from "@/components/ui/card";
 import { Field, Input, Select } from "@/components/ui/input";
 import { Meta, Page, PageHeader, SectionTitle } from "@/components/ui/page";
@@ -84,7 +86,9 @@ function Funnel({ totals, currency }: { totals: Metrics; currency: string }) {
       {steps.map(([label, value, conversion]) => (
         <div key={label} className="grid content-start gap-0.5">
           <div className="text-xs font-bold uppercase tracking-[0.06em] text-label">{label}</div>
-          <div className={cn("text-[22px] font-extrabold leading-tight", label === "Revenue" && "text-primary-700")}>{value}</div>
+          <div className={cn("text-[22px] font-extrabold leading-tight", label === "Revenue" && "text-primary-700")}>
+            {label === "Revenue" ? <CountUp value={totals.revenueCents} currency={currency} /> : <CountUp value={Number(value)} />}
+          </div>
           {conversion ? <div className="text-xs text-muted-foreground">{conversion} of previous step</div> : null}
         </div>
       ))}
@@ -113,7 +117,15 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       {reports.this_month && reports.all_time ? (
         <HeadlineCard headline={buildHeadline(reports.this_month, reports.all_time, plan)} updated={updated} />
       ) : (
-        <Notice tone="info">The first report is being calculated. It appears within a minute or two.</Notice>
+        <>
+          <Notice tone="info">The first report is being calculated. It appears within a minute or two.</Notice>
+          <Card className="grid gap-3" aria-busy="true">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-10 w-2/3" />
+            <Skeleton className="w-full" />
+            <Skeleton className="w-4/5" />
+          </Card>
+        </>
       )}
 
       <nav aria-label="Period" className="flex flex-wrap items-center gap-2">

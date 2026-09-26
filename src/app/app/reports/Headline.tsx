@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { CountUp } from "@/components/motion/CountUp";
 import { Badge, Eyebrow } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Meta } from "@/components/ui/page";
@@ -14,7 +15,8 @@ export function HeadlineCard({ headline, updated, children }: { headline: Headli
       <Eyebrow>This month</Eyebrow>
       <h2 className="m-0 text-[30px] font-bold leading-tight tracking-[-0.018em]">
         This month your comments made{" "}
-        <span className="mt-1.5 block text-[44px] font-extrabold leading-none tracking-[-0.035em] text-primary-700 md:text-[56px]">{money(headline.thisMonthCents)}</span>
+        <span className="mt-1.5 block text-[44px] font-extrabold leading-none tracking-[-0.035em] text-primary-700 md:text-[56px]"><CountUp value={headline.thisMonthCents} currency={headline.currency} />
+        </span>
       </h2>
       <p className="m-0 text-base text-ink-2">
         Lifetime: <strong>{money(headline.lifetimeCents)}</strong>

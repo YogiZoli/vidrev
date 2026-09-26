@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { Brand } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Notice } from "@/components/ui/notice";
@@ -14,8 +13,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
 
   return (
     <main className="mx-auto max-w-md px-4 py-12">
-      <Brand />
-      <h1 className="mt-6 text-3xl">Sign in to {productName()}</h1>
+      <h1 className="text-3xl">Sign in to {productName()}</h1>
       {params.sent ? (
         <Notice tone="info">If an account exists for that email, a sign-in link is on its way. It works once and expires in 15 minutes.</Notice>
       ) : null}

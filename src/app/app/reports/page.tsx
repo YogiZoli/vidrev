@@ -1,10 +1,17 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Field, Input, Select } from "@/components/ui/input";
+import { Meta, Page, PageHeader, SectionTitle } from "@/components/ui/page";
+import { Table, TableWrap, Td, Th } from "@/components/ui/table";
 import { getDb } from "@/db/client";
+import { cn } from "@/lib/cn";
 import { formatMoney } from "@/lib/money";
 import { buildHeadline, type Metrics, type Period, PERIOD_LABELS, PERIODS, type Report, type Row } from "@/lib/report";
 import { requireSession } from "@/server/auth/current";
 import { readSnapshots, reportLabels } from "@/server/reports";
-import { Notice, styles } from "../../ui";
+import { Notice } from "../../ui";
 import { ago, HeadlineCard } from "./Headline";
 
 export const dynamic = "force-dynamic";
@@ -19,42 +26,44 @@ function rate(part: number, whole: number): string {
   return `${value < 10 ? value.toFixed(1) : Math.round(value)}%`;
 }
 
-function Table({ title, note, first, rows, currency, label }: { title: string; note?: ReactNode; first: string; rows: Row[]; currency: string; label: (row: Row) => ReactNode }) {
+function ReportTable({ title, note, first, rows, currency, label }: { title: string; note?: ReactNode; first: string; rows: Row[]; currency: string; label: (row: Row) => ReactNode }) {
   return (
-    <section style={styles.card}>
-      <h2 style={{ marginTop: 0 }}>{title}</h2>
-      {note ? <p style={styles.muted}>{note}</p> : null}
+    <section className="grid gap-3">
+      <SectionTitle>{title}</SectionTitle>
+      {note ? <Meta className="text-[15px]">{note}</Meta> : null}
       {rows.length === 0 ? (
-        <p style={styles.muted}>Nothing in this period yet.</p>
+        <Meta className="text-[15px]">Nothing in this period yet.</Meta>
       ) : (
-        <div style={{ overflowX: "auto" }}>
-          <table style={styles.table}>
+        <TableWrap>
+          <Table>
             <thead>
               <tr>
-                {[first, "Comments", "Commenters", "Replies", "Clicks", "Subscribers", "Buyers", "Revenue", "Click rate"].map((h) => (
-                  <th key={h} style={styles.cell}>
+                {[first, "Comments", "Commenters", "Replies", "Clicks", "Subscribers", "Buyers", "Revenue", "Click rate"].map((h, i) => (
+                  <Th key={h} num={i > 0}>
                     {h}
-                  </th>
+                  </Th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => (
                 <tr key={row.key}>
-                  <td style={styles.cell}>{label(row)}</td>
-                  <td style={styles.cell}>{row.comments}</td>
-                  <td style={styles.cell}>{row.commenters ?? 0}</td>
-                  <td style={styles.cell}>{row.replies}</td>
-                  <td style={styles.cell}>{row.clicks}</td>
-                  <td style={styles.cell}>{row.subscribers}</td>
-                  <td style={styles.cell}>{row.buyers}</td>
-                  <td style={styles.cell}>{formatMoney(row.revenueCents, currency)}</td>
-                  <td style={styles.cell}>{rate(row.clicks, row.replies)}</td>
+                  <Td className="min-w-[220px] max-w-[320px] font-semibold">{label(row)}</Td>
+                  <Td num>{row.comments}</Td>
+                  <Td num>{row.commenters ?? 0}</Td>
+                  <Td num>{row.replies}</Td>
+                  <Td num>{row.clicks}</Td>
+                  <Td num>{row.subscribers}</Td>
+                  <Td num>{row.buyers}</Td>
+                  <Td num className="font-bold text-primary-700">
+                    {formatMoney(row.revenueCents, currency)}
+                  </Td>
+                  <Td num>{rate(row.clicks, row.replies)}</Td>
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
+          </Table>
+        </TableWrap>
       )}
     </section>
   );
@@ -71,15 +80,15 @@ function Funnel({ totals, currency }: { totals: Metrics; currency: string }) {
     ["Revenue", formatMoney(totals.revenueCents, currency), null],
   ];
   return (
-    <section style={{ ...styles.card, display: "flex", flexWrap: "wrap", gap: 16 }}>
+    <Card className="grid grid-cols-[repeat(auto-fit,minmax(110px,1fr))] gap-4">
       {steps.map(([label, value, conversion]) => (
-        <div key={label} style={{ minWidth: 90 }}>
-          <div style={styles.muted}>{label}</div>
-          <div style={{ fontSize: 22, fontWeight: 600 }}>{value}</div>
-          {conversion ? <div style={{ ...styles.muted, fontSize: 12 }}>{conversion} of previous step</div> : null}
+        <div key={label} className="grid content-start gap-0.5">
+          <div className="text-xs font-bold uppercase tracking-[0.06em] text-label">{label}</div>
+          <div className={cn("text-[22px] font-extrabold leading-tight", label === "Revenue" && "text-primary-700")}>{value}</div>
+          {conversion ? <div className="text-xs text-muted-foreground">{conversion} of previous step</div> : null}
         </div>
       ))}
-    </section>
+    </Card>
   );
 }
 
@@ -96,11 +105,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const zones = COMMON_ZONES.includes(account.reportTimezone) ? COMMON_ZONES : [account.reportTimezone, ...COMMON_ZONES];
 
   return (
-    <main style={{ ...styles.main, maxWidth: 960 }}>
-      <p>
-        <a href="/app">Back</a>
-      </p>
-      <h1>Reports</h1>
+    <Page width="lg">
+      <PageHeader title="Reports" />
       {params.saved ? <Notice tone="info">Settings saved. The report is being recalculated.</Notice> : null}
       {params.error ? <Notice tone="error">{params.error === "timezone" ? "That time zone is not known." : "Use a 3 letter currency code such as USD."}</Notice> : null}
 
@@ -110,18 +116,22 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         <Notice tone="info">The first report is being calculated. It appears within a minute or two.</Notice>
       )}
 
-      <nav style={{ display: "flex", gap: 12, flexWrap: "wrap", margin: "16px 0" }}>
-        {PERIODS.map((p) =>
-          p === period ? (
-            <strong key={p}>{PERIOD_LABELS[p]}</strong>
-          ) : (
-            <a key={p} href={`/app/reports?period=${p}`}>
-              {PERIOD_LABELS[p]}
-            </a>
-          ),
-        )}
+      <nav aria-label="Period" className="flex flex-wrap items-center gap-2">
+        {PERIODS.map((p) => (
+          <Link
+            key={p}
+            href={`/app/reports?period=${p}`}
+            aria-current={p === period ? "page" : undefined}
+            className={cn(
+              "inline-flex min-h-9 items-center rounded-full border px-3.5 text-sm font-semibold no-underline",
+              p === period ? "border-secondary bg-secondary text-secondary-foreground hover:text-secondary-foreground" : "border-border-strong bg-surface text-foreground hover:bg-surface-alt hover:text-foreground",
+            )}
+          >
+            {PERIOD_LABELS[p]}
+          </Link>
+        ))}
         {report ? (
-          <span style={styles.muted}>
+          <span className="font-mono text-xs text-muted-foreground">
             {report.fromDay ? `${report.fromDay} to ${report.toDay}` : `until ${report.toDay}`} ({account.reportTimezone})
           </span>
         ) : null}
@@ -130,19 +140,19 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       {report ? (
         <>
           <Funnel totals={report.totals} currency={currency} />
-          {report.totals.recurringCents > 0 ? <p style={styles.muted}>Recurring part: {formatMoney(report.totals.recurringCents, currency)}.</p> : null}
+          {report.totals.recurringCents > 0 ? <Meta className="text-[15px]">Recurring part: {formatMoney(report.totals.recurringCents, currency)}.</Meta> : null}
           {report.totals.buyersWithoutAmount > 0 ? (
-            <p style={styles.muted}>
+            <Meta className="text-[15px]">
               {report.totals.buyersWithoutAmount} buyer{report.totals.buyersWithoutAmount === 1 ? "" : "s"} came from a tag or a won opportunity without an amount: counted as buyers, revenue not reported.
-            </p>
+            </Meta>
           ) : null}
           {report.totals.otherCurrencies.length > 0 ? (
-            <p style={styles.muted}>
+            <Meta className="text-[15px]">
               Also in other currencies (not converted): {report.totals.otherCurrencies.map((o) => formatMoney(o.revenueCents, o.currency)).join(", ")}.
-            </p>
+            </Meta>
           ) : null}
 
-          <Table
+          <ReportTable
             title="By video"
             first="Video"
             rows={report.byVideo}
@@ -151,14 +161,14 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
               row.key === "(none)" ? (
                 "No video"
               ) : (
-                <a href={`https://www.youtube.com/watch?v=${encodeURIComponent(row.key)}`} target="_blank" rel="noreferrer">
+                <a href={`https://www.youtube.com/watch?v=${encodeURIComponent(row.key)}`} target="_blank" rel="noreferrer" className="no-underline">
                   {labels.videos.get(row.key) ?? row.key}
                 </a>
               )
             }
           />
-          <Table title="By keyword" first="Keyword" rows={report.byKeyword} currency={currency} label={(row) => `${row.key}${row.intent ? ` (${INTENT_LABELS[row.intent] ?? row.intent})` : ""}`} />
-          <Table
+          <ReportTable title="By keyword" first="Keyword" rows={report.byKeyword} currency={currency} label={(row) => `${row.key}${row.intent ? ` (${INTENT_LABELS[row.intent] ?? row.intent})` : ""}`} />
+          <ReportTable
             title="Reply templates"
             note="Which reply wording brings clicks and buyers. Static links are the ones in descriptions and pinned comments."
             first="Reply"
@@ -173,8 +183,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
               return template ? `${template.body.slice(0, 80)}${template.body.length > 80 ? "..." : ""} [${template.language}]${intent}` : `Deleted template${intent}`;
             }}
           />
-          <Table title="By keyword intent" first="Intent" rows={report.byIntent} currency={currency} label={(row) => INTENT_LABELS[row.key] ?? row.key} />
-          <Table
+          <ReportTable title="By keyword intent" first="Intent" rows={report.byIntent} currency={currency} label={(row) => INTENT_LABELS[row.key] ?? row.key} />
+          <ReportTable
             title="Reply speed"
             note="Replies posted in this period, grouped by the time from draft to posted reply, with every click, subscriber and buyer they led to."
             first="Time to reply"
@@ -185,34 +195,32 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         </>
       ) : null}
 
-      <section id="settings" style={styles.card}>
-        <h2 style={{ marginTop: 0 }}>Report settings</h2>
-        <form method="post" action="/api/reports" style={{ display: "grid", gap: 12, maxWidth: 420 }}>
+      <Card id="settings" className="grid gap-3">
+        <SectionTitle>Report settings</SectionTitle>
+        <form method="post" action="/api/reports" className="grid max-w-[420px] gap-3">
           <input type="hidden" name="action" value="settings" />
-          <label>
-            Time zone for days and months
-            <select name="timezone" defaultValue={account.reportTimezone} style={styles.input}>
+          <Field label="Time zone for days and months">
+            <Select name="timezone" defaultValue={account.reportTimezone}>
               {zones.map((zone) => (
                 <option key={zone} value={zone}>
                   {zone}
                 </option>
               ))}
-            </select>
-          </label>
-          <label>
-            Reporting currency
-            <input name="currency" defaultValue={account.reportingCurrencySource === "creator" ? account.reportingCurrency : ""} placeholder={`Automatic (now ${account.reportingCurrency})`} style={styles.input} />
-          </label>
-          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <input type="checkbox" name="weekly_email" value="1" defaultChecked={account.weeklyEmail} />
+            </Select>
+          </Field>
+          <Field label="Reporting currency">
+            <Input name="currency" defaultValue={account.reportingCurrencySource === "creator" ? account.reportingCurrency : ""} placeholder={`Automatic (now ${account.reportingCurrency})`} />
+          </Field>
+          <label className="flex items-center gap-2 text-[15px]">
+            <input type="checkbox" name="weekly_email" value="1" defaultChecked={account.weeklyEmail} className="size-4 accent-[var(--primary-600)]" />
             Weekly email on Mondays: what your comments made in the last 7 days
           </label>
-          <p style={{ ...styles.muted, margin: 0, fontSize: 13 }}>Leave the currency empty to follow your connected revenue source. Amounts in other currencies are listed separately, never converted.</p>
-          <button type="submit" style={styles.button}>
-            Save
-          </button>
+          <Meta>Leave the currency empty to follow your connected revenue source. Amounts in other currencies are listed separately, never converted.</Meta>
+          <div>
+            <Button type="submit">Save</Button>
+          </div>
         </form>
-      </section>
-    </main>
+      </Card>
+    </Page>
   );
 }

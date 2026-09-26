@@ -1,17 +1,22 @@
+import type { ReactNode } from "react";
+import { Badge, Eyebrow } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Meta } from "@/components/ui/page";
 import { formatMoney } from "@/lib/money";
 import type { Headline } from "@/lib/report";
-import { styles } from "../../ui";
 
 // Report headline (DECISIONS Q-09, R-35): this month and lifetime attributed
 // revenue, the recurring part, and the subscription as a share of it.
-export function HeadlineCard({ headline, updated }: { headline: Headline; updated: string | null }) {
+export function HeadlineCard({ headline, updated, children }: { headline: Headline; updated: string | null; children?: ReactNode }) {
   const money = (cents: number) => formatMoney(cents, headline.currency);
   return (
-    <section style={styles.card}>
-      <p style={{ fontSize: 22, margin: "0 0 8px" }}>
-        This month your comments made <strong>{money(headline.thisMonthCents)}</strong>.
-      </p>
-      <p style={{ margin: "0 0 8px" }}>
+    <Card variant="hero" className="grid gap-4 p-6">
+      <Eyebrow>This month</Eyebrow>
+      <h2 className="m-0 text-[30px] font-bold leading-tight tracking-[-0.018em]">
+        This month your comments made{" "}
+        <span className="mt-1.5 block text-[44px] font-extrabold leading-none tracking-[-0.035em] text-primary-700 md:text-[56px]">{money(headline.thisMonthCents)}</span>
+      </h2>
+      <p className="m-0 text-base text-ink-2">
         Lifetime: <strong>{money(headline.lifetimeCents)}</strong>
         {headline.recurringLifetimeCents > 0 ? (
           <>
@@ -21,16 +26,19 @@ export function HeadlineCard({ headline, updated }: { headline: Headline; update
         .
       </p>
       {headline.subscriptionPercent !== null && headline.subscriptionMonthlyCents !== null ? (
-        <p style={{ margin: "0 0 8px" }}>
-          Your subscription ({money(headline.subscriptionMonthlyCents)} a month) cost {percent(headline.subscriptionPercent)} of what your comments made this month
-          {headline.roiMultiple !== null ? `: your comments made ${multiple(headline.roiMultiple)} your subscription` : ""}.
-        </p>
+        <div className="flex flex-wrap items-center gap-2.5">
+          {headline.roiMultiple !== null ? <Badge tone="success" className="text-sm">{multiple(headline.roiMultiple)} your subscription</Badge> : null}
+          <span className="text-[15px] text-label">
+            Your subscription ({money(headline.subscriptionMonthlyCents)} a month) cost {percent(headline.subscriptionPercent)} of what your comments made this month.
+          </span>
+        </div>
       ) : null}
-      <p style={{ ...styles.muted, margin: 0, fontSize: 13 }}>
+      <Meta>
         Only real, attributed purchases: the last comment link or opt-in within 180 days before the sale; refunds are subtracted.
         {updated ? ` Updated ${updated}.` : " Calculating the first report."}
-      </p>
-    </section>
+      </Meta>
+      {children}
+    </Card>
   );
 }
 

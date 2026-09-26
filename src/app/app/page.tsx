@@ -8,7 +8,7 @@ import { hasPendingInstall } from "@/server/ghl/install";
 import { buildHeadline } from "@/lib/report";
 import { listChannels, LIVE_STATUSES } from "@/server/channels";
 import { readSnapshots } from "@/server/reports";
-import { Notice, productName, styles } from "../ui";
+import { Notice, styles } from "../ui";
 import { ago, HeadlineCard } from "./reports/Headline";
 
 export const dynamic = "force-dynamic";
@@ -47,14 +47,6 @@ export default async function AppPage({ searchParams }: { searchParams: Promise<
     <main style={styles.main}>
       {/* While the worker resolves a channel, refresh every few seconds. */}
       {connecting ? <meta httpEquiv="refresh" content="3" /> : null}
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 style={{ margin: 0 }}>{productName()}</h1>
-        <form method="post" action="/api/auth/logout">
-          <button type="submit" style={styles.secondary}>
-            Sign out
-          </button>
-        </form>
-      </header>
 
       {params.error && ERRORS[params.error] ? <Notice tone="error">{ERRORS[params.error]}</Notice> : null}
       {pendingInstall ? (

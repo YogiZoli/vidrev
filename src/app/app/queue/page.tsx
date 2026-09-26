@@ -11,7 +11,9 @@ import { ensureReplyLink } from "@/server/links";
 import { dayUsage } from "@/server/quota";
 import { replyUsage } from "@/server/replies";
 import { commentUrl } from "@/server/youtube/api";
-import { styles } from "../../ui";
+import { Keyword } from "@/components/ui/badge";
+import { Meta, Page, PageHeader, SectionTitle } from "@/components/ui/page";
+import { Table, TableWrap, Td } from "@/components/ui/table";
 import { type CardData, PendingCards, WaitingCards } from "./QueueCards";
 
 export const dynamic = "force-dynamic";
@@ -82,48 +84,53 @@ export default async function QueuePage() {
   const quotaLeft = repliesLeftToday(await dayUsage(db, pacificDate(now)), env().QUOTA_DAILY_LIMIT);
 
   return (
-    <main style={{ ...styles.main, padding: "24px 16px" }}>
-      <p>
-        <a href="/app">Back</a> · <a href="/app/campaigns">Keywords and replies</a>
-      </p>
-      <h1 style={{ fontSize: 24 }}>Approval queue</h1>
-      <p style={styles.muted}>
-        Every reply waits for your approval. Replies this month: {usage.thisMonth}
-        {plan.monthlyReplyCap !== null ? ` of ${plan.monthlyReplyCap}` : ""}; today: {usage.today}
-        {plan.dailyReplyCap !== null ? ` of ${plan.dailyReplyCap}` : ""}.
-      </p>
+    <Page width="md">
+      <PageHeader
+        title="Approval queue"
+        lead={
+          <>
+            Every reply waits for your approval. Replies this month: {usage.thisMonth}
+            {plan.monthlyReplyCap !== null ? ` of ${plan.monthlyReplyCap}` : ""}; today: {usage.today}
+            {plan.dailyReplyCap !== null ? ` of ${plan.dailyReplyCap}` : ""}.
+          </>
+        }
+      />
       <PendingCards cards={pending} />
 
       {waiting.length ? (
-        <>
-          <h2 style={{ fontSize: 18 }}>Waiting to send</h2>
-          <p style={styles.muted}>
+        <section className="grid gap-3">
+          <SectionTitle>Waiting to send</SectionTitle>
+          <Meta className="text-[15px]">
             YouTube limits how many replies all apps can post through its API each day; this is YouTube&apos;s limit, not ours.
             {quotaLeft === 0 ? " Today's limit is used up." : ""} Approved replies are sent as soon as it allows, first after the daily reset
             at midnight Pacific time. You can also post any of them yourself now.
-          </p>
+          </Meta>
           <WaitingCards cards={waiting} />
-        </>
+        </section>
       ) : null}
 
       {done.length ? (
-        <>
-          <h2 style={{ fontSize: 18 }}>Recent</h2>
-          <table style={styles.table}>
-            <tbody>
-              {done.map((card) => (
-                <tr key={card.id}>
-                  <td style={styles.cell}>{card.keyword}</td>
-                  <td style={styles.cell}>
-                    {card.status.replace("_", " ")}
-                    {card.statusReason ? ` (${REASONS[card.statusReason] ?? card.statusReason})` : ""}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </>
+        <section className="grid gap-3">
+          <SectionTitle>Recent</SectionTitle>
+          <TableWrap>
+            <Table>
+              <tbody>
+                {done.map((card) => (
+                  <tr key={card.id}>
+                    <Td>
+                      <Keyword>{card.keyword}</Keyword>
+                    </Td>
+                    <Td>
+                      {card.status.replace("_", " ")}
+                      {card.statusReason ? ` (${REASONS[card.statusReason] ?? card.statusReason})` : ""}
+                    </Td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </TableWrap>
+        </section>
       ) : null}
-    </main>
+    </Page>
   );
 }

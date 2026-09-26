@@ -1,7 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { styles } from "../../ui";
+import { Badge, IntentTag, Keyword } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/input";
+import { Meta } from "@/components/ui/page";
 
 export interface CardData {
   id: string;
@@ -36,10 +40,10 @@ function ManualFallback({ card, onDone }: { card: CardData; onDone: () => void }
   const [copied, setCopied] = useState(false);
   if (!card.commentUrl) return null;
   return (
-    <span style={{ display: "inline-flex", gap: 8, flexWrap: "wrap" }}>
-      <button
+    <span className="inline-flex flex-wrap gap-2">
+      <Button
         type="button"
-        style={styles.secondary}
+        variant="outline"
         onClick={async () => {
           await navigator.clipboard.writeText(card.body.replace("{link}", card.link)).catch(() => {});
           setCopied(true);
@@ -47,17 +51,17 @@ function ManualFallback({ card, onDone }: { card: CardData; onDone: () => void }
         }}
       >
         Copy reply and open comment
-      </button>
+      </Button>
       {copied ? (
-        <button
+        <Button
           type="button"
-          style={styles.secondary}
+          variant="outline"
           onClick={async () => {
             if (!(await post("manual", card.id, { body: card.body }))) onDone();
           }}
         >
           I posted it
-        </button>
+        </Button>
       ) : null}
     </span>
   );
@@ -80,43 +84,52 @@ export function PendingCards({ cards }: { cards: CardData[] }) {
     }
   };
 
-  if (items.length === 0) return <p style={styles.muted}>No drafts waiting. New keyword comments appear here.</p>;
+  if (items.length === 0) return <Meta className="text-[15px]">No drafts waiting. New keyword comments appear here.</Meta>;
   const card = items[0]!;
   return (
-    <div style={styles.card}>
-      {error ? <p style={{ color: "#b00" }}>{error}</p> : null}
-      <p style={{ ...styles.muted, margin: 0 }}>
-        {items.length} waiting · {card.videoTitle ?? "Video"} · keyword <strong>{card.keyword}</strong> ({card.intent.toUpperCase()})
+    <Card variant="focus" className="grid gap-3">
+      {error ? (
+        <p role="alert" className="m-0 rounded-md border border-danger-border bg-danger-surface p-2.5 text-sm text-danger-text">
+          {error}
+        </p>
+      ) : null}
+      <p className="m-0 flex flex-wrap items-center gap-2 text-[15px] text-muted-foreground">
+        <Badge tone="primary">{items.length} waiting</Badge>
+        <span>{card.videoTitle ?? "Video"}</span>
+        <Keyword>{card.keyword}</Keyword>
+        <IntentTag>{card.intent.toUpperCase()}</IntentTag>
       </p>
-      <blockquote style={{ margin: "12px 0", padding: "8px 12px", borderLeft: "3px solid #ccc" }}>{card.commentText ?? "(comment no longer stored)"}</blockquote>
-      {card.repliedBefore ? <p style={styles.muted}>You already replied to this person on this video.</p> : null}
+      <blockquote className="m-0 rounded-md border-l-[3px] border-border-strong bg-background px-3 py-2 text-base">{card.commentText ?? "(comment no longer stored)"}</blockquote>
+      {card.repliedBefore ? <Meta>You already replied to this person on this video.</Meta> : null}
       {card.otherMatches.length ? (
-        <p style={styles.muted}>
-          Also matched:{" "}
+        <p className="m-0 flex flex-wrap items-center gap-1.5 text-[15px] text-muted-foreground">
+          Also matched:
           {card.otherMatches.map((m) => (
-            <button key={m.campaignId} type="button" style={{ ...styles.secondary, marginRight: 6 }} onClick={() => act(card, "switch", { campaignId: m.campaignId }).then(() => location.reload())}>
+            <Button key={m.campaignId} type="button" variant="outline" size="sm" onClick={() => act(card, "switch", { campaignId: m.campaignId }).then(() => location.reload())}>
               use {m.keyword}
-            </button>
+            </Button>
           ))}
         </p>
       ) : null}
-      <textarea
+      <Textarea
         value={bodies[card.id] ?? card.body}
         onChange={(event) => setBodies((b) => ({ ...b, [card.id]: event.target.value }))}
         rows={3}
-        style={styles.input}
+        aria-label="Reply text"
       />
-      <p style={{ ...styles.muted, fontSize: 13 }}>{"{link}"} becomes {card.link}</p>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <button type="button" style={styles.button} onClick={() => act(card, "approve", { body: bodies[card.id] ?? card.body })}>
+      <Meta className="font-mono">
+        {"{link}"} becomes {card.link}
+      </Meta>
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" pulse onClick={() => act(card, "approve", { body: bodies[card.id] ?? card.body })}>
           Approve and send
-        </button>
-        <button type="button" style={styles.secondary} onClick={() => act(card, "dismiss")}>
+        </Button>
+        <Button type="button" variant="outline" onClick={() => act(card, "dismiss")}>
           Skip
-        </button>
+        </Button>
         <ManualFallback card={{ ...card, body: bodies[card.id] ?? card.body }} onDone={() => setItems((list) => list.filter((c) => c.id !== card.id))} />
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -124,16 +137,16 @@ export function WaitingCards({ cards }: { cards: CardData[] }) {
   const [items, setItems] = useState(cards);
   if (items.length === 0) return null;
   return (
-    <>
+    <div className="grid gap-3">
       {items.map((card) => (
-        <div key={card.id} style={{ ...styles.card, padding: 12 }}>
-          <p style={{ margin: "0 0 6px" }}>
-            <strong>{card.keyword}</strong> · {card.eta ?? "sending"}
+        <Card key={card.id} className="grid gap-2 p-4">
+          <p className="m-0 text-[15px]">
+            <Keyword>{card.keyword}</Keyword> <span className="text-muted-foreground">{card.eta ?? "sending"}</span>
           </p>
-          <p style={{ ...styles.muted, margin: "0 0 8px" }}>{card.body.replace("{link}", card.link)}</p>
+          <p className="m-0 text-[15px] text-label">{card.body.replace("{link}", card.link)}</p>
           {card.status === "queued" ? <ManualFallback card={card} onDone={() => setItems((list) => list.filter((c) => c.id !== card.id))} /> : null}
-        </div>
+        </Card>
       ))}
-    </>
+    </div>
   );
 }

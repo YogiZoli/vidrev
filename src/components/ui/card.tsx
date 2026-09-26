@@ -4,7 +4,7 @@ import { cn } from "@/lib/cn";
 
 // White, 1px border, radius 12, shadow-xs. `focus` = 1px primary border plus a
 // stronger shadow; `hero` = radius 18 with the coral/freesia glow behind it.
-const cardVariants = cva("my-4 border bg-surface p-5 text-foreground", {
+const cardVariants = cva("border bg-surface p-5 text-foreground", {
   variants: {
     variant: {
       default: "rounded-lg border-border shadow-xs",

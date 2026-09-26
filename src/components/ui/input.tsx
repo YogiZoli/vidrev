@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes } from "react";
+import type { InputHTMLAttributes, LabelHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
 import { cn } from "@/lib/cn";
 
 // Min height 44 (48 on public pages), radius 10, focus = primary border plus a
@@ -8,4 +8,16 @@ export const inputClass =
 
 export function Input({ className, large, ...props }: InputHTMLAttributes<HTMLInputElement> & { large?: boolean }) {
   return <input className={cn(inputClass, large && "min-h-12", className)} {...props} />;
+}
+
+export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return <textarea className={cn(inputClass, "min-h-24 leading-normal", className)} {...props} />;
+}
+
+export function Select({ className, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
+  return <select className={cn(inputClass, className)} {...props} />;
+}
+
+export function Label({ className, ...props }: LabelHTMLAttributes<HTMLLabelElement>) {
+  return <label className={cn("text-sm font-semibold text-foreground", className)} {...props} />;
 }

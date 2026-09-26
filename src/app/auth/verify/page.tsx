@@ -1,4 +1,7 @@
-import { productName, styles } from "../../ui";
+import { Eyebrow } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { PublicCard } from "@/components/ui/page";
+import { productName } from "../../ui";
 
 export const dynamic = "force-dynamic";
 
@@ -7,20 +10,21 @@ export const dynamic = "force-dynamic";
 export default async function VerifyPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const { token } = await searchParams;
   return (
-    <main style={{ ...styles.main, maxWidth: 420 }}>
-      <h1>Sign in to {productName()}</h1>
+    <PublicCard width="xs">
+      <Eyebrow>Sign in</Eyebrow>
+      <h1 className="m-0 text-[28px] font-bold leading-tight tracking-[-0.016em]">Sign in to {productName()}</h1>
       {token ? (
-        <form method="post" action="/api/auth/verify">
+        <form method="post" action="/api/auth/verify" className="grid">
           <input type="hidden" name="token" value={token} />
-          <button type="submit" style={styles.button}>
+          <Button type="submit" size="lg" pulse>
             Continue
-          </button>
+          </Button>
         </form>
       ) : (
-        <p>
+        <p className="m-0 text-base">
           This link is incomplete. <a href="/login">Request a new sign-in link.</a>
         </p>
       )}
-    </main>
+    </PublicCard>
   );
 }

@@ -8,7 +8,7 @@ describe("parseEnv", () => {
 
   it("applies defaults", () => {
     const env = parseEnv({ DATABASE_URL: "postgres://u:p@localhost:5432/db" });
-    expect(env.PRODUCT_NAME).toBe("ProductName");
+    expect(env.PRODUCT_NAME).toBe("vidrev");
     expect(env.QUOTA_DAILY_LIMIT).toBe(10000);
     expect(env.NODE_ENV).toBe("development");
   });

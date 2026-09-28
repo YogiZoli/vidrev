@@ -2,7 +2,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { campaigns, channels, comments, replies } from "@/db/schema";
+import { accounts, campaigns, channels, comments, replies } from "@/db/schema";
 import { encryptSecret } from "@/lib/crypto";
 import { runMigrations } from "@/scripts/migrate";
 import { createAccountWithUser } from "@/server/accounts";
@@ -38,6 +38,8 @@ function engine(opts: { quotaLimit?: number; status?: number; reason?: string; a
 async function draft() {
   const db = getDb();
   const { account } = await createAccountWithUser(db, { email: `send-${randomUUID()}@example.com`, planCode: "standard_monthly" });
+  // Onboarding done (Phase 14): polling and drafts run only after it.
+  await db.update(accounts).set({ onboardedAt: new Date() }).where(eq(accounts.id, account.id));
   const [channel] = await db
     .insert(channels)
     .values({

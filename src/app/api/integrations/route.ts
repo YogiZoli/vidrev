@@ -6,6 +6,7 @@ import { QUEUES } from "@/jobs/queues";
 import { requireEnv } from "@/lib/env";
 import { currentSession } from "@/server/auth/current";
 import { isSameOrigin, redirectTo } from "@/server/http";
+import { returnPath } from "@/server/onboarding";
 import { disconnectGhl } from "@/server/ghl/connect";
 import { connectStripe, disconnectStripe } from "@/server/stripe/connect";
 import { updateGhlConfig } from "@/server/ghl/tokens";
@@ -74,7 +75,7 @@ export async function POST(request: Request): Promise<Response> {
     }
     case "stripe_connect": {
       const result = await connectStripe(db, key, accountId, field("apiKey"));
-      return redirectTo(result.ok ? `${STRIPE}?stripe_connected=1` : `${STRIPE}?error=${encodeURIComponent(result.error)}`);
+      return redirectTo(returnPath(session.account, result.ok ? `${STRIPE}?stripe_connected=1` : `${STRIPE}?error=${encodeURIComponent(result.error)}`));
     }
     case "stripe_disconnect":
       await disconnectStripe(db, accountId, field("id"));

@@ -57,6 +57,8 @@ export async function createDraft(deps: DraftDeps, commentId: string): Promise<v
     .where(eq(comments.id, commentId));
   if (!row) return;
   const { comment, channel, account, plan } = row;
+  // No AI drafts before onboarding is complete (Phase 14).
+  if (!account.onboardedAt) return;
   const [existing] = await deps.db.select({ id: replies.id }).from(replies).where(eq(replies.commentId, comment.id));
   if (existing) return;
 

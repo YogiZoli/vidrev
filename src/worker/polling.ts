@@ -28,12 +28,12 @@ const RSS_INTERVAL_MS = 15 * 60_000;
 type ChannelRow = typeof channels.$inferSelect;
 
 // A channel is polled only when it is connected, its account is active and
-// it has at least one enabled campaign (DECISIONS Q-02).
+// onboarded (Phase 14) and it has at least one enabled campaign (DECISIONS Q-02).
 function activeCondition() {
   return and(
     eq(channels.status, "connected"),
     exists(
-      sql`(select 1 from ${accounts} where ${accounts.id} = ${channels.accountId} and ${accounts.status} = 'active')`,
+      sql`(select 1 from ${accounts} where ${accounts.id} = ${channels.accountId} and ${accounts.status} = 'active' and ${accounts.onboardedAt} is not null)`,
     ),
     exists(
       sql`(select 1 from ${campaigns} where ${campaigns.channelId} = ${channels.id} and ${campaigns.active} = true)`,
@@ -79,6 +79,8 @@ export async function checkRss(deps: EngineDeps, channelId: string): Promise<voi
   const now = deps.now?.() ?? new Date();
   const [channel] = await deps.db.select().from(channels).where(eq(channels.id, channelId));
   if (!channel?.youtubeChannelId || channel.status !== "connected") return;
+  const [account] = await deps.db.select({ onboardedAt: accounts.onboardedAt }).from(accounts).where(eq(accounts.id, channel.accountId));
+  if (!account?.onboardedAt) return;
   const response = await deps.fetch(rssUrl(channel.youtubeChannelId));
   await deps.db.update(channels).set({ rssCheckedAt: now }).where(eq(channels.id, channel.id));
   if (!response.ok) {
@@ -123,8 +125,10 @@ function threadTime(thread: CommentThread): Date {
 // queued for drafting; everything else is dropped without being stored.
 export async function pollChannel(deps: EngineDeps, channelId: string): Promise<void> {
   const now = deps.now?.() ?? new Date();
-  const [channel] = await deps.db.select().from(channels).where(and(eq(channels.id, channelId), activeCondition()));
-  if (!channel?.youtubeChannelId) return;
+  const [channel] = await deps.db.select().from(channels).where(eq(channels.id, channelId));
+  if (!channel?.youtubeChannelId || channel.status !== "connected") return;
+  const [account] = await deps.db.select({ onboardedAt: accounts.onboardedAt }).from(accounts).where(eq(accounts.id, channel.accountId));
+  if (!account?.onboardedAt) return;
   const channelCampaigns = await deps.db
     .select()
     .from(campaigns)

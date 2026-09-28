@@ -85,6 +85,13 @@
       "when": 1790363524536,
       "tag": "0011_ghl_installs",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1790619129408,
+      "tag": "0012_onboarding",
+      "breakpoints": true
     }
   ]
 }

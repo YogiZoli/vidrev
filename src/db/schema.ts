@@ -75,6 +75,12 @@ export const accounts = pgTable("accounts", {
   aiProvider: text("ai_provider").$type<AiProvider>().notNull().default("platform"),
   aiKeyEnc: text("ai_key_enc"),
   aiModel: text("ai_model"),
+  // Onboarding (Phase 14): the app, polling and drafts stay locked until it is
+  // complete. `purchaseSource` names what counts as a purchase; links point to
+  // `defaultTargetUrl` unless a campaign says otherwise.
+  onboardedAt: timestamp("onboarded_at", { withTimezone: true }),
+  purchaseSource: text("purchase_source").$type<"ghl" | "stripe">(),
+  defaultTargetUrl: text("default_target_url"),
   // Last "drafts are waiting" email, so the notification is throttled.
   draftsNotifiedAt: timestamp("drafts_notified_at", { withTimezone: true }),
   // Owner kill switch for the shared fallback link host (R-20).

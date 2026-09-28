@@ -15,7 +15,15 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     label: "Connections",
     links: [
       { href: "/app/settings/youtube", label: "YouTube channel" },
-      { href: "/app/settings/integrations", label: "Integrations" },
+      { href: "/app/settings/gohighlevel", label: "GoHighLevel" },
+      { href: "/app/settings/stripe", label: "Stripe" },
+    ],
+  },
+  {
+    label: "Developers",
+    links: [
+      { href: "/app/settings/webhooks", label: "Webhooks" },
+      { href: "/app/settings/inbound", label: "Inbound endpoints" },
     ],
   },
   {

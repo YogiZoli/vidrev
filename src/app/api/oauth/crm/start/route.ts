@@ -10,7 +10,7 @@ import { clientIsSecure, redirectTo } from "@/server/http";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const PAGE = "/app/settings/integrations";
+const PAGE = "/app/settings/gohighlevel";
 
 // "Connect GoHighLevel": HighLevel asks the creator to pick the sub-account
 // (location) and approve the scopes, then calls back.

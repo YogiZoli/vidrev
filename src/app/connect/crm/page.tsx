@@ -72,7 +72,7 @@ export default async function ConnectCrmPage({ searchParams }: { searchParams: P
 
       {!pending && !error ? (
         <p className="m-0 text-base">
-          Nothing is waiting to be connected. To connect HighLevel, {session ? <a href="/app/settings/integrations">open Integrations</a> : <a href="/login">sign in</a>} and press
+          Nothing is waiting to be connected. To connect HighLevel, {session ? <a href="/app/settings/gohighlevel">open GoHighLevel settings</a> : <a href="/login">sign in</a>} and press
           Connect, or install the app again from HighLevel.
         </p>
       ) : null}

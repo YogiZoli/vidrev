@@ -1,7 +1,7 @@
 import { desc, eq } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import { videos } from "@/db/schema";
-import { log } from "@/lib/log";
+import { errorFields, log } from "@/lib/log";
 import { parseFeed, rssUrl } from "@/server/youtube/feed";
 
 export interface PickableVideo {
@@ -37,7 +37,7 @@ export async function pickableVideos(
           .map((entry) => ({ youtubeVideoId: entry.videoId, title: entry.title, publishedAt: entry.published }));
       }
     } catch (error) {
-      log("warn", "video picker feed failed", { channelId: channel.id, error: String(error) });
+      log("warn", "video picker feed failed", { channelId: channel.id, ...errorFields(error) });
     }
   }
   const byId = new Map<string, PickableVideo>();

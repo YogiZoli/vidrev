@@ -65,6 +65,14 @@ async function main(): Promise<void> {
   process.on("SIGINT", () => void shutdown("SIGINT"));
 }
 
+// Anything thrown outside a job would otherwise vanish or kill the process
+// without a line in the log.
+process.on("unhandledRejection", (reason) => log("error", "unhandled promise rejection in worker", errorFields(reason)));
+process.on("uncaughtException", (error) => {
+  log("error", "uncaught exception in worker, exiting", errorFields(error));
+  process.exit(1);
+});
+
 main().catch((error) => {
   log("error", "worker failed to start", errorFields(error));
   process.exit(1);

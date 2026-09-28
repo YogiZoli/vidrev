@@ -1,7 +1,7 @@
 import { and, eq, lte, sql } from "drizzle-orm";
 import { integrations, purchases } from "@/db/schema";
 import { readTid } from "@/lib/inbound";
-import { log } from "@/lib/log";
+import { errorFields, log } from "@/lib/log";
 import { normalizeCurrency, toMinorUnits } from "@/lib/money";
 import { normalizeEmail } from "@/lib/email";
 import { type EmitInput, emitEventSafely, kickWith } from "@/server/integrations/events";
@@ -259,7 +259,7 @@ export async function syncGhl(deps: GhlWorkerDeps, integrationId: string): Promi
         } catch (error) {
           if (error instanceof GhlReauthError) throw error;
           errors.push(`${name}: ${error instanceof GhlApiError ? `HTTP ${error.status}` : String(error)}`);
-          log("warn", "ghl sync step failed", { integrationId, step: name, error: String(error) });
+          log("warn", "ghl sync step failed", { integrationId, step: name, ...errorFields(error) });
         }
       };
       await step("contacts", async () => {

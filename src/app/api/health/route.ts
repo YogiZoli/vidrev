@@ -3,6 +3,7 @@ import { getDb } from "@/db/client";
 import { latestHeartbeat } from "@/db/heartbeat";
 import { appVersion } from "@/lib/env";
 import { evaluateHealth } from "@/lib/health";
+import { errorFields, log } from "@/lib/log";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -18,7 +19,7 @@ export async function GET(): Promise<Response> {
     lastBeatAt = await latestHeartbeat(db);
     dbOk = true;
   } catch (error) {
-    console.error(JSON.stringify({ level: "error", msg: "health check failed", error: String(error) }));
+    log("error", "health check failed", errorFields(error));
   }
 
   const report = evaluateHealth({ dbOk, lastBeatAt, now: new Date() });

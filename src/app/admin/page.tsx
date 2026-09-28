@@ -9,7 +9,9 @@ import { env } from "@/lib/env";
 import { auditOverview, listAccountsForAdmin, listPlans } from "@/server/admin";
 import { requireAdmin } from "@/server/auth/current";
 import { auditUnitsLeft } from "@/server/quota";
+import { systemHealth } from "@/server/system-health";
 import { Notice } from "../ui";
+import { SystemHealthCard } from "./SystemHealthCard";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +21,13 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const { msg } = await searchParams;
   const db = getDb();
   const auditLimit = env().AUDIT_DAILY_LIMIT;
-  const [accountRows, planRows, audit, auditLeft] = await Promise.all([listAccountsForAdmin(db), listPlans(db), auditOverview(db), auditUnitsLeft(db, auditLimit)]);
+  const [accountRows, planRows, audit, auditLeft, health] = await Promise.all([
+    listAccountsForAdmin(db),
+    listPlans(db),
+    auditOverview(db),
+    auditUnitsLeft(db, auditLimit),
+    systemHealth(db),
+  ]);
   const founding = accountRows.filter((a) => a.planCode === "founding").length;
   const foundingCap = planRows.find((p) => p.code === "founding")?.seatsCap ?? 100;
 
@@ -37,6 +45,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     <Page width="xl">
       <PageHeader title="Owner admin" />
       {msg ? <Notice tone="info">{msg}</Notice> : null}
+      <SystemHealthCard health={health} />
 
       <Card className="grid gap-3">
         <SectionTitle>Grant access</SectionTitle>

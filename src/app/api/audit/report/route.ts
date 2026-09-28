@@ -7,7 +7,7 @@ import { errorFields, log } from "@/lib/log";
 import { RateLimiter } from "@/lib/ratelimit";
 import { requestReport } from "@/server/audit/report";
 import { isSameOrigin, redirectTo } from "@/server/http";
-import { clientIp } from "@/server/integrations/inbound-http";
+import { clientIp } from "@/lib/client-ip";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -21,7 +21,7 @@ export async function POST(request: Request): Promise<Response> {
   const form = await request.formData().catch(() => null);
   const auditId = String(form?.get("audit") ?? "");
   const back = (query: string) => redirectTo(`/audit/${encodeURIComponent(auditId)}?${query}`);
-  if (reportLimit.hit(`ip:${clientIp(request.headers)}`) > 0) return back("error=rate");
+  if (reportLimit.hit(`ip:${(clientIp(request.headers) ?? "unknown")}`) > 0) return back("error=rate");
 
   const db = getDb();
   try {

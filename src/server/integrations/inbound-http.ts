@@ -1,4 +1,5 @@
 import { getDb } from "@/db/client";
+import { clientIp } from "@/lib/client-ip";
 import { parseBody, parseOptIn, parsePurchase, readRaw } from "@/lib/inbound";
 import { errorFields, log } from "@/lib/log";
 import { RateLimiter } from "@/lib/ratelimit";
@@ -26,10 +27,6 @@ export function readToken(request: Request): string | null {
   return bearer ?? request.headers.get("x-hook-token")?.trim() ?? new URL(request.url).searchParams.get("token")?.trim() ?? null;
 }
 
-export function clientIp(headers: Headers): string {
-  return headers.get("cf-connecting-ip") ?? headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-}
-
 // Every answer is logged: accepted events with their outcome, refusals with
 // the reason, so a creator's "my sale did not show up" can be traced.
 function refused(kind: string, reason: string, status: number, fields: Record<string, unknown> = {}): Response {
@@ -38,7 +35,7 @@ function refused(kind: string, reason: string, status: number, fields: Record<st
 }
 
 export async function handleInbound(request: Request, kind: "optin" | "purchase"): Promise<Response> {
-  const ip = clientIp(request.headers);
+  const ip = clientIp(request.headers) ?? "unknown";
   // Only failed authorizations count against an address; callers with a
   // good token are limited per account below.
   const blocked = failureLimit.peek(`ip:${ip}`);

@@ -8,7 +8,7 @@ import { RateLimiter } from "@/lib/ratelimit";
 import { verifyTurnstile } from "@/server/audit/report";
 import { createAudit } from "@/server/audit/service";
 import { isSameOrigin, redirectTo } from "@/server/http";
-import { clientIp } from "@/server/integrations/inbound-http";
+import { clientIp } from "@/lib/client-ip";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -20,7 +20,7 @@ const startLimit = new RateLimiter(5, 3_600_000);
 
 export async function POST(request: Request): Promise<Response> {
   if (!isSameOrigin(request)) return redirectTo("/audit?error=origin");
-  const ip = clientIp(request.headers);
+  const ip = (clientIp(request.headers) ?? "unknown");
   if (startLimit.hit(`ip:${ip}`) > 0) return redirectTo("/audit?error=rate");
 
   const form = await request.formData().catch(() => null);

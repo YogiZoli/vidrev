@@ -36,6 +36,13 @@ function validUrl(value: string): boolean {
   }
 }
 
+// Two video scopes overlap when either is all videos (null) or they share one.
+export function overlaps(a: string[] | null, b: string[] | null): boolean {
+  if (a === null || b === null) return true;
+  const set = new Set(a);
+  return b.some((id) => set.has(id));
+}
+
 export interface CampaignInput {
   channelId: string;
   name: string;
@@ -70,6 +77,19 @@ export async function createCampaign(db: Db, accountId: string, input: CampaignI
     .from(channels)
     .where(and(eq(channels.id, input.channelId), eq(channels.accountId, accountId), eq(channels.status, "connected")));
   if (!channel) return { ok: false, error: "Connect your channel first." };
+  // One rule per keyword and video (review finding 14): a second GUIDE rule
+  // on a video already watched for GUIDE would split the numbers and confuse.
+  const sameKeyword = await db
+    .select({ videoIds: campaigns.videoIds, active: campaigns.active })
+    .from(campaigns)
+    .where(and(eq(campaigns.channelId, channel.id), eq(campaigns.keyword, keyword)));
+  const clash = sameKeyword.find((rule) => overlaps(rule.videoIds, videoIds));
+  if (clash) {
+    return {
+      ok: false,
+      error: `${keyword} is already watched on ${clash.videoIds === null || videoIds === null ? "these videos" : "some of these videos"}${clash.active ? "" : " by a paused rule"}. Resume or delete that rule instead.`,
+    };
+  }
   await db.insert(campaigns).values({
     accountId,
     channelId: channel.id,

@@ -4,7 +4,7 @@ import { campaigns } from "@/db/schema";
 import { env } from "@/lib/env";
 import { fallbackHost } from "@/lib/link-host";
 import { repliesLeftToday } from "@/lib/quota";
-import { nextPacificMidnight, pacificDate } from "@/lib/time";
+import { formatUtcMinute, nextPacificMidnight, pacificDate } from "@/lib/time";
 import { requireSession } from "@/server/auth/current";
 import { queueView } from "@/server/campaigns";
 import { ensureReplyLink } from "@/server/links";
@@ -19,10 +19,6 @@ import { REPLY_REASONS } from "@/lib/status-text";
 
 
 
-
-function formatUtc(date: Date): string {
-  return `${date.toISOString().slice(0, 16).replace("T", " ")} UTC`;
-}
 
 // The approval queue, the daily action on Home.
 export async function ApprovalQueue() {
@@ -67,7 +63,7 @@ export async function ApprovalQueue() {
         videoTitle: row.videoTitle,
         commentUrl: row.comment ? commentUrl(row.reply.youtubeVideoId, row.comment.youtubeCommentId) : null,
         repliedBefore: row.repliedBefore,
-        eta: queued ? `waiting for YouTube's daily limit to reset, about ${formatUtc(reset)} (#${position} in line)` : null,
+        eta: queued ? `waiting for YouTube's daily limit to reset, about ${formatUtcMinute(reset)} (#${position} in line)` : null,
       };
     });
 

@@ -2,9 +2,7 @@ import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 
 // Shared bits of the integration pages under Settings.
-export function when(date: Date | null): string {
-  return date ? date.toISOString().replace("T", " ").slice(0, 16) + " UTC" : "never";
-}
+export { formatUtcMinute as when } from "@/lib/time";
 
 export function Mono({ children }: { children: ReactNode }) {
   return <code className="break-all font-mono text-[13px]">{children}</code>;

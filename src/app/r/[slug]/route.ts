@@ -1,4 +1,5 @@
 import { getDb } from "@/db/client";
+import { clientIp } from "@/lib/client-ip";
 import { env } from "@/lib/env";
 import { errorFields, log } from "@/lib/log";
 import { fallbackHost, linkHostOf } from "@/lib/link-host";
@@ -15,10 +16,6 @@ function page(status: number, text: string): Response {
     status,
     headers: { ...NO_STORE, "content-type": "text/html; charset=utf-8" },
   });
-}
-
-function clientIp(headers: Headers): string | null {
-  return headers.get("cf-connecting-ip") ?? headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? headers.get("x-real-ip");
 }
 
 // Tracked link redirect (SPEC section 8). Reached through src/proxy.ts on a

@@ -8,7 +8,12 @@ import { Card } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/input";
 import { Meta, PublicCard, SectionTitle } from "@/components/ui/page";
 import { getDb } from "@/db/client";
-import { failureText, foundingCtaUrl, MARKETING_CONSENT_TEXT, maskEmail } from "@/lib/audit/view";
+import {
+  failureText,
+  foundingCtaUrl,
+  MARKETING_CONSENT_TEXT,
+  maskEmail,
+} from "@/lib/audit/view";
 import { getAudit } from "@/server/audit/service";
 import { Notice } from "../../ui";
 import { AutoRefresh } from "./AutoRefresh";
@@ -21,7 +26,8 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
 const ERRORS: Record<string, string> = {
   invalid_email: "Enter a valid email address.",
   not_ready: "The audit is not finished yet.",
-  expired: "This audit is older than 30 days and its details were deleted. Run a new one.",
+  expired:
+    "This audit is older than 30 days and its details were deleted. Run a new one.",
   limit: "That address already received the maximum number of reports today.",
   rate: "Too many requests from your address. Please try again later.",
   server: "Something went wrong. Please try again in a moment.",
@@ -30,7 +36,13 @@ const ERRORS: Record<string, string> = {
 
 const H1 = "m-0 text-[28px] font-bold leading-tight tracking-[-0.016em]";
 
-export default async function AuditResultPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
+export default async function AuditResultPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
   const { id } = await params;
   const query = await searchParams;
   const audit = await getAudit(getDb(), id);
@@ -49,7 +61,10 @@ export default async function AuditResultPage({ params, searchParams }: { params
           <div className="skeleton h-4 w-4/5" />
           <div className="skeleton h-4 w-3/5" />
         </div>
-        <p className="m-0 text-base text-ink-2">We are reading your last videos and comments and checking the links in your descriptions. This takes a few seconds.</p>
+        <p className="m-0 text-base text-ink-2">
+          We are reading your last videos and comments and checking the links in
+          your descriptions. This takes a few seconds.
+        </p>
       </PublicCard>
     );
   }
@@ -70,42 +85,73 @@ export default async function AuditResultPage({ params, searchParams }: { params
   const expired = Boolean(audit.apiDataScrubbedAt) || !audit.examples;
   const emailSlot = expired ? (
     <Notice tone="info">
-      The details of this audit were deleted after 30 days (YouTube data rule). <Link href="/audit">Run a new audit</Link>.
+      The details of this audit were deleted after 30 days (YouTube data rule).{" "}
+      <Link href="/audit">Run a new audit</Link>.
     </Notice>
   ) : audit.reportSentAt ? (
-    <Meta className="text-[15px]">The full report was sent to {audit.requesterEmail ? maskEmail(audit.requesterEmail) : "you"}.</Meta>
+    <Meta className="text-[15px]">
+      The full report was sent to{" "}
+      {audit.requesterEmail ? maskEmail(audit.requesterEmail) : "you"}.
+    </Meta>
   ) : (
     <Card className="grid gap-3">
       <SectionTitle>Get the full list by email</SectionTitle>
-      <Meta className="text-[15px]">Every comment that needs a reply, every keyword candidate and the full link check.</Meta>
+      <Meta className="text-[15px]">
+        Every comment that needs a reply, every keyword candidate and the full
+        link check.
+      </Meta>
       <form method="post" action="/api/audit/report" className="grid gap-3">
         <input type="hidden" name="audit" value={audit.id} />
         <Label htmlFor="email">Email</Label>
-        <Input id="email" name="email" type="email" required autoComplete="email" large />
+        <Input
+          id="email"
+          name="email"
+          type="email"
+          required
+          autoComplete="email"
+          large
+        />
         <label className="flex items-start gap-2 text-sm">
-          <input type="checkbox" name="marketing" className="mt-1 size-4 accent-[var(--primary-600)]" />
+          <input
+            type="checkbox"
+            name="marketing"
+            className="mt-1 size-4 accent-[var(--primary-600)]"
+          />
           <span>{MARKETING_CONSENT_TEXT}</span>
         </label>
         <Button type="submit" size="lg">
           Email me the full list
         </Button>
       </form>
-      <Meta>The report is sent because you ask for it. Ticking the box is optional and only adds tips.</Meta>
+      <Meta>
+        The report is sent because you ask for it. Ticking the box is optional
+        and only adds tips.
+      </Meta>
     </Card>
   );
 
   return (
-    <PublicCard width="md">
+    <main className="mx-auto grid max-w-[1180px] gap-5 px-4 pb-16 pt-4">
       {query.sent ? (
         <Notice tone="info">
-          The full report is on its way to {audit.requesterEmail ? maskEmail(audit.requesterEmail) : "your inbox"}. Check your spam folder if it does not arrive in a few minutes.
+          The full report is on its way to{" "}
+          {audit.requesterEmail
+            ? maskEmail(audit.requesterEmail)
+            : "your inbox"}
+          . Check your spam folder if it does not arrive in a few minutes.
         </Notice>
       ) : null}
       {error ? <Notice tone="error">{error}</Notice> : null}
-      <AuditResultV2 channelLabel={label} result={result} examples={expired ? null : audit.examples} ctaUrl={foundingCtaUrl()} emailSlot={emailSlot} />
+      <AuditResultV2
+        channelLabel={label}
+        result={result}
+        examples={expired ? null : audit.examples}
+        ctaUrl={foundingCtaUrl()}
+        emailSlot={emailSlot}
+      />
       <p className="m-0 flex flex-wrap gap-4 text-[15px]">
         <Link href="/audit">Check another channel</Link>
       </p>
-    </PublicCard>
+    </main>
   );
 }

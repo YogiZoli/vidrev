@@ -16,31 +16,61 @@ const ERRORS: Record<string, string> = {
 };
 
 // Audit my channel (SPEC section 13): free, no sign-in, real numbers only.
-export default async function AuditPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+export default async function AuditPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
   const params = await searchParams;
   const { TURNSTILE_SITE_KEY, TURNSTILE_SECRET_KEY } = env();
-  const turnstile = TURNSTILE_SITE_KEY && TURNSTILE_SECRET_KEY ? TURNSTILE_SITE_KEY : null;
-  const error = params.error === "input" ? (params.msg ?? "Paste your @handle or the channel URL.") : params.error ? ERRORS[params.error] : null;
+  const turnstile =
+    TURNSTILE_SITE_KEY && TURNSTILE_SECRET_KEY ? TURNSTILE_SITE_KEY : null;
+  const error =
+    params.error === "input"
+      ? (params.msg ?? "Paste your @handle or the channel URL.")
+      : params.error
+        ? ERRORS[params.error]
+        : null;
 
   return (
     <PublicCard width="md">
       <Eyebrow>Free, 30 seconds</Eyebrow>
-      <h1 className="m-0 text-[28px] font-bold leading-tight tracking-[-0.016em]">See where I lose money on YouTube</h1>
+      <h1 className="m-0 text-[28px] font-bold leading-tight tracking-[-0.016em]">
+        See where I lose money on YouTube
+      </h1>
       <p className="m-0 text-base text-ink-2">
-        We read your last 5 videos and count the people who asked how to buy and got no answer. Then you see what they are worth, in your own numbers.
+        We read your last 5 videos and count the people who asked how to buy and
+        got no answer. Then you see what they are worth, in your own numbers.
       </p>
       {error ? <Notice tone="error">{error}</Notice> : null}
       <form method="post" action="/api/audit" className="grid gap-3">
         <Label htmlFor="channel">Your @handle or channel URL</Label>
-        <Input id="channel" name="channel" required maxLength={300} placeholder="@yourchannel" autoComplete="off" large />
-        {turnstile ? <div className="cf-turnstile" data-sitekey={turnstile} /> : null}
+        <Input
+          id="channel"
+          name="channel"
+          required
+          maxLength={300}
+          placeholder="@yourchannel"
+          autoComplete="off"
+          large
+        />
+        {turnstile ? (
+          <div className="cf-turnstile" data-sitekey={turnstile} />
+        ) : null}
         <Button type="submit" size="lg" pulse>
           Show me where I lose money
         </Button>
       </form>
-      {turnstile ? <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" strategy="afterInteractive" /> : null}
+      {turnstile ? (
+        <Script
+          src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+          strategy="afterInteractive"
+        />
+      ) : null}
       <Meta>
-        Free, no sign-in. Only public data is read, comment text is never stored, and nothing is posted to your channel. {productName()} does not need access to your account for this.
+        Free, no sign-in. Only public data is read, comment text is never
+        stored, and nothing is posted to your channel. {productName()} does not
+        need access to your account for this.
       </Meta>
     </PublicCard>
   );

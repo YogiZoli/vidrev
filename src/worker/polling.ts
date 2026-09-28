@@ -157,9 +157,12 @@ export async function pollChannel(deps: EngineDeps, channelId: string): Promise<
   const fresh: CommentThread[] = [];
   let pageToken: string | undefined;
   let reachedCursor = false;
+  // Why the pages stopped before the cursor, if they did.
+  let stoppedBy: "read_budget" | "youtube_refused" | null = null;
   for (let page = 0; page < MAX_PAGES && !reachedCursor; page += 1) {
     if (!(await reserveUnits(deps.db, { method: "commentThreads.list", accountId: channel.accountId, limit: deps.quotaLimit }, now))) {
-      log("warn", "poll skipped: read budget used up", { channelId });
+      log("warn", "poll stopped: read budget used up", { channelId, page });
+      stoppedBy = "read_budget";
       break;
     }
     let result: Awaited<ReturnType<typeof listChannelThreads>>;
@@ -167,7 +170,8 @@ export async function pollChannel(deps: EngineDeps, channelId: string): Promise<
       result = await listChannelThreads(deps.fetch, token, channel.youtubeChannelId, pageToken);
     } catch (error) {
       if (error instanceof YoutubeApiError && (error.quotaExceeded || error.status === 403)) {
-        log("warn", "poll refused by YouTube", { channelId, reason: error.reason });
+        log("warn", "poll refused by YouTube", { channelId, page, status: error.status, reason: error.reason });
+        stoppedBy = "youtube_refused";
         break;
       }
       throw error;
@@ -182,7 +186,13 @@ export async function pollChannel(deps: EngineDeps, channelId: string): Promise<
     pageToken = result.nextPageToken;
     if (!pageToken) reachedCursor = true;
   }
-  if (!reachedCursor && fresh.length > 0) log("warn", "poll page limit reached, oldest new comments skipped", { channelId });
+  // Stopped by budget or refusal: the unread pages are read next time, so
+  // the cursor stays (stored comments are deduplicated by their YouTube id).
+  // Stopped by the page limit: the oldest new comments are given up, logged.
+  const keepCursor = !reachedCursor && stoppedBy !== null;
+  if (!reachedCursor && stoppedBy === null && fresh.length > 0) {
+    log("warn", "poll page limit reached, oldest new comments skipped", { channelId, pages: MAX_PAGES, read: fresh.length });
+  }
 
   const matchable = channelCampaigns.map((c) => ({ ...c, aliases: c.aliases ?? [] }));
   const newVideoIds = new Set<string>();
@@ -214,8 +224,9 @@ export async function pollChannel(deps: EngineDeps, channelId: string): Promise<
   }
 
   await learnVideos(deps, channel, token, [...newVideoIds], now);
-  const newest = fresh.reduce((max, thread) => (threadTime(thread) > max ? threadTime(thread) : max), cursor);
+  const newest = keepCursor ? cursor : fresh.reduce((max, thread) => (threadTime(thread) > max ? threadTime(thread) : max), cursor);
   await schedule({ lastPolledAt: now, commentCursor: newest });
+  if (fresh.length > 0 || stoppedBy) log("info", "poll done", { channelId, read: fresh.length, stoppedBy, cursorKept: keepCursor });
 }
 
 // Titles for the approval queue, 1 unit per 50 videos, only for videos with a

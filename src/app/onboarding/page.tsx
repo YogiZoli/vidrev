@@ -15,20 +15,11 @@ import { ghlConfigured } from "@/server/ghl/config";
 import { readGhlConfig } from "@/server/ghl/tokens";
 import { completeOnboardingIfReady, type OnboardingStep, onboardingState, parseTargetUrl } from "@/server/onboarding";
 import { Notice } from "../ui";
+import { CHANNEL_CONNECT_ERRORS, CHANNEL_REASONS } from "@/lib/status-text";
 
 export const dynamic = "force-dynamic";
 
 // Google callback errors (same keys as before the gate).
-const ERRORS: Record<string, string> = {
-  google_not_configured: "Channel connection is not configured yet.",
-  account_suspended: "Your account is suspended.",
-  channel_limit: "Your plan's channel limit is reached.",
-  google_denied: "The Google permission was not granted.",
-  scope_missing: "The comment permission was unticked on the Google screen. Connect again and keep it ticked.",
-  no_refresh_token: "Google did not grant offline access. Connect again.",
-  oauth_state: "The connection request expired. Try again.",
-  oauth_failed: "Connecting failed. Try again.",
-};
 
 const STEPS: { key: OnboardingStep; title: string; why: string }[] = [
   { key: "youtube", title: "Connect your YouTube channel", why: "We read the comments on your videos and post the replies you approve." },
@@ -92,12 +83,15 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
           Nothing is read, drafted or sent until every step is done: a comment only pays off when it can turn into a lead and a sale.
         </p>
       </div>
-      {params.error ? <Notice tone="error">{ERRORS[params.error] ?? params.error}</Notice> : null}
+      {params.error ? <Notice tone="error">{CHANNEL_CONNECT_ERRORS[params.error] ?? params.error}</Notice> : null}
       {params.connected || state.channelConnecting ? <Notice tone="info">Google access granted. Finishing the connection.</Notice> : null}
+      {state.channelProblem && !params.error ? (
+        <Notice tone="error">{CHANNEL_REASONS[state.channelProblem] ?? "The channel could not be connected. Connect again."}</Notice>
+      ) : null}
       {params.ghl_connected ? <Notice tone="info">GoHighLevel connected.</Notice> : null}
 
       <ol className="m-0 grid list-none gap-3 p-0">
-        <Step n={1} {...STEPS[0]} state={stateOf("youtube")}>
+        <Step n={1} title={STEPS[0]!.title} why={STEPS[0]!.why} state={stateOf("youtube")}>
           {state.channelConnecting ? null : (
             <div>
               <Button asChild pulse>
@@ -110,7 +104,7 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
           <Meta>We ask Google only for permission to read comments and post the replies you approve.</Meta>
         </Step>
 
-        <Step n={2} {...STEPS[1]} state={stateOf("crm")}>
+        <Step n={2} title={STEPS[1]!.title} why={STEPS[1]!.why} state={stateOf("crm")}>
           {ghlConfigured() ? (
             <div>
               <Button asChild pulse>
@@ -134,7 +128,7 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
           ) : null}
         </Step>
 
-        <Step n={3} {...STEPS[2]} state={stateOf("purchases")}>
+        <Step n={3} title={STEPS[2]!.title} why={STEPS[2]!.why} state={stateOf("purchases")}>
           <form method="post" action="/api/onboarding">
             <input type="hidden" name="action" value="purchase_ghl" />
             <Button type="submit" pulse>
@@ -162,7 +156,7 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
           </details>
         </Step>
 
-        <Step n={4} {...STEPS[3]} state={stateOf("target")}>
+        <Step n={4} title={STEPS[3]!.title} why={STEPS[3]!.why} state={stateOf("target")}>
           <form method="post" action="/api/onboarding" className="grid gap-3">
             <input type="hidden" name="action" value="target" />
             <Field

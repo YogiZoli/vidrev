@@ -15,18 +15,10 @@ import { Keyword } from "@/components/ui/badge";
 import { Meta, SectionTitle } from "@/components/ui/page";
 import { Table, TableWrap, Td } from "@/components/ui/table";
 import { type CardData, PendingCards, WaitingCards } from "./QueueCards";
+import { REPLY_REASONS } from "@/lib/status-text";
 
 
 
-const REASONS: Record<string, string> = {
-  monthly_cap: "monthly plan limit reached",
-  daily_quota: "YouTube's daily limit",
-  comment_gone: "the comment was deleted",
-  channel_revoked: "channel access was revoked",
-  channel_not_connected: "channel not connected",
-  commentsDisabled: "comments are turned off on this video",
-  forbidden: "YouTube refused the reply",
-};
 
 function formatUtc(date: Date): string {
   return `${date.toISOString().slice(0, 16).replace("T", " ")} UTC`;
@@ -121,7 +113,7 @@ export async function ApprovalQueue() {
                     </Td>
                     <Td>
                       {card.status.replace("_", " ")}
-                      {card.statusReason ? ` (${REASONS[card.statusReason] ?? card.statusReason})` : ""}
+                      {card.statusReason ? ` (${REPLY_REASONS[card.statusReason] ?? card.statusReason})` : ""}
                     </Td>
                   </tr>
                 ))}

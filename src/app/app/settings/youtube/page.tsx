@@ -5,27 +5,11 @@ import { getDb } from "@/db/client";
 import { requireSession } from "@/server/auth/current";
 import { listChannels, LIVE_STATUSES } from "@/server/channels";
 import { Notice } from "../../../ui";
+import { CHANNEL_CONNECT_ERRORS, CHANNEL_REASONS } from "@/lib/status-text";
 
 export const dynamic = "force-dynamic";
 
-const ERRORS: Record<string, string> = {
-  google_not_configured: "Channel connection is not configured yet.",
-  account_suspended: "Your account is suspended. Renew your subscription to connect a channel.",
-  channel_limit: "Your plan's channel limit is reached. Disconnect a channel first.",
-  google_denied: "The Google permission was not granted.",
-  scope_missing: "The comment permission was unticked on the Google screen. Connect again and keep it ticked.",
-  no_refresh_token: "Google did not grant offline access. Connect again.",
-  oauth_state: "The connection request expired. Try again.",
-  oauth_failed: "Connecting failed. Try again.",
-  channel_not_found: "That channel was not found.",
-};
 
-const REASONS: Record<string, string> = {
-  no_channel: "This Google account has no channel. Connect the Google account that owns your channel.",
-  connected_to_another_account: "This channel is already connected to another account.",
-  account_suspended: "Your account is suspended.",
-  access_revoked: "Access was revoked in your Google account. Connect again.",
-};
 
 // Settings > YouTube channel: the channel that is polled and replied from.
 export default async function YoutubeSettingsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
@@ -40,7 +24,7 @@ export default async function YoutubeSettingsPage({ searchParams }: { searchPara
     <Page width="md">
       {connecting ? <meta httpEquiv="refresh" content="3" /> : null}
       <PageHeader title="YouTube channel" />
-      {params.error && ERRORS[params.error] ? <Notice tone="error">{ERRORS[params.error]}</Notice> : null}
+      {params.error && CHANNEL_CONNECT_ERRORS[params.error] ? <Notice tone="error">{CHANNEL_CONNECT_ERRORS[params.error]}</Notice> : null}
       {params.disconnected ? <Notice tone="info">Channel disconnected. Its YouTube data is being deleted.</Notice> : null}
         <Card className="grid content-start gap-3">
           <SectionTitle>Channel</SectionTitle>
@@ -52,7 +36,7 @@ export default async function YoutubeSettingsPage({ searchParams }: { searchPara
                 <span className={`inline-flex items-center gap-1.5 text-[13px] font-bold ${channel.status === "connected" ? "text-success" : "text-muted-foreground"}`}>
                   {channel.status === "connected" ? <span aria-hidden className="size-1.5 rounded-full bg-success" /> : null}
                   {channel.status}
-                  {channel.statusReason && REASONS[channel.statusReason] ? `: ${REASONS[channel.statusReason]}` : ""}
+                  {channel.statusReason && CHANNEL_REASONS[channel.statusReason] ? `: ${CHANNEL_REASONS[channel.statusReason]}` : ""}
                 </span>
               </div>
               {channel.status !== "disconnecting" && channel.status !== "connecting" ? (

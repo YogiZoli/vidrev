@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import { accounts, channels, integrations } from "@/db/schema";
 
@@ -14,6 +14,8 @@ export interface OnboardingState {
   current: OnboardingStep | null;
   // The channel is being resolved by the worker right now.
   channelConnecting: boolean;
+  // Why the latest connect attempt did not work (rejected or revoked), if so.
+  channelProblem: string | null;
   ghlActive: boolean;
   stripeActive: boolean;
   purchaseSource: "ghl" | "stripe" | null;
@@ -26,9 +28,10 @@ export async function onboardingState(db: Db, accountId: string): Promise<Onboar
     .from(accounts)
     .where(eq(accounts.id, accountId));
   const channelRows = await db
-    .select({ status: channels.status })
+    .select({ status: channels.status, statusReason: channels.statusReason })
     .from(channels)
-    .where(and(eq(channels.accountId, accountId), inArray(channels.status, ["connecting", "connected"])));
+    .where(and(eq(channels.accountId, accountId), inArray(channels.status, ["connecting", "connected", "rejected", "revoked"])))
+    .orderBy(desc(channels.createdAt));
   const integrationRows = await db
     .select({ type: integrations.type, status: integrations.status })
     .from(integrations)
@@ -47,6 +50,7 @@ export async function onboardingState(db: Db, accountId: string): Promise<Onboar
     done,
     current: ONBOARDING_STEPS.find((step) => !done[step]) ?? null,
     channelConnecting: channelRows.some((r) => r.status === "connecting"),
+    channelProblem: !youtube && channelRows[0] && ["rejected", "revoked"].includes(channelRows[0].status) ? (channelRows[0].statusReason ?? channelRows[0].status) : null,
     ghlActive,
     stripeActive,
     purchaseSource,

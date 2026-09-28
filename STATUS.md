@@ -1,6 +1,6 @@
 # STATUS
 
-Last updated: 2026-09-29 (Phase 14 restructure done)
+Last updated: 2026-09-29 (reliability review, fix phase 2 of 5)
 
 ## End goal
 
@@ -48,6 +48,12 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 | 13 | Restyle to the Shine design (v3): tokens, shells, every page, micro-interactions | **DONE** (2026-09-26), PRs #40 to #58; test fix #59 |
 
 Phase plan changes (all accepted): compliance pack and quota extension request right after Phase 5 (Q-17 a); one GHL Marketplace app created Private in Phase 6 and made Public in Phase 10 (Q-17 b); retention job in Phase 4 (Q-17 c, done); Cloudflare for SaaS spike once the brand domain exists (Q-17 d).
+
+## Reliability review 2026-09-29 (in progress)
+
+Findings 1 to 16 were agreed with the owner; fixes run in five small phases: 2 correctness (this PR), 1 observability foundation, 3 event logs, 4 duplicates, 5 System health panel on /admin.
+
+- Phase 2 done: (1) a reply is never posted twice: after the post it never returns to approved; an unknown outcome (no answer from YouTube) stays "sending" and `recoverUnconfirmedSends` (engine tick, after 10 minutes) reads the comment's replies (1 unit) and either confirms it as sent or sends again; when YouTube cannot be asked it fails with `send_unconfirmed`. (2) A channel stuck in "connecting" for 30 minutes is rejected with `connect_timeout` (grant revoked), so onboarding shows why instead of refreshing for ever. (3) The poll cursor stays when YouTube or the read budget stops the pages early (no comment lost); only the page limit gives comments up, logged. (4) Stripe "account taken" only on a real unique violation (23505); other errors are thrown and retried. (5) The AI prompt gets what the viewer gets (catalog text), also for rules saved with the keyword as name. Status texts live in `src/lib/status-text.ts`; onboarding shows why the last channel connect failed and no longer spreads a React key. Tests: every integration test file runs on its own fresh database (`src/test-setup/isolated-db.ts`), which removes the occasional red CI caused by parallel global sweeps.
 
 ## Phase 14: restructure (done)
 

@@ -8,7 +8,7 @@ import { runMigrations } from "@/scripts/migrate";
 import { createAccountWithUser } from "@/server/accounts";
 import { approveReply, markSentManually } from "@/server/approval";
 import type { EngineDeps } from "./polling";
-import { fairOrder, releaseQueued, sendReply } from "./sending";
+import { fairOrder, recoverUnconfirmedSends, releaseQueued, sendReply, UNCONFIRMED_AFTER_MS } from "./sending";
 
 const hasDb = Boolean(process.env.DATABASE_URL);
 const key = randomBytes(32).toString("base64");
@@ -161,5 +161,90 @@ describe.skipIf(!hasDb)("approval and sending (integration)", () => {
     });
     expect(await markSentManually(getDb(), first.account.id, first.reply.id, undefined, now)).toBe(true);
     expect((await status(first.reply.id)).status).toBe("sent_manually");
+  });
+  // A fetch that fails the POST as told and answers the replies lookup.
+  function flaky(post: "network" | "5xx", repliesFound: { authorChannelId: string; publishedAt: string }[] = [], at = now) {
+    const posts: string[] = [];
+    const lookups: string[] = [];
+    const sent: { queue: string; data: unknown }[] = [];
+    const deps: EngineDeps = {
+      db: getDb(),
+      fetch: async (url, init) => {
+        if (init?.method === "POST") {
+          posts.push(url);
+          if (post === "network") throw new TypeError("fetch failed");
+          return Response.json({ error: { errors: [{ reason: "backendError" }] } }, { status: 503 });
+        }
+        lookups.push(url);
+        return Response.json({ items: repliesFound.map((r, i) => ({ id: `found-${i}`, snippet: { authorChannelId: { value: r.authorChannelId }, publishedAt: r.publishedAt } })) });
+      },
+      encryptionKey: key,
+      google: { clientId: "c", clientSecret: "s" },
+      now: () => at,
+      quotaLimit: 1_000_000_000,
+      enqueue: async (queue, data) => {
+        sent.push({ queue, data });
+      },
+    };
+    return { deps, posts, lookups, sent };
+  }
+
+  async function channelOf(replyId: string) {
+    const [row] = await getDb().select({ yt: channels.youtubeChannelId }).from(replies).innerJoin(channels, eq(channels.id, replies.channelId)).where(eq(replies.id, replyId));
+    return row!.yt!;
+  }
+
+  it("retries a 5xx from YouTube, which posted nothing", async () => {
+    const { account, reply } = await draft();
+    await approveReply(getDb(), { accountId: account.id, replyId: reply.id, body: "Here: {link}" }, now);
+    const { deps } = flaky("5xx");
+    await expect(sendReply(deps, reply.id)).rejects.toThrow();
+    expect((await status(reply.id)).status).toBe("approved");
+  });
+
+  it("never posts twice when YouTube does not answer: it checks, then confirms the live reply", async () => {
+    const { account, reply } = await draft();
+    await approveReply(getDb(), { accountId: account.id, replyId: reply.id, body: "Here: {link}" }, now);
+    const lost = flaky("network");
+    await sendReply(lost.deps, reply.id);
+    expect(lost.posts).toHaveLength(1);
+    expect((await status(reply.id)).status).toBe("sending");
+    // A retried job does not post again while the outcome is unknown.
+    await sendReply(lost.deps, reply.id);
+    expect(lost.posts).toHaveLength(1);
+
+    // Too early: nothing is checked yet.
+    const early = flaky("network", [], new Date(now.getTime() + 60_000));
+    await recoverUnconfirmedSends(early.deps);
+    expect(early.lookups).toHaveLength(0);
+
+    const later = new Date(now.getTime() + UNCONFIRMED_AFTER_MS + 60_000);
+    const check = flaky("network", [{ authorChannelId: await channelOf(reply.id), publishedAt: now.toISOString() }], later);
+    await recoverUnconfirmedSends(check.deps);
+    expect(check.posts).toHaveLength(0);
+    expect(await status(reply.id)).toMatchObject({ status: "sent", youtubeReplyId: "found-0" });
+  });
+
+  it("sends again only when YouTube shows no reply from the channel", async () => {
+    const { account, reply } = await draft();
+    await approveReply(getDb(), { accountId: account.id, replyId: reply.id, body: "Here: {link}" }, now);
+    await sendReply(flaky("network").deps, reply.id);
+    const later = new Date(now.getTime() + UNCONFIRMED_AFTER_MS + 60_000);
+    // A reply by someone else does not count.
+    const check = flaky("network", [{ authorChannelId: "UC-someone-else", publishedAt: now.toISOString() }], later);
+    await recoverUnconfirmedSends(check.deps);
+    expect((await status(reply.id)).status).toBe("approved");
+    expect(check.sent).toContainEqual({ queue: "reply.send", data: { replyId: reply.id } });
+  });
+
+  it("fails an unconfirmed send with a reason when the channel is gone", async () => {
+    const { account, reply } = await draft();
+    await approveReply(getDb(), { accountId: account.id, replyId: reply.id, body: "Here: {link}" }, now);
+    await sendReply(flaky("network").deps, reply.id);
+    await getDb().update(channels).set({ status: "revoked" }).where(eq(channels.id, reply.channelId));
+    const check = flaky("network", [], new Date(now.getTime() + UNCONFIRMED_AFTER_MS + 60_000));
+    await recoverUnconfirmedSends(check.deps);
+    expect(await status(reply.id)).toMatchObject({ status: "failed", statusReason: "send_unconfirmed" });
+    expect(check.lookups).toHaveLength(0);
   });
 });

@@ -17,20 +17,10 @@ import { readSnapshots } from "@/server/reports";
 import { Notice } from "../ui";
 import { ApprovalQueue } from "./_home/Queue";
 import { ago, HeadlineCard } from "./reports/Headline";
+import { CHANNEL_CONNECT_ERRORS } from "@/lib/status-text";
 
 export const dynamic = "force-dynamic";
 
-const ERRORS: Record<string, string> = {
-  google_not_configured: "Channel connection is not configured yet.",
-  account_suspended: "Your account is suspended. Renew your subscription to connect a channel.",
-  channel_limit: "Your plan's channel limit is reached. Disconnect a channel first.",
-  google_denied: "The Google permission was not granted.",
-  scope_missing: "The comment permission was unticked on the Google screen. Connect again and keep it ticked.",
-  no_refresh_token: "Google did not grant offline access. Connect again.",
-  oauth_state: "The connection request expired. Try again.",
-  oauth_failed: "Connecting failed. Try again.",
-  channel_not_found: "That channel was not found.",
-};
 
 export default async function AppPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const { account, plan } = await requireSession();
@@ -50,7 +40,7 @@ export default async function AppPage({ searchParams }: { searchParams: Promise<
       {/* While the worker resolves a channel, refresh every few seconds. */}
       {connecting ? <meta httpEquiv="refresh" content="3" /> : null}
 
-      {params.error && ERRORS[params.error] ? <Notice tone="error">{ERRORS[params.error]}</Notice> : null}
+      {params.error && CHANNEL_CONNECT_ERRORS[params.error] ? <Notice tone="error">{CHANNEL_CONNECT_ERRORS[params.error]}</Notice> : null}
       {pendingInstall ? (
         <Notice tone="info">
           You installed the app from HighLevel. <a href={GHL_CLAIM_PAGE}>Finish connecting it to this account.</a>

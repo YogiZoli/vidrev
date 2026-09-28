@@ -15,6 +15,12 @@ import type { Enqueue } from "./polling";
 // 5 minutes with the creator's restricted key. Payments end up in the same
 // `purchases` table as every other source, resolved to Contacts (section 13).
 
+// Postgres unique_violation, directly or wrapped by drizzle in `cause`.
+export function isUniqueViolation(error: unknown): boolean {
+  const code = (error as { code?: string })?.code ?? (error as { cause?: { code?: string } })?.cause?.code;
+  return code === "23505";
+}
+
 export interface StripeWorkerDeps {
   db: Db;
   fetch: FetchLike;
@@ -96,8 +102,11 @@ export async function syncStripe(deps: StripeWorkerDeps, integrationId: string):
         try {
           await deps.db.update(integrations).set({ externalRef: account.id }).where(eq(integrations.id, integrationId));
           externalRef = account.id;
-        } catch {
-          // The unique index: this Stripe account already feeds another account (P8-07).
+        } catch (error) {
+          // Only the unique index means this Stripe account already feeds
+          // another account (P8-07); any other error is a real failure.
+          if (!isUniqueViolation(error)) throw error;
+          log("warn", "stripe account already connected elsewhere", { integrationId, stripeAccount: account.id });
           await deps.db
             .update(integrations)
             .set({ status: "error", statusReason: "account_taken", lastError: "This Stripe account is already connected to another vidrev account.", updatedAt: now })

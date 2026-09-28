@@ -29,13 +29,16 @@ function thread(id: string, text: string, publishedAt: string, author = "UCviewe
   };
 }
 
-function engine(pages: unknown[][], opts: { quotaLimit?: number } = {}) {
+function engine(pages: unknown[][], opts: { quotaLimit?: number; refuseFromPage?: number } = {}) {
   const sent: Sent[] = [];
   const urls: string[] = [];
   let page = 0;
   const fetchImpl = async (url: string) => {
     urls.push(url);
     if (url.includes("/commentThreads?")) {
+      if (opts.refuseFromPage !== undefined && page >= opts.refuseFromPage) {
+        return Response.json({ error: { errors: [{ reason: "quotaExceeded" }] } }, { status: 403 });
+      }
       const items = pages[page] ?? [];
       page += 1;
       return Response.json({ items, ...(page < pages.length ? { nextPageToken: `p${page}` } : {}) });
@@ -147,6 +150,31 @@ describe.skipIf(!hasDb)("channel polling (integration)", () => {
     await pollChannel(deps, channel.id);
     expect(urls.filter((u) => u.includes("/commentThreads?"))).toHaveLength(3);
     expect(sent).toHaveLength(2);
+  });
+
+  it("keeps the cursor when YouTube stops the pages early, so no new comment is lost", async () => {
+    const { channel } = await setup();
+    const [before] = await getDb().select().from(channels).where(eq(channels.id, channel.id));
+    const newest = thread(`c-${randomUUID()}`, "guide please", minutesAgo(2));
+    const older = thread(`c-${randomUUID()}`, "GUIDE", minutesAgo(20));
+    const pages = [[newest], [older]];
+
+    const stopped = engine(pages, { refuseFromPage: 1 });
+    await pollChannel(stopped.deps, channel.id);
+    expect(stopped.sent).toHaveLength(1);
+    const [afterStop] = await getDb().select().from(channels).where(eq(channels.id, channel.id));
+    // Not moved past the unread page.
+    expect(afterStop!.commentCursor?.getTime() ?? null).not.toBe(new Date(minutesAgo(2)).getTime());
+    expect(afterStop!.commentCursor ?? before!.commentCursor).not.toBeNull();
+
+    const full = engine(pages);
+    await pollChannel(full.deps, channel.id);
+    // The older comment is drafted now; the newest one is not drafted twice.
+    expect(full.sent).toHaveLength(1);
+    const stored = await getDb().select().from(comments).where(eq(comments.channelId, channel.id));
+    expect(stored.map((c) => c.youtubeCommentId).sort()).toEqual([newest.id, older.id].sort());
+    const [afterFull] = await getDb().select().from(channels).where(eq(channels.id, channel.id));
+    expect(afterFull!.commentCursor).toEqual(new Date(minutesAgo(2)));
   });
 
   it("skips the poll without calling YouTube when the read budget is used up", async () => {

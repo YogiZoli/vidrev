@@ -19,6 +19,8 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 - Landing and funnel decisions in DECISIONS section 18 (L-01 revised: audit is the main CTA, no trial until 100 founding sales; L-08 trial paused).
 - `/audit/sample` shows a sample audit (invented channel, real analysis, full report email). Audit redesign proposal: Drive doc "07 vidrev Audit újratervezés", waits for the owner. Landing sections: Drive doc "06 vidrev Landing szekciók".
 - Fixed a second date-bound test (#65, weekly summary on Mondays).
+- Audit v2 "See where I lose money on YouTube" is live (#69): `/audit`, `/audit/<id>`, `/audit/sample`. Owner to set `FOUNDING_CHECKOUT_URL` (GoHighLevel checkout) on `web`; until then the CTA goes to `BRAND_BASE_URL`. Comment text is still never stored, so the waiting comments show the video title and a YouTube link, not the text.
+- Next: landing page, 13 sections in HTML (`design/landing/`), then GoHighLevel (L-10).
 - Next: owner brainstorm on the landing page and funnel, then a phase plan (not started).
 
 ## Phases

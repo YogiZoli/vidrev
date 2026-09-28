@@ -73,7 +73,8 @@ export async function createCampaign(db: Db, accountId: string, input: CampaignI
   await db.insert(campaigns).values({
     accountId,
     channelId: channel.id,
-    name: input.name.trim() || keyword,
+    // What the viewer gets (catalog), used by the AI draft and as the title.
+    name: input.name.trim() || picked.gets,
     keyword,
     // Misspellings: as edited in Advanced, else the automatic ones.
     aliases: (input.aliases.trim() ? splitList(input.aliases.toUpperCase()) : misspellings(keyword)).filter((a) => a !== keyword).slice(0, 10),

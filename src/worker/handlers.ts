@@ -8,12 +8,12 @@ import { postJson } from "@/server/integrations/http-post";
 import { pruneDeliveries } from "@/server/integrations/outbound";
 import { appBaseUrl, domainConnectConfig, env } from "@/lib/env";
 import { errorFields, log } from "@/lib/log";
-import { type ChannelDeps, disconnectChannel, syncChannel } from "./channels";
+import { type ChannelDeps, disconnectChannel, expireStuckConnects, syncChannel } from "./channels";
 import { EmailSendError, senderAddress, sendWithResend } from "./email";
 import { createDraft } from "./drafts";
 import { checkDomain, type DomainDeps, queueDomainChecks, removeDomainHostname } from "./domains";
 import { runRetention } from "./retention";
-import { sendReply } from "./sending";
+import { recoverUnconfirmedSends, sendReply } from "./sending";
 import { checkRss, type EngineDeps, engineTick, pollChannel, renewWebsub } from "./polling";
 import { deliver, deliverDue, type WebhookDeps } from "./webhooks";
 import { pushAuditLead } from "@/server/audit/owner-crm";
@@ -224,6 +224,10 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
     await failStuckAudits(getDb(), new Date());
     const deps = engineDeps(boss);
     if (deps) await engineTick(deps);
+    // Recovery of stuck states, each on its own so one failure never blocks the other.
+    if (deps) await recoverUnconfirmedSends(deps).catch((error: unknown) => log("error", "send recovery failed", errorFields(error)));
+    const channels = channelDeps();
+    if (channels) await expireStuckConnects(channels).catch((error: unknown) => log("error", "connect timeout sweep failed", errorFields(error)));
   });
   // Audit my channel (Phase 9): one run per request, own API key and quota.
   await boss.work<AuditJob>(QUEUES.auditRun, async ([job]) => runAudit(auditDeps(), job!.data.auditId));

@@ -75,6 +75,17 @@ export function listVideos(fetchImpl: FetchLike, token: string, ids: string[]) {
   return call<{ items?: VideoItem[] }>(fetchImpl, token, `/videos?${params.toString()}`);
 }
 
+// Replies under one top-level comment (comments.list by parentId, 1 unit).
+// Used to confirm whether a send whose outcome is unknown reached YouTube.
+export function listReplies(fetchImpl: FetchLike, token: string, parentId: string) {
+  const params = new URLSearchParams({ part: "snippet", parentId, textFormat: "plainText", maxResults: "100" });
+  return call<{ items?: { id: string; snippet?: { textOriginal?: string; authorChannelId?: { value?: string }; publishedAt?: string } }[] }>(
+    fetchImpl,
+    token,
+    `/comments?${params.toString()}`,
+  );
+}
+
 // Up to 50 ids per call, 1 unit. Used by the retention job to refresh.
 export function listCommentsById(fetchImpl: FetchLike, token: string, ids: string[]) {
   const params = new URLSearchParams({ part: "snippet", id: ids.join(","), textFormat: "plainText", maxResults: "50" });

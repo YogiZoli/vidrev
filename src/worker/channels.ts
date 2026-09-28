@@ -1,8 +1,8 @@
-import { and, eq, inArray, ne } from "drizzle-orm";
+import { and, eq, inArray, lt, ne } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import { accounts, channels, comments, contactIdentities, replies, videos } from "@/db/schema";
 import { decryptSecret, encryptSecret } from "@/lib/crypto";
-import { log } from "@/lib/log";
+import { errorFields, log } from "@/lib/log";
 import { recordQuota } from "@/server/channels";
 import { type FetchLike, type GoogleClient, GoogleOAuthError, refreshAccessToken, revokeToken } from "@/server/google/oauth";
 
@@ -175,4 +175,27 @@ export async function disconnectChannel(deps: ChannelDeps, channelId: string): P
     .where(eq(channels.id, channel.id));
   await wipeYoutubeData(deps.db, channel.id);
   log("info", "channel disconnected", { channelId });
+}
+
+// A grant that never finished connecting (channel.sync failed on every retry,
+// or the job was lost) would keep the creator on "Finishing the connection"
+// for ever, and onboarding locked. After 30 minutes it is rejected with
+// "connect_timeout", so the creator sees why and connects again.
+export const CONNECT_TIMEOUT_MS = 30 * 60_000;
+
+export async function expireStuckConnects(deps: ChannelDeps): Promise<number> {
+  const now = deps.now?.() ?? new Date();
+  const stuck = await deps.db
+    .select()
+    .from(channels)
+    .where(and(eq(channels.status, "connecting"), lt(channels.createdAt, new Date(now.getTime() - CONNECT_TIMEOUT_MS))));
+  for (const channel of stuck) {
+    try {
+      log("error", "channel connect timed out", { channelId: channel.id, accountId: channel.accountId, createdAt: channel.createdAt.toISOString() });
+      await reject(deps, channel, "connect_timeout");
+    } catch (error) {
+      log("error", "channel connect timeout handling failed", { channelId: channel.id, ...errorFields(error) });
+    }
+  }
+  return stuck.length;
 }

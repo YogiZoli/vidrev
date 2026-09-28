@@ -4,6 +4,7 @@ import { accounts, campaigns, channels, comments, plans, replies, templates, use
 import { decryptSecret } from "@/lib/crypto";
 import { matchComment } from "@/lib/keywords";
 import { detectLanguage, pickReplyLanguage } from "@/lib/language";
+import { catalogKeyword } from "@/lib/keyword-catalog";
 import { log } from "@/lib/log";
 import { LINK_PLACEHOLDER } from "@/lib/templates";
 import { type AiConfig, buildPrompt, cleanDraft, DEFAULT_MODELS, generateText } from "@/server/ai";
@@ -46,6 +47,13 @@ function aiConfig(deps: DraftDeps, account: typeof accounts.$inferSelect): AiCon
 // Turns a stored keyword comment into a draft waiting for approval (D-25).
 // One reply per comment (Q-10b); the best match is chosen, the others are
 // kept so the creator can switch on the approval card.
+// What the viewer asked for, for the AI prompt. Rules made between the
+// catalog change and this fix carry the keyword as name; use the catalog text.
+export function offerText(campaign: { name: string; keyword: string }): string {
+  if (campaign.name.trim().toUpperCase() !== campaign.keyword.trim().toUpperCase()) return campaign.name;
+  return catalogKeyword(campaign.keyword)?.gets ?? campaign.name;
+}
+
 export async function createDraft(deps: DraftDeps, commentId: string): Promise<void> {
   const now = deps.now?.() ?? new Date();
   const [row] = await deps.db
@@ -91,7 +99,7 @@ export async function createDraft(deps: DraftDeps, commentId: string): Promise<v
   if (config) {
     try {
       const prompt = buildPrompt({
-        campaignName: campaign.name,
+        campaignName: offerText(campaign),
         keyword: campaign.keyword,
         commentText: comment.text,
         language,

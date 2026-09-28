@@ -138,7 +138,7 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="grid min-w-0 gap-1.5">
               <div className="flex flex-wrap items-center gap-2">
-                <strong className="text-lg">{campaign.name}</strong>
+                <strong className="text-lg first-letter:uppercase">{campaign.name}</strong>
                 <Badge tone={campaign.active ? "success" : "neutral"}>{campaign.active ? "on" : "paused"}</Badge>
                 <TemperatureChip temperature={campaign.intent} />
               </div>

@@ -7,7 +7,8 @@ import { decryptSecret } from "@/lib/crypto";
 import { runMigrations } from "@/scripts/migrate";
 import { createAccountWithUser } from "@/server/accounts";
 import { countLiveChannels, createConnectingChannel, markDisconnecting } from "@/server/channels";
-import { type ChannelDeps, disconnectChannel, syncChannel } from "./channels";
+import { onboardingState } from "@/server/onboarding";
+import { type ChannelDeps, CONNECT_TIMEOUT_MS, disconnectChannel, expireStuckConnects, syncChannel } from "./channels";
 
 // Runs only where a real Postgres is available (CI service container).
 const hasDb = Boolean(process.env.DATABASE_URL);
@@ -98,6 +99,23 @@ describe.skipIf(!hasDb)("channel connection (integration)", () => {
     const row = await channelRow(second);
     expect(row).toMatchObject({ status: "rejected", statusReason: "connected_to_another_account", refreshTokenEnc: null });
     expect(google.calls.some((c) => c.url.endsWith("/revoke"))).toBe(true);
+  });
+
+  it("rejects a connect that never finished after 30 minutes, revokes it and tells onboarding why", async () => {
+    const account = await newAccount();
+    const id = await connecting(account.id);
+    const created = (await channelRow(id)).createdAt;
+    const google = fakeGoogle({ youtubeChannelId: null });
+
+    await expireStuckConnects({ ...deps(google.fetchImpl), now: () => new Date(created.getTime() + 60_000) });
+    expect((await channelRow(id)).status).toBe("connecting");
+
+    await expireStuckConnects({ ...deps(google.fetchImpl), now: () => new Date(created.getTime() + CONNECT_TIMEOUT_MS + 60_000) });
+    const row = await channelRow(id);
+    expect(row).toMatchObject({ status: "rejected", statusReason: "connect_timeout", refreshTokenEnc: null });
+    expect(google.calls.some((c) => c.url === "https://oauth2.googleapis.com/revoke")).toBe(true);
+    const state = await onboardingState(getDb(), account.id);
+    expect(state).toMatchObject({ current: "youtube", channelConnecting: false, channelProblem: "connect_timeout" });
   });
 
   it("rejects a Google account without a channel", async () => {

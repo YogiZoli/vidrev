@@ -2,10 +2,11 @@ import { getDb } from "@/db/client";
 import { enqueue } from "@/jobs/enqueue";
 import { QUEUES } from "@/jobs/queues";
 import { env } from "@/lib/env";
-import { log } from "@/lib/log";
 import { currentSession } from "@/server/auth/current";
 import { addDomain, removeDomain, reservedDomains, restartDomainCheck } from "@/server/domains/service";
 import { isSameOrigin, redirectTo } from "@/server/http";
+import { logRefused, recordAction } from "@/server/events";
+import { alertOwners } from "@/server/notify";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -19,33 +20,46 @@ export async function POST(request: Request): Promise<Response> {
   const field = (name: string) => String(form.get(name) ?? "");
   const accountId = session.account.id;
   const db = getDb();
-  const { APP_BASE_URL, BRAND_BASE_URL, LINK_FALLBACK_BASE_URL, CUSTOM_HOSTNAME_LIMIT, ADMIN_EMAILS } = env();
+  const { APP_BASE_URL, BRAND_BASE_URL, LINK_FALLBACK_BASE_URL, CUSTOM_HOSTNAME_LIMIT } = env();
+  const who = { userId: session.user.id, accountId };
 
   switch (field("action")) {
     case "add": {
       const result = await addDomain(db, accountId, field("hostname"), reservedDomains([APP_BASE_URL, BRAND_BASE_URL, LINK_FALLBACK_BASE_URL]), CUSTOM_HOSTNAME_LIMIT);
       if (!result.ok) {
+        logRefused("domain.add", result.error, { accountId });
         if (result.capReached) {
-          log("warn", "custom hostname cap reached", { limit: CUSTOM_HOSTNAME_LIMIT });
-          for (const to of (ADMIN_EMAILS ?? "").split(",").map((e) => e.trim()).filter(Boolean)) {
-            const text = `A creator tried to add a link domain, but the cap of ${CUSTOM_HOSTNAME_LIMIT} custom hostnames is reached. Raise CUSTOM_HOSTNAME_LIMIT on Railway (each hostname above 100 costs 0.10 USD a month).
-Account: ${accountId}`;
-            await enqueue(QUEUES.sendEmail, { to, subject: "Custom hostname cap reached", text, html: `<p>${text}</p>` });
-          }
+          await alertOwners([
+            {
+              subject: "Custom hostname cap reached",
+              lines: [
+                `A creator tried to add a link domain, but the cap of ${CUSTOM_HOSTNAME_LIMIT} custom hostnames is reached.`,
+                "Raise CUSTOM_HOSTNAME_LIMIT on Railway (each hostname above 100 costs 0.10 USD a month).",
+                `Account: ${accountId}`,
+              ],
+            },
+          ]);
         }
         return redirectTo(`/app/settings/domain?error=${encodeURIComponent(result.error)}`);
       }
       await enqueue(QUEUES.domainCheck, { domainId: result.id }, { singletonKey: result.id });
+      await recordAction(db, who, "domain.add", { domainId: result.id, hostname: field("hostname").trim().toLowerCase() });
       return redirectTo("/app/settings/domain?added=1");
     }
     case "check": {
       const id = field("domainId");
-      if (await restartDomainCheck(db, accountId, id)) await enqueue(QUEUES.domainCheck, { domainId: id }, { singletonKey: id });
+      if (await restartDomainCheck(db, accountId, id)) {
+        await enqueue(QUEUES.domainCheck, { domainId: id }, { singletonKey: id });
+        await recordAction(db, who, "domain.check", { domainId: id });
+      } else logRefused("domain.check", "domain not found", { accountId, domainId: id });
       return redirectTo("/app/settings/domain?checking=1");
     }
     case "remove": {
       const id = field("domainId");
-      if (await removeDomain(db, accountId, id)) await enqueue(QUEUES.domainRemove, { domainId: id });
+      if (await removeDomain(db, accountId, id)) {
+        await enqueue(QUEUES.domainRemove, { domainId: id });
+        await recordAction(db, who, "domain.remove", { domainId: id });
+      } else logRefused("domain.remove", "domain not found", { accountId, domainId: id });
       return redirectTo("/app/settings/domain?removed=1");
     }
     default:

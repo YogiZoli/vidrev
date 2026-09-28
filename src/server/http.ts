@@ -1,4 +1,5 @@
 import { appBaseUrl, env } from "@/lib/env";
+import { log } from "@/lib/log";
 
 // Redirect to a path on this app; always absolute so it works behind the
 // Railway proxy. Built by hand because Response.redirect() has immutable
@@ -12,12 +13,17 @@ export function redirectTo(pathOrUrl: string, status: 303 | 302 = 303): Response
 // SameSite=Lax as well; this is the second layer against CSRF.
 export function isSameOrigin(request: Request): boolean {
   const origin = request.headers.get("origin");
-  if (!origin) return env().NODE_ENV !== "production";
-  try {
-    return new URL(origin).origin === new URL(appBaseUrl()).origin;
-  } catch {
-    return false;
+  let ok: boolean;
+  if (!origin) ok = env().NODE_ENV !== "production";
+  else {
+    try {
+      ok = new URL(origin).origin === new URL(appBaseUrl()).origin;
+    } catch {
+      ok = false;
+    }
   }
+  if (!ok) log("warn", "cross-origin form post refused", { path: new URL(request.url).pathname, origin: origin ?? "(none)" });
+  return ok;
 }
 
 export function clientIsSecure(): boolean {

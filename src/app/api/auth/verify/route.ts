@@ -3,6 +3,7 @@ import { getDb } from "@/db/client";
 import { sessionCookie } from "@/server/auth/current";
 import { consumeMagicLink, createSession } from "@/server/auth/tokens";
 import { isSameOrigin, redirectTo } from "@/server/http";
+import { log } from "@/lib/log";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -16,9 +17,13 @@ export async function POST(request: Request): Promise<Response> {
 
   const db = getDb();
   const userId = await consumeMagicLink(db, token);
-  if (!userId) return redirectTo("/login?error=expired");
+  if (!userId) {
+    log("warn", "sign-in link refused", { reason: "expired or used" });
+    return redirectTo("/login?error=expired");
+  }
 
   const session = await createSession(db, userId);
   (await cookies()).set(sessionCookie(session.token));
+  log("info", "user signed in", { userId });
   return redirectTo("/app");
 }

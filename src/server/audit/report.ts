@@ -1,4 +1,5 @@
 import { and, count, eq, gt } from "drizzle-orm";
+import { errorFields, log } from "@/lib/log";
 import type { Db } from "@/db/client";
 import { audits } from "@/db/schema";
 import type { SendEmailJob } from "@/jobs/queues";
@@ -84,7 +85,8 @@ export async function verifyTurnstile(secret: string, token: string | null, ip: 
       signal: AbortSignal.timeout(4_000),
     });
     return ((await response.json()) as { success?: boolean }).success === true;
-  } catch {
+  } catch (error) {
+    log("error", "turnstile check failed, audit request refused", errorFields(error));
     return false;
   }
 }

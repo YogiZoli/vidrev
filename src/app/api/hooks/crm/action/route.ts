@@ -11,20 +11,25 @@ export const runtime = "nodejs";
 // Execution URL of the marketplace workflow action "Find the video behind this
 // contact" (DECISIONS P10-05). Reads our own rows only; the optional note on
 // the contact is queued for the worker, so this never calls HighLevel.
+function refuse(reason: string, status: number): Response {
+  log("warn", "ghl workflow action refused", { reason, status });
+  return Response.json({ error: reason }, { status });
+}
+
 export async function POST(request: Request): Promise<Response> {
   if (!verifyActionKey(request.headers.get("x-vidrev-key"), env().GHL_ACTION_SECRET)) {
-    return Response.json({ error: "unauthorized" }, { status: 401 });
+    return refuse(env().GHL_ACTION_SECRET ? "unauthorized" : "unauthorized (GHL_ACTION_SECRET not set)", 401);
   }
   const raw = await request.text();
-  if (raw.length > 65_536) return Response.json({ error: "payload_too_large" }, { status: 413 });
+  if (raw.length > 65_536) return refuse("payload_too_large", 413);
   let body: unknown;
   try {
     body = JSON.parse(raw);
   } catch {
-    return Response.json({ error: "invalid_json" }, { status: 400 });
+    return refuse("invalid_json", 400);
   }
   const parsed = parseActionRequest(body);
-  if (!parsed) return Response.json({ error: "missing_location_or_contact" }, { status: 400 });
+  if (!parsed) return refuse("missing_location_or_contact", 400);
 
   try {
     const lookup = await findSource(getDb(), parsed.locationId, parsed.contactId);
@@ -36,6 +41,7 @@ export async function POST(request: Request): Promise<Response> {
         { singletonKey: `note:${parsed.contactId}:${lookup.source.optedInAt.getTime()}` },
       );
     }
+    log("info", "ghl workflow action answered", { status: lookup.status, locationId: parsed.locationId, noteQueued: lookup.status === "ok" && parsed.addNote });
     return Response.json(actionResponse(lookup));
   } catch (error) {
     // A 5xx lets HighLevel show the step as failed instead of silently empty.

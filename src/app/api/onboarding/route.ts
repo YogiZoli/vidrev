@@ -4,6 +4,7 @@ import { accounts } from "@/db/schema";
 import { requireEnv } from "@/lib/env";
 import { currentSession } from "@/server/auth/current";
 import { isSameOrigin, redirectTo } from "@/server/http";
+import { logRefused, recordAction } from "@/server/events";
 import { completeOnboardingIfReady, onboardingState, parseTargetUrl } from "@/server/onboarding";
 import { connectStripe } from "@/server/stripe/connect";
 
@@ -23,28 +24,47 @@ export async function POST(request: Request): Promise<Response> {
   const accountId = session.account.id;
   const db = getDb();
   const state = await onboardingState(db, accountId);
+  const who = { userId: session.user.id, accountId };
+  const action = field("action");
+  // A step posted before the one it needs is done (an old tab): back to the page.
+  const early = (needs: string) => {
+    logRefused(`onboarding.${action}`, `step ${needs} not done`, { accountId, current: state.current });
+    return redirectTo(PAGE);
+  };
 
-  switch (field("action")) {
+  switch (action) {
     case "purchase_ghl":
-      if (!state.done.crm) return redirectTo(PAGE);
+      if (!state.done.crm) return early("crm");
       await db.update(accounts).set({ purchaseSource: "ghl" }).where(eq(accounts.id, accountId));
+      await recordAction(db, who, "onboarding.purchase_source", { source: "ghl" });
       break;
     case "purchase_stripe": {
-      if (!state.done.crm) return redirectTo(PAGE);
+      if (!state.done.crm) return early("crm");
       const result = await connectStripe(db, requireEnv("ENCRYPTION_KEY"), accountId, field("apiKey"));
-      if (!result.ok) return redirectTo(`${PAGE}?error=${encodeURIComponent(result.error)}`);
+      if (!result.ok) {
+        logRefused("onboarding.stripe", result.error, { accountId });
+        return redirectTo(`${PAGE}?error=${encodeURIComponent(result.error)}`);
+      }
       await db.update(accounts).set({ purchaseSource: "stripe" }).where(eq(accounts.id, accountId));
+      await recordAction(db, who, "onboarding.purchase_source", { source: "stripe" });
       break;
     }
     case "target": {
-      if (!state.done.purchases) return redirectTo(PAGE);
+      if (!state.done.purchases) return early("purchases");
       const url = parseTargetUrl(field("url"));
-      if (!url) return redirectTo(`${PAGE}?error=${encodeURIComponent("Enter the full address of your opt-in page, for example https://example.com/guide.")}`);
+      if (!url) {
+        logRefused("onboarding.target", "invalid url", { accountId });
+        return redirectTo(`${PAGE}?error=${encodeURIComponent("Enter the full address of your opt-in page, for example https://example.com/guide.")}`);
+      }
       await db.update(accounts).set({ defaultTargetUrl: url }).where(eq(accounts.id, accountId));
+      await recordAction(db, who, "onboarding.target_url", { host: new URL(url).host });
       break;
     }
     default:
+      logRefused("onboarding", "unknown action", { accountId, action });
       return redirectTo(PAGE);
   }
-  return redirectTo((await completeOnboardingIfReady(db, accountId)) ? "/app?welcome=1" : PAGE);
+  const done = await completeOnboardingIfReady(db, accountId);
+  if (done) await recordAction(db, who, "onboarding.completed");
+  return redirectTo(done ? "/app?welcome=1" : PAGE);
 }

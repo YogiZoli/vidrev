@@ -1,4 +1,5 @@
 import { and, eq, ne } from "drizzle-orm";
+import { errorFields, log } from "@/lib/log";
 import type { Db } from "@/db/client";
 import { integrations, outboundDeliveries } from "@/db/schema";
 import type { GhlTokenResponse } from "./oauth";
@@ -51,8 +52,9 @@ export async function connectGhl(db: Db, key: string, accountId: string, tokens:
         const old = readGhlConfig(same.configEnc, key);
         kept = { customFieldId: old.customFieldId, buyerTag: old.buyerTag, locationName: old.locationName };
       }
-    } catch {
-      // unreadable old config: start fresh
+    } catch (error) {
+      // Unreadable old config (ENCRYPTION_KEY changed or damaged row): start fresh.
+      log("warn", "ghl old config unreadable, starting fresh", { integrationId: same.id, ...errorFields(error) });
     }
     await db
       .update(integrations)

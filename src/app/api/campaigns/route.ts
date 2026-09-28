@@ -12,6 +12,7 @@ import {
   setDefaultLanguage,
 } from "@/server/campaigns";
 import { isSameOrigin, redirectTo } from "@/server/http";
+import { logRefused, recordAction } from "@/server/events";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -65,6 +66,18 @@ export async function POST(request: Request): Promise<Response> {
       break;
     default:
       result = { ok: false, error: "Unknown action." };
+  }
+  const action = field("action");
+  const ref = { campaignId: field("campaignId") || undefined, templateId: field("templateId") || undefined, channelId: field("channelId") || undefined };
+  if (result.ok) {
+    await recordAction(db, { userId: session.user.id, accountId }, `campaign.${action}`, {
+      ...ref,
+      ...(action === "create" ? { keyword: field("keyword"), allVideos: field("allVideos") === "1" } : {}),
+      ...(action === "ai" ? { provider: field("provider"), keyChanged: Boolean(field("apiKey")) } : {}),
+      ...(action === "language" ? { language: field("language") } : {}),
+    });
+  } else {
+    logRefused(`campaign.${action}`, result.error, { accountId, ...ref });
   }
   // Settings > Replies posts here too and names its own page to return to.
   const back = field("back") === "/app/settings/replies" ? "/app/settings/replies" : "/app/campaigns";

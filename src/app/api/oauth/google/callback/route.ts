@@ -49,8 +49,12 @@ export async function GET(request: Request): Promise<Response> {
     if (!grantedYoutubeScope(tokens.scope) || !tokens.refresh_token) {
       // Without the YouTube permission or offline access the channel cannot
       // work; hand the grant back instead of storing a useless token.
-      await revokeToken(tokens.refresh_token ?? tokens.access_token).catch(() => {});
-      return redirectTo(`/app?error=${tokens.refresh_token ? "scope_missing" : "no_refresh_token"}`);
+      const reason = tokens.refresh_token ? "scope_missing" : "no_refresh_token";
+      log("warn", "google grant refused", { accountId: session.account.id, reason });
+      await revokeToken(tokens.refresh_token ?? tokens.access_token).catch((error: unknown) =>
+        log("warn", "google token revoke failed", { accountId: session.account.id, ...errorFields(error) }),
+      );
+      return redirectTo(returnPath(session.account, `/app?error=${reason}`));
     }
     const channelId = await createConnectingChannel(
       db,

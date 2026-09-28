@@ -109,6 +109,11 @@ describe.skipIf(!hasDb)("report snapshots (integration)", () => {
     // A Monday, 10:00 UTC; the clicks of setup() are inside the last 7 days.
     const monday = new Date(Date.UTC(2026, 8, 28, 10));
     const now = new Date() > monday ? new Date(monday.getTime() + Math.ceil((Date.now() - monday.getTime()) / (7 * 86_400_000)) * 7 * 86_400_000) : monday;
+    // Move the setup activity next to the chosen Monday; with the real clock
+    // it can fall outside the last 7 days (on a Monday after 10:00 UTC).
+    const hourBefore = new Date(now.getTime() - 3_600_000);
+    await db().update(replies).set({ createdAt: hourBefore, sentAt: hourBefore }).where(eq(replies.accountId, account.id));
+    await db().update(clicks).set({ createdAt: hourBefore }).where(eq(clicks.accountId, account.id));
     const notifyDeps = {
       db: db(),
       now: () => now,

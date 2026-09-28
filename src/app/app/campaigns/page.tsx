@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { CopyMono } from "@/components/motion/CopyButton";
 import { Badge, IntentTag, Keyword } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -28,10 +28,6 @@ function LanguageSelect({ name, value }: { name: string; value?: string }) {
       ))}
     </Select>
   );
-}
-
-function Mono({ children }: { children: ReactNode }) {
-  return <code className="break-all font-mono text-[13px]">{children}</code>;
 }
 
 export default async function CampaignsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
@@ -80,11 +76,11 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
               {staticLinks.get(campaign.id) ? (
                 <>
                   <p className="m-0 text-sm">
-                    Link for descriptions and pinned comments: <Mono>{staticLinks.get(campaign.id)}</Mono>
+                    Link for descriptions and pinned comments: <CopyMono text={staticLinks.get(campaign.id) ?? ""} className="mt-1" />
                   </p>
                   {videoLink && params.campaign === campaign.id ? (
                     <p className="m-0 text-sm">
-                      Link for video {videoId}: <Mono>{videoLink.url}</Mono>
+                      Link for video {videoId}: <CopyMono text={videoLink.url} className="mt-1" />
                     </p>
                   ) : null}
                   <form method="get" action="/app/campaigns" className="mt-1.5 flex flex-wrap gap-2">

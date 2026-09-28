@@ -1,6 +1,7 @@
 import { and, eq, ne } from "drizzle-orm";
 import { cookies } from "next/headers";
 import type { ReactNode } from "react";
+import { CopyMono } from "@/components/motion/CopyButton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -254,7 +255,7 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
               <p className="my-2 text-[13px]">
                 Every request carries <Mono>X-Signature: sha256=&lt;HMAC-SHA256 of the raw body&gt;</Mono> made with this secret.
               </p>
-              <Mono>{configs[index]?.secret}</Mono>
+              <CopyMono text={configs[index]?.secret ?? ""} />
             </details>
             <div className="flex flex-wrap gap-2">
               {(["test", endpoint.status === "active" ? "disable" : "enable", "rotate", "remove"] as const).map((action) => (
@@ -311,19 +312,19 @@ export default async function IntegrationsPage({ searchParams }: { searchParams:
               <tr>
                 <Th>Subscriber</Th>
                 <Td>
-                  <Mono>{appBaseUrl()}/api/hooks/optin</Mono>
+                  <CopyMono text={`${appBaseUrl()}/api/hooks/optin`} />
                 </Td>
               </tr>
               <tr>
                 <Th>Buyer</Th>
                 <Td>
-                  <Mono>{appBaseUrl()}/api/hooks/purchase</Mono>
+                  <CopyMono text={`${appBaseUrl()}/api/hooks/purchase`} />
                 </Td>
               </tr>
               <tr>
                 <Th>Token</Th>
                 <Td>
-                  <Mono>{hookToken}</Mono>
+                  <CopyMono text={hookToken} />
                 </Td>
               </tr>
             </tbody>

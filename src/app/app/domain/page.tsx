@@ -1,4 +1,5 @@
 import { desc, eq } from "drizzle-orm";
+import { CopyMono } from "@/components/motion/CopyButton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -124,8 +125,12 @@ export default async function DomainPage({ searchParams }: { searchParams: Promi
                   <tbody>
                     <tr>
                       <Td className="font-mono text-[13px]">{record.type}</Td>
-                      <Td className="break-all font-mono text-[13px]">{record.name}</Td>
-                      <Td className="break-all font-mono text-[13px]">{record.target}</Td>
+                      <Td>
+                        <CopyMono text={record.name} />
+                      </Td>
+                      <Td>
+                        <CopyMono text={record.target} />
+                      </Td>
                     </tr>
                   </tbody>
                 </Table>

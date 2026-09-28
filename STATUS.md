@@ -1,6 +1,6 @@
 # STATUS
 
-Last updated: 2026-09-29 (Phase 14 restructure, step 5 of 6 done)
+Last updated: 2026-09-29 (Phase 14 restructure done)
 
 ## End goal
 
@@ -44,12 +44,12 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 | 9 | Audit my channel | **DONE** (2026-09-26), PRs #26 to #28; needs the owner setup below before it works live |
 | 10 | GHL Marketplace connector | **DONE** (2026-09-26), PRs #30 to #32; the app is ready for "Start Public review", which waits for the LLC ([docs/MARKETPLACE-LISTING.md](docs/MARKETPLACE-LISTING.md)) |
 | 12 | Compliance and launch readiness | **DONE** (2026-09-26), PRs #34 and #35; submission waits for the LLC and owner steps ([docs/compliance/LAUNCH-CHECKLIST.md](docs/compliance/LAUNCH-CHECKLIST.md)) |
-| 14 | App restructure: mandatory onboarding, one core flow (Video, Keyword, Target URL), new navigation | **In progress** (2026-09-29): 1 navigation and Settings done (#85, #86); 2 onboarding gate done (#87); 3 wizard polish done (#88); 4 Campaigns flow done (#89); 5 keyword list and lead temperature done; next 6 docs (SPEC, DECISIONS) and a final click-through |
+| 14 | App restructure: mandatory onboarding, one core flow (Video, Keyword, Target URL), new navigation | **DONE** (2026-09-29), PRs #85 to #91; DECISIONS section 19 |
 | 13 | Restyle to the Shine design (v3): tokens, shells, every page, micro-interactions | **DONE** (2026-09-26), PRs #40 to #58; test fix #59 |
 
 Phase plan changes (all accepted): compliance pack and quota extension request right after Phase 5 (Q-17 a); one GHL Marketplace app created Private in Phase 6 and made Public in Phase 10 (Q-17 b); retention job in Phase 4 (Q-17 c, done); Cloudflare for SaaS spike once the brand domain exists (Q-17 d).
 
-## Phase 14: restructure (in progress)
+## Phase 14: restructure (done)
 
 Plan (owner approved 2026-09-29): 1 navigation and Settings, 2 onboarding gate (additive migration: `accounts.default_target_url`, `onboarded_at`; no polling, drafts or quota before it is complete), 3 onboarding wizard (YouTube, GoHighLevel, purchase source, default target URL), 4 and 5 Campaigns flow (Video, Keyword with lead temperature, Target URL), 6 docs and checks. Existing all-video rules keep running (owner choice a).
 
@@ -58,6 +58,8 @@ Plan (owner approved 2026-09-29): 1 navigation and Settings, 2 onboarding gate (
 - Step 3 done: target URL prefilled from the GoHighLevel Sub-account website (read at setup with `locations.readonly`, stored as `locationWebsite` in the sealed config; no new scope); GoHighLevel connect errors return to `/onboarding`; the onboarding header offers Sign out. Optional `GHL_AFFILIATE_URL` (owner's affiliate link) shows "No GoHighLevel yet? Start a free trial" with a commission disclosure on the CRM step; off until set.
 - Step 4 done: `/app/campaigns` is the core flow in order: 1 Video (picker from the channel's public feed plus known videos, no API quota; pasted links as fallback; at least one video required, the "all videos" option is gone for new rules), 2 Keyword, 3 Target URL (default from onboarding). Existing all-video rules keep running and show "All videos" (owner choice a). Reply language and AI settings moved to Settings > Replies. Webhooks and Inbound endpoints carry a self-service, no-support note.
 - Step 5 done: keywords come from a catalog (`src/lib/keyword-catalog.ts`, GUIDE first and default), each with its lead temperature (Cold blue, Warm amber, Hot red chips; stored as `campaigns.intent`, no migration). "Name what the viewer gets" and "Other spellings" are gone; misspellings (GUDIE, GIUDE, GUIDES...) are generated and stored as `aliases`, shown and editable under a closed "Advanced". Own keywords show "Coming soon". "All my videos, including new uploads" is back as an explicit choice next to picking videos (owner, 2026-09-29). UI says lead temperature everywhere (queue, campaigns, reports).
+- Step 6 done: SPEC section 3a and DECISIONS section 19 (R-01 to R-07); final local click-through from onboarding to approval.
+- Owner check after deploy: sign in to the vidrev Sub-account account, pass `/onboarding` once (polling is paused until then), create the first campaign.
 - Later (owner, 2026-09-29): set the real `GHL_AFFILIATE_URL` (only a temporary link exists now); put "Works with GoHighLevel (free trial through our link if you do not have it)" on the landing page and the checkout before the founding sale opens.
 
 ## Contacts (Q-23): what was built

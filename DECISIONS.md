@@ -489,3 +489,15 @@ Method and signatures come from the 03 research (`c2c-market-research/fingerprin
 | L-12 | Audit v2 content (owner, 2026-09-28): the 3 strongest buying signals and sample vidrev replies are shown without email; the creator's price and buying rate are required (a wished-for price is fine when nothing is sold yet; filtering out freeloaders is accepted); a per-1,000-views comparison of AdSense (one-time) and the Ownership Method (leads, recurring) is shown, clearly labelled as an example on the creator's own inputs; the CTA goes straight to the founding offer. Prototype: `design/audit-v2/index.html`. |
 | L-13 | Landing copy (owner, 2026-09-28): Ryan Levesque structure with Dan Kennedy headlines; the page is led by Ownership versus YouTube and viral hype (headline stays "Stop losing money on YouTube"). The problem section lists six leaks, including lead temperature (Cold, Warm, Hot). Claims stay provable: "the only revenue attribution app for YouTube organic traffic" (not "on the internet"), 38.80x shown as an example, never "at least". Revenue attribution, measured end to end, is named as the core of the method. |
 | L-07 | Privacy and Terms go live once the LLC exists; drafts stay in docs/compliance. |
+
+## 19. App restructure: onboarding and one core flow (owner, 2026-09-29, Phase 14)
+
+| # | Decision |
+| --- | --- |
+| R-01 | Onboarding is mandatory and the app is locked until it is complete: YouTube channel, GoHighLevel, purchase source (GoHighLevel or Stripe), default target URL, each blocking the next. Nothing is polled, drafted or spent before. Applies to existing accounts too. |
+| R-02 | Only GoHighLevel is offered as CRM. Creators without it get the owner's GoHighLevel affiliate trial link (`GHL_AFFILIATE_URL`, disclosed as an affiliate link; the real link comes later). The landing page and checkout must say it works with GoHighLevel before the founding sale opens. |
+| R-03 | The core flow is Video, Keyword, Target URL. A rule needs at least one video or the explicit "All my videos, including new uploads". Existing channel-wide rules keep running. Polling is per channel, so all videos costs no extra read quota; only more matches mean more drafts and replies, each approved by the creator. |
+| R-04 | Keywords come from a catalog (GUIDE first and default), each with a lead temperature Cold (blue), Warm (amber), Hot (red). "Intent" is called lead temperature in the UI; the database keeps `intent`. Misspellings are generated and editable under Advanced; own keywords are "coming soon". |
+| R-05 | Navigation: Home (queue and this month's numbers), Campaigns, Reports, Settings with small grouped sub-pages, Owner admin for `ADMIN_EMAILS` only (server gated). |
+| R-06 | Webhooks and Inbound endpoints are self-service, without support for connecting other systems. |
+| R-07 | Additive migration `0012`: `accounts.onboarded_at`, `purchase_source`, `default_target_url`. No other schema change. |

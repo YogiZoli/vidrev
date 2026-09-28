@@ -16,7 +16,9 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 - Email: `EMAIL_FROM` is not set, so mail goes from the Resend test sender, which only reaches the Resend account owner. Owner verifies `vidrev.app` in Resend (DNS on Cloudflare) and sets `EMAIL_FROM` on both services.
 - Privacy and Terms postponed by the owner until the LLC exists; brainstorm and app fixes first.
 - 2026-09-28: new audit key and Resend domain live, `EMAIL_FROM` set; a fresh audit of @zoltangero completes. One run (10:47 UTC) hung on the worker started at 10:46 and was failed by the stuck-audit sweeper after the next deploy; cause not proven (likely deploy overlap), watch for a repeat.
-- Landing and funnel decisions in DECISIONS section 18.
+- Landing and funnel decisions in DECISIONS section 18 (L-01 revised: audit is the main CTA, no trial until 100 founding sales; L-08 trial paused).
+- `/audit/sample` shows a sample audit (invented channel, real analysis, full report email). Audit redesign proposal: Drive doc "07 vidrev Audit újratervezés", waits for the owner. Landing sections: Drive doc "06 vidrev Landing szekciók".
+- Fixed a second date-bound test (#65, weekly summary on Mondays).
 - Next: owner brainstorm on the landing page and funnel, then a phase plan (not started).
 
 ## Phases

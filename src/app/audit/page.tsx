@@ -52,6 +52,7 @@ export default async function AuditPage({
           maxLength={300}
           placeholder="@yourchannel"
           autoComplete="off"
+          defaultValue={params.channel?.slice(0, 300) ?? ""}
           large
         />
         {turnstile ? (

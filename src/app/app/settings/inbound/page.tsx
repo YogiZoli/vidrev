@@ -20,6 +20,7 @@ export default async function InboundSettingsPage({ searchParams }: { searchPara
   return (
     <Page width="md">
       <PageHeader title="Inbound endpoints" lead="For a form tool or checkout outside GoHighLevel and Stripe." />
+      <Notice tone="info">Self-service: these tools are for your own developer or automation setup. We do not provide support for connecting other systems.</Notice>
       {params.error ? <Notice tone="error">{params.error}</Notice> : null}
 
       <Card className="grid gap-3">

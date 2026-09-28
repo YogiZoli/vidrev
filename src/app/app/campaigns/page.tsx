@@ -7,16 +7,24 @@ import { Meta, Page, PageHeader, SectionTitle } from "@/components/ui/page";
 import { getDb } from "@/db/client";
 import { LANGUAGE_OPTIONS } from "@/lib/language";
 import { fallbackHost } from "@/lib/link-host";
-import { DEFAULT_MODELS } from "@/server/ai";
 import { requireSession } from "@/server/auth/current";
 import { listCampaigns, parseVideoIds } from "@/server/campaigns";
 import { ensureStaticLink } from "@/server/links";
 import { listChannels } from "@/server/channels";
+import { pickableVideos } from "@/server/video-picker";
 import { Notice } from "../../ui";
 
 export const dynamic = "force-dynamic";
 
 const INTENT_LABEL = { hot: "HOT", warm: "WARM", cold: "COLD" } as const;
+
+function StepNo({ n }: { n: number }) {
+  return (
+    <span aria-hidden className="grid size-7 place-items-center rounded-full bg-primary font-mono text-[13px] font-bold text-primary-foreground">
+      {n}
+    </span>
+  );
+}
 
 function LanguageSelect({ name, value }: { name: string; value?: string }) {
   return (
@@ -36,6 +44,7 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
   const db = getDb();
   const channel = (await listChannels(db, account.id)).find((c) => c.status === "connected");
   const campaignRows = await listCampaigns(db, account.id);
+  const pickable = channel ? await pickableVideos(db, channel) : [];
   // Reusable tracked links for video descriptions and pinned comments (R-07):
   // one channel-wide per keyword, and one per video on request.
   const host = fallbackHost();
@@ -52,10 +61,78 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
 
   return (
     <Page width="md">
-      <PageHeader title="Keywords and replies" lead="A viewer comments the keyword, you approve the reply, the link carries the tracking id." />
+      <PageHeader title="Campaigns" lead="Pick the video, the keyword and where the link points. A viewer comments the keyword, you approve the reply, the link carries the tracking id." />
       {params.error ? <Notice tone="error">{params.error}</Notice> : null}
       {params.saved ? <Notice tone="info">Saved.</Notice> : null}
       {!channel ? <Notice tone="error">Connect your channel first.</Notice> : null}
+
+      {channel ? (
+        <Card variant="hero" className="grid gap-5">
+          <SectionTitle>New campaign</SectionTitle>
+          <form method="post" action="/api/campaigns" className="grid gap-6">
+            <input type="hidden" name="channelId" value={channel.id} />
+
+            <fieldset className="m-0 grid gap-3 border-0 p-0">
+              <legend className="mb-2 flex items-center gap-2 p-0 text-base font-bold">
+                <StepNo n={1} /> Video
+              </legend>
+              {pickable.length ? (
+                <div className="grid max-h-80 gap-1 overflow-y-auto rounded-md border border-border bg-surface p-2">
+                  {pickable.map((video) => (
+                    <label key={video.youtubeVideoId} className="flex cursor-pointer items-start gap-2.5 rounded-md p-2 hover:bg-background">
+                      <input type="checkbox" name="videoIds" value={video.youtubeVideoId} className="mt-1 size-4 flex-none accent-[var(--primary-600)]" />
+                      <span className="grid min-w-0 gap-0.5">
+                        <span className="text-[15px] [overflow-wrap:anywhere]">{video.title ?? video.youtubeVideoId}</span>
+                        {video.publishedAt ? <Meta>{video.publishedAt.toISOString().slice(0, 10)}</Meta> : null}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <Meta className="text-[15px]">We could not list your latest videos right now. Paste a video link below.</Meta>
+              )}
+              <Field label="Or paste video links (optional)">
+                <Textarea name="videos" rows={2} placeholder="https://youtu.be/..." />
+              </Field>
+              <Meta>Pick at least one video. Only comments on these videos get a reply draft.</Meta>
+            </fieldset>
+
+            <fieldset className="m-0 grid gap-3 border-0 p-0">
+              <legend className="mb-2 flex items-center gap-2 p-0 text-base font-bold">
+                <StepNo n={2} /> Keyword
+              </legend>
+              <Field label="Keyword viewers comment (whole word, any case)">
+                <Input name="keyword" required maxLength={50} defaultValue="GUIDE" className="font-mono" />
+              </Field>
+              <Field label="Lead temperature">
+                <Select name="intent" defaultValue="warm">
+                  <option value="hot">Hot (ready to buy)</option>
+                  <option value="warm">Warm</option>
+                  <option value="cold">Cold</option>
+                </Select>
+              </Field>
+            </fieldset>
+
+            <fieldset className="m-0 grid gap-3 border-0 p-0">
+              <legend className="mb-2 flex items-center gap-2 p-0 text-base font-bold">
+                <StepNo n={3} /> Target URL
+              </legend>
+              <Field label="Where the reply link points" hint="Your default from setup. Change it for this campaign if needed.">
+                <Input name="destinationUrl" type="url" required defaultValue={account.defaultTargetUrl ?? ""} placeholder="https://yourdomain.com/guide" className="font-mono" />
+              </Field>
+            </fieldset>
+
+            <div className="grid justify-items-start gap-2">
+              <Button name="action" value="create" pulse>
+                Start watching
+              </Button>
+              <Meta>Only comments posted after you start get a draft. Each draft waits for your approval.</Meta>
+            </div>
+          </form>
+        </Card>
+      ) : null}
+
+      {campaignRows.length ? <SectionTitle>Live rules</SectionTitle> : null}
 
       {campaignRows.map((campaign) => (
         <Card key={campaign.id} className="grid gap-4">
@@ -140,87 +217,8 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
         </Card>
       ))}
 
-      {channel ? (
-        <Card className="grid gap-4">
-          <SectionTitle>New keyword</SectionTitle>
-          <form method="post" action="/api/campaigns" className="grid gap-3">
-            <input type="hidden" name="channelId" value={channel.id} />
-            <Field label="Keyword viewers comment (whole word, any case)">
-              <Input name="keyword" required maxLength={50} placeholder="GUIDE" className="font-mono" />
-            </Field>
-            <Field label="Other spellings (comma separated, optional)">
-              <Input name="aliases" placeholder="guides, pdf" />
-            </Field>
-            <Field label="Name (what the viewer gets)">
-              <Input name="name" placeholder="Free guide" />
-            </Field>
-            <Field label="Intent">
-              <Select name="intent" defaultValue="warm">
-                <option value="hot">HOT (ready to buy)</option>
-                <option value="warm">WARM</option>
-                <option value="cold">COLD</option>
-              </Select>
-            </Field>
-            <Field label="Your opt-in page">
-              <Input name="destinationUrl" type="url" required placeholder="https://yourdomain.com/guide" />
-            </Field>
-            <Field label="Only these videos (links, optional; empty means all videos)">
-              <Textarea name="videos" rows={2} />
-            </Field>
-            <div>
-              <Button name="action" value="create" pulse>
-                Start watching
-              </Button>
-            </div>
-          </form>
-          <Meta>Only comments posted after you start watching get a draft. Nothing is posted until you approve it.</Meta>
-        </Card>
-      ) : null}
 
-      {channel ? (
-        <Card className="grid gap-3">
-          <SectionTitle>Default reply language</SectionTitle>
-          <form method="post" action="/api/campaigns" className="flex flex-wrap gap-2">
-            <input type="hidden" name="channelId" value={channel.id} />
-            <div className="w-40">
-              <LanguageSelect name="language" value={channel?.defaultLanguage} />
-            </div>
-            <Button name="action" value="language" variant="outline">
-              Save
-            </Button>
-          </form>
-          <Meta>A reply uses the commenter&apos;s language only when you have a template in it; otherwise this language, then English.</Meta>
-        </Card>
-      ) : null}
 
-      <Card className="grid gap-3">
-        <SectionTitle>AI drafts</SectionTitle>
-        <Meta className="text-[15px]">
-          Current: {account.aiProvider === "platform" ? "included AI (no setup needed)" : `your own ${account.aiProvider} key`}. The
-          commenter&apos;s name is never sent to the AI.
-        </Meta>
-        <form method="post" action="/api/campaigns" className="grid gap-3">
-          <Field label="Provider">
-            <Select name="provider" defaultValue={account.aiProvider}>
-              <option value="platform">Included AI</option>
-              <option value="gemini">My own Gemini key (billing enabled)</option>
-              <option value="openai">My own OpenAI key</option>
-              <option value="anthropic">My own Anthropic key</option>
-            </Select>
-          </Field>
-          <Field label="API key (stored encrypted, leave empty to keep the saved one)">
-            <Input name="apiKey" type="password" autoComplete="off" />
-          </Field>
-          <Field label={`Model (optional, e.g. ${Object.values(DEFAULT_MODELS).join(", ")})`}>
-            <Input name="model" defaultValue={account.aiModel ?? ""} />
-          </Field>
-          <div>
-            <Button name="action" value="ai" variant="outline">
-              Save AI settings
-            </Button>
-          </div>
-        </form>
-      </Card>
     </Page>
   );
 }

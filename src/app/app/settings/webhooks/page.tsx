@@ -36,6 +36,7 @@ export default async function WebhooksSettingsPage({ searchParams }: { searchPar
   return (
     <Page width="md">
       <PageHeader title="Webhooks" lead="Send every comment, click, subscriber and buyer to your own system: n8n, Make, Zapier or your own server. Events never contain comment text or commenter names." />
+      <Notice tone="info">Self-service: these tools are for your own developer or automation setup. We do not provide support for connecting other systems.</Notice>
       {params.error ? <Notice tone="error">{params.error}</Notice> : null}
       {params.added ? <Notice tone="info">Endpoint added. Use Send test event to check it.</Notice> : null}
       {params.tested ? <Notice tone="info">Test event queued. It shows up under Recent deliveries in a moment.</Notice> : null}

@@ -38,8 +38,9 @@ export async function POST(request: Request): Promise<Response> {
         keyword: field("keyword"),
         aliases: field("aliases"),
         intent: field("intent"),
-        destinationUrl: field("destinationUrl"),
+        destinationUrl: field("destinationUrl") || session.account.defaultTargetUrl || "",
         videos: field("videos"),
+        videoIds: form.getAll("videoIds").map(String),
       });
       break;
     case "pause":
@@ -64,5 +65,7 @@ export async function POST(request: Request): Promise<Response> {
     default:
       result = { ok: false, error: "Unknown action." };
   }
-  return redirectTo(result.ok ? "/app/campaigns?saved=1" : `/app/campaigns?error=${encodeURIComponent(result.error)}`);
+  // Settings > Replies posts here too and names its own page to return to.
+  const back = field("back") === "/app/settings/replies" ? "/app/settings/replies" : "/app/campaigns";
+  return redirectTo(result.ok ? `${back}?saved=1` : `${back}?error=${encodeURIComponent(result.error)}`);
 }

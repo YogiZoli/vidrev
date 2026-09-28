@@ -27,6 +27,10 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     ],
   },
   {
+    label: "Replies",
+    links: [{ href: "/app/settings/replies", label: "Language and AI" }],
+  },
+  {
     label: "Links",
     links: [{ href: "/app/settings/domain", label: "Linked domain" }],
   },

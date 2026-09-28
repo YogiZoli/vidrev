@@ -1,10 +1,18 @@
 # STATUS
 
-Last updated: 2026-09-26 (Phase 13, restyle)
+Last updated: 2026-09-28 (review after Phase 13)
 
 ## End goal
 
 A production SaaS that turns keyword comments into subscribers, buyers and revenue, attributed per video and keyword, with tracked links on the creator's own domain and approval-only replies. See [docs/PRD.md](docs/PRD.md) and [docs/SPEC.md](docs/SPEC.md).
+
+## Review 2026-09-28
+
+- Main CI was red since #57: a date-bound test (fixed clock for the report, real clock for the reply row). Fixed in #59.
+- Live: `app.vidrev.app` (app, health ok), `go.vidrev.app` (links). `vidrev.app` has no DNS record: the brand site (landing, Privacy, Terms, checkout) is planned in GoHighLevel (D-28) and was never built. `/privacy` and `/terms` do not exist anywhere yet, which blocks Google verification.
+- The app front door `app.vidrev.app/` is a sign-in page with an audit button, not a landing page. Audit my channel is a standalone page by design (P9); on the future landing it becomes one section (like "See it on your own channel") that posts to `app.vidrev.app/audit`.
+- Not built for a working v1: brand landing and funnel, checkout to provisioning run end to end, Resend sending domain (magic links and reports), live end-to-end run on the owner's channel, first real audit.
+- Next: owner brainstorm on the landing page and funnel, then a phase plan (not started).
 
 ## Phases
 
@@ -24,7 +32,7 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 | 9 | Audit my channel | **DONE** (2026-09-26), PRs #26 to #28; needs the owner setup below before it works live |
 | 10 | GHL Marketplace connector | **DONE** (2026-09-26), PRs #30 to #32; the app is ready for "Start Public review", which waits for the LLC ([docs/MARKETPLACE-LISTING.md](docs/MARKETPLACE-LISTING.md)) |
 | 12 | Compliance and launch readiness | **DONE** (2026-09-26), PRs #34 and #35; submission waits for the LLC and owner steps ([docs/compliance/LAUNCH-CHECKLIST.md](docs/compliance/LAUNCH-CHECKLIST.md)) |
-| 13 | Restyle to the Shine design (v3): tokens, shells, every page, micro-interactions | **DONE** (2026-09-26), PRs #40 to #57 |
+| 13 | Restyle to the Shine design (v3): tokens, shells, every page, micro-interactions | **DONE** (2026-09-26), PRs #40 to #58; test fix #59 |
 
 Phase plan changes (all accepted): compliance pack and quota extension request right after Phase 5 (Q-17 a); one GHL Marketplace app created Private in Phase 6 and made Public in Phase 10 (Q-17 b); retention job in Phase 4 (Q-17 c, done); Cloudflare for SaaS spike once the brand domain exists (Q-17 d).
 

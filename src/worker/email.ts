@@ -1,5 +1,9 @@
 import type { SendEmailJob } from "@/jobs/queues";
 import type { FetchLike } from "@/server/google/oauth";
+import { timedFetch } from "@/lib/http";
+
+// Resend answers within seconds; never let one email hold the queue.
+const defaultFetch = timedFetch();
 
 // Resend's shared test sender works before a domain is verified, but only
 // delivers to the Resend account owner's own address.
@@ -22,7 +26,7 @@ export class EmailSendError extends Error {
 export async function sendWithResend(
   job: SendEmailJob,
   config: { apiKey: string; from: string },
-  fetchImpl: FetchLike = fetch,
+  fetchImpl: FetchLike = defaultFetch,
 ): Promise<string> {
   const response = await fetchImpl("https://api.resend.com/emails", {
     method: "POST",

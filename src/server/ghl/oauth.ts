@@ -1,6 +1,10 @@
 import { verify, createPublicKey } from "node:crypto";
 import type { FetchLike } from "@/server/google/oauth";
 import { GHL_API } from "./api";
+import { timedFetch } from "@/lib/http";
+
+// Token and revoke calls answer fast or not at all: never wait for ever.
+const defaultFetch = timedFetch();
 
 // OAuth for the Private Marketplace app (DECISIONS Q-17 b): location level
 // installs only. Refresh tokens rotate: every refresh returns a new one and the
@@ -76,7 +80,7 @@ async function tokenRequest(body: URLSearchParams, fetchImpl: FetchLike): Promis
   return json as GhlTokenResponse;
 }
 
-export function exchangeGhlCode(client: GhlClient, code: string, fetchImpl: FetchLike = fetch) {
+export function exchangeGhlCode(client: GhlClient, code: string, fetchImpl: FetchLike = defaultFetch) {
   return tokenRequest(
     new URLSearchParams({
       client_id: client.clientId,
@@ -90,7 +94,7 @@ export function exchangeGhlCode(client: GhlClient, code: string, fetchImpl: Fetc
   );
 }
 
-export function refreshGhlToken(client: Pick<GhlClient, "clientId" | "clientSecret">, refreshToken: string, fetchImpl: FetchLike = fetch) {
+export function refreshGhlToken(client: Pick<GhlClient, "clientId" | "clientSecret">, refreshToken: string, fetchImpl: FetchLike = defaultFetch) {
   return tokenRequest(
     new URLSearchParams({
       client_id: client.clientId,

@@ -5,7 +5,7 @@ import { decryptSecret } from "@/lib/crypto";
 import { matchComment } from "@/lib/keywords";
 import { detectLanguage, pickReplyLanguage } from "@/lib/language";
 import { catalogKeyword } from "@/lib/keyword-catalog";
-import { log } from "@/lib/log";
+import { errorFields, log } from "@/lib/log";
 import { LINK_PLACEHOLDER } from "@/lib/templates";
 import { type AiConfig, buildPrompt, cleanDraft, DEFAULT_MODELS, generateText } from "@/server/ai";
 import { draftsWaitingEmail } from "@/server/email/templates";
@@ -107,7 +107,7 @@ export async function createDraft(deps: DraftDeps, commentId: string): Promise<v
       });
       body = cleanDraft(await generateText(config, prompt, deps.fetch));
     } catch (error) {
-      log("warn", "AI draft failed, using template", { accountId: account.id, error: String(error) });
+      log("warn", "AI draft failed, using template", { accountId: account.id, ...errorFields(error) });
     }
   }
   const draftSource = body ? "ai" : "template";

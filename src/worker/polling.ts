@@ -3,7 +3,7 @@ import type { Db } from "@/db/client";
 import { accounts, campaigns, channels, comments, videos } from "@/db/schema";
 import type { JobPayloads } from "@/jobs/queues";
 import { matchComment } from "@/lib/keywords";
-import { log } from "@/lib/log";
+import { errorFields, log } from "@/lib/log";
 import { nextPollAt, pollTier, readBudget, stretchFactor } from "@/lib/quota";
 import { reserveUnits } from "@/server/quota";
 import { getNumberSetting } from "@/server/settings";
@@ -241,7 +241,7 @@ async function learnVideos(deps: EngineDeps, channel: ChannelRow, token: string,
   if (missing.length === 0) return;
   if (!(await reserveUnits(deps.db, { method: "videos.list", accountId: channel.accountId, limit: deps.quotaLimit }, now))) return;
   const result = await listVideos(deps.fetch, token, missing).catch((error: unknown) => {
-    log("warn", "videos.list failed", { channelId: channel.id, error: String(error) });
+    log("warn", "videos.list failed", { channelId: channel.id, ...errorFields(error) });
     return { items: [] };
   });
   for (const item of result.items ?? []) {

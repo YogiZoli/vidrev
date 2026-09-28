@@ -1,7 +1,7 @@
 import { and, eq, inArray, isNotNull, lt, lte, notInArray, or, isNull } from "drizzle-orm";
 import { channels, comments, contactIdentities, replies, videos } from "@/db/schema";
 import { YOUTUBE_IDENTITY_TTL_MS } from "@/lib/contacts";
-import { log } from "@/lib/log";
+import { errorFields, log } from "@/lib/log";
 import { reserveUnits } from "@/server/quota";
 import { listCommentsById } from "@/server/youtube/api";
 import { ChannelRevokedError, getAccessToken } from "./channels";
@@ -53,7 +53,7 @@ async function refreshCommenterIdentities(deps: EngineDeps, now: Date): Promise<
     try {
       token = await getAccessToken(deps, channel);
     } catch (error) {
-      if (!(error instanceof ChannelRevokedError)) log("warn", "identity refresh: no token", { channelId, error: String(error) });
+      if (!(error instanceof ChannelRevokedError)) log("warn", "identity refresh: no token", { channelId, ...errorFields(error) });
       continue;
     }
     for (let i = 0; i < identities.length; i += REFRESH_BATCH) {
@@ -66,7 +66,7 @@ async function refreshCommenterIdentities(deps: EngineDeps, now: Date): Promise<
         const response = await listCommentsById(deps.fetch, token, [...new Set(withRef.map((identity) => identity.refCommentId!))]);
         authors = new Map((response.items ?? []).map((item) => [item.id, item.snippet?.authorChannelId?.value]));
       } catch (error) {
-        log("warn", "identity refresh failed", { channelId, error: String(error) });
+        log("warn", "identity refresh failed", { channelId, ...errorFields(error) });
         continue;
       }
       for (const identity of withRef) {
@@ -144,7 +144,7 @@ export async function runRetention(deps: EngineDeps): Promise<RetentionResult> {
         }
       }
     } catch (error) {
-      if (!(error instanceof ChannelRevokedError)) log("warn", "channel title refresh failed", { channelId: channel.id, error: String(error) });
+      if (!(error instanceof ChannelRevokedError)) log("warn", "channel title refresh failed", { channelId: channel.id, ...errorFields(error) });
     }
     await db.update(channels).set({ title, titleRefreshedAt: title ? now : null }).where(eq(channels.id, channel.id));
     if (title) refreshed += 1;

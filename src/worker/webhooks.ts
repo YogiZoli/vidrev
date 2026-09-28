@@ -1,7 +1,7 @@
 import { and, asc, eq, lte } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import { integrations, outboundDeliveries } from "@/db/schema";
-import { log } from "@/lib/log";
+import { errorFields, log } from "@/lib/log";
 import { nextAttemptAt, signBody } from "@/lib/webhooks";
 import type { PostFn } from "@/server/integrations/http-post";
 import { GhlApiError } from "@/server/ghl/api";
@@ -130,7 +130,7 @@ export async function deliverDue(deps: WebhookDeps): Promise<number> {
     .orderBy(asc(outboundDeliveries.nextAttemptAt))
     .limit(BATCH);
   for (let i = 0; i < due.length; i += CONCURRENCY) {
-    await Promise.all(due.slice(i, i + CONCURRENCY).map((row) => deliver(deps, row.id).catch((error: unknown) => log("error", "webhook delivery crashed", { deliveryId: row.id, error: String(error) }))));
+    await Promise.all(due.slice(i, i + CONCURRENCY).map((row) => deliver(deps, row.id).catch((error: unknown) => log("error", "webhook delivery crashed", { deliveryId: row.id, ...errorFields(error) }))));
   }
   return due.length;
 }

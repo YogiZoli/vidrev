@@ -1,5 +1,9 @@
 import { createHash } from "node:crypto";
 import { randomToken } from "@/lib/crypto";
+import { timedFetch } from "@/lib/http";
+
+// Token and revoke calls answer fast or not at all: never wait for ever.
+const defaultFetch = timedFetch();
 
 // Only these scopes, ever (SPEC section 7, brief). youtube.force-ssl covers
 // reading comments and posting replies.
@@ -73,7 +77,7 @@ async function tokenRequest(body: URLSearchParams, fetchImpl: FetchLike): Promis
   return json as TokenResponse;
 }
 
-export function exchangeCode(client: GoogleClient, code: string, codeVerifier: string, fetchImpl: FetchLike = fetch) {
+export function exchangeCode(client: GoogleClient, code: string, codeVerifier: string, fetchImpl: FetchLike = defaultFetch) {
   return tokenRequest(
     new URLSearchParams({
       code,
@@ -87,7 +91,7 @@ export function exchangeCode(client: GoogleClient, code: string, codeVerifier: s
   );
 }
 
-export function refreshAccessToken(client: Omit<GoogleClient, "redirectUri">, refreshToken: string, fetchImpl: FetchLike = fetch) {
+export function refreshAccessToken(client: Omit<GoogleClient, "redirectUri">, refreshToken: string, fetchImpl: FetchLike = defaultFetch) {
   return tokenRequest(
     new URLSearchParams({
       refresh_token: refreshToken,
@@ -101,7 +105,7 @@ export function refreshAccessToken(client: Omit<GoogleClient, "redirectUri">, re
 
 // Revoking the refresh token also revokes its access tokens. A token Google
 // no longer knows ("invalid_token") counts as revoked.
-export async function revokeToken(token: string, fetchImpl: FetchLike = fetch): Promise<void> {
+export async function revokeToken(token: string, fetchImpl: FetchLike = defaultFetch): Promise<void> {
   const response = await fetchImpl(REVOKE_ENDPOINT, {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },

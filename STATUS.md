@@ -20,7 +20,8 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 - `/audit/sample` shows a sample audit (invented channel, real analysis, full report email). Audit redesign proposal: Drive doc "07 vidrev Audit újratervezés", waits for the owner. Landing sections: Drive doc "06 vidrev Landing szekciók".
 - Fixed a second date-bound test (#65, weekly summary on Mondays).
 - Audit v2 "See where I lose money on YouTube" is live (#69): `/audit`, `/audit/<id>`, `/audit/sample`. Owner to set `FOUNDING_CHECKOUT_URL` (GoHighLevel checkout) on `web`; until then the CTA goes to `BRAND_BASE_URL`. Comment text is still never stored, so the waiting comments show the video title and a YouTube link, not the text.
-- Next: landing page, 13 sections in HTML (`design/landing/`), then GoHighLevel (L-10).
+- Landing v1 approved by the owner (2026-09-28): `design/landing/index.html`, 13 sections, copy per L-13 (#73, #74). Audit v2 layout: calculator above the fold, standout comparison (#72).
+- Next: owner builds the GoHighLevel checkout for Founding 100 and sends the link (`FOUNDING_CHECKOUT_URL`); then move the landing into GoHighLevel on `vidrev.app` as Custom Code sections; then campaign drafts (L-03).
 - Next: owner brainstorm on the landing page and funnel, then a phase plan (not started).
 
 ## Phases

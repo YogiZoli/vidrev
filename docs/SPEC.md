@@ -2,6 +2,8 @@
 
 Source: Drive doc "05 C2C SaaS SPEC (technical specification)", draft v1, 2026-09-24, with all "UPDATE" and "APPROVED" notes (2026-09-24/25) merged into the text they override, and the WITHDRAWN Python stack proposal removed. Decisions live in [DECISIONS.md](../DECISIONS.md) and win on any conflict. Product scope is in [PRD.md](PRD.md). Internal codename: `c2c-saas`.
 
+Merge notes (2026-09-29, Phase 14): mandatory onboarding, the Video, Keyword, Target URL flow, the keyword catalog with lead temperature and the new navigation are described in section 3a and DECISIONS section 19.
+
 Merge notes (2026-09-25, Phase 3): owner answers to the Phase 1 review (DECISIONS sections 5 and 6) are merged below; where this file and DECISIONS.md differ, DECISIONS.md wins. Earlier merge notes: env var `LINK_BASE_URL` is renamed `LINK_FALLBACK_BASE_URL` (CC-01); the tracking parameter is `c2c_tid` (CC-02); references to the legacy C2C app as a pattern are dropped (CC-04, D-30).
 
 ## 1. Principles
@@ -60,6 +62,13 @@ flowchart LR
   WK -->|HMAC outbound webhooks| CRM
 ```
 
+## 3a. App structure and onboarding (Phase 14)
+
+- Checkout and card happen in GoHighLevel first (provisioning webhook, unchanged). After the first sign-in the app is locked behind `/onboarding` until `accounts.onboarded_at` is set. Steps, each blocking the next: 1 YouTube channel (OAuth), 2 GoHighLevel (Marketplace OAuth; no other CRM offered), 3 purchase source (`accounts.purchase_source`: GoHighLevel payments and won opportunities, or a Stripe restricted key), 4 default target URL (`accounts.default_target_url`, prefilled from the Sub-account website). Links run on the fallback link host; the creator's own domain is optional under Settings.
+- Before onboarding is complete no channel is polled, no RSS is read, no AI draft is written and no quota is spent. Once stamped, `onboarded_at` is never unset; a later disconnect shows in Settings.
+- Navigation: Home (approval queue and this month's numbers), Campaigns (new campaign and live rules), Reports, Settings (dropdown and side menu: Account, Billing and cancel; YouTube channel, GoHighLevel, Stripe; Webhooks, Inbound endpoints, marked self-service; Replies: language and AI; Linked domain), Owner admin for `ADMIN_EMAILS` only (server gated). Old paths redirect.
+- Campaign flow, in order: 1 Video (pick at least one from the channel's public feed plus known videos, no API quota, or paste links; or "All my videos, including new uploads"), 2 Keyword (from the catalog in `src/lib/keyword-catalog.ts`, GUIDE first; each keyword carries its lead temperature Cold, Warm or Hot; misspellings generated automatically and editable under Advanced; own keywords later), 3 Target URL (default from onboarding). Then the reply is drafted and waits for approval (unchanged engine).
+
 ## 4. Domains and configuration
 
 ONE owner domain is enough (D-28).
@@ -79,7 +88,7 @@ Environment variables (see `.env.example`): `PRODUCT_NAME`, `BRAND_BASE_URL`, `A
 
 | Table | Key fields |
 | --- | --- |
-| accounts | id, name, status (active, suspended), plan_code, trial_ends_at, billing_ref (subscription id), suspended_at, reporting_currency, created_at, updated_at |
+| accounts | id, name, status (active, suspended), plan_code, trial_ends_at, billing_ref (subscription id), suspended_at, reporting_currency, onboarded_at, purchase_source (ghl, stripe), default_target_url, created_at, updated_at |
 | users | id, account_id, email (normalized, unique), name, last_login_at. One user per account for the MVP |
 | sessions | id, user_id, token_hash, expires_at (30 days) |
 | magic_link_tokens | token_hash, user_id, expires_at (15 min), used_at (single use) |
@@ -88,7 +97,7 @@ Environment variables (see `.env.example`): `PRODUCT_NAME`, `BRAND_BASE_URL`, `A
 | channels | id, account_id, youtube_channel_id, title, title_refreshed_at, default_language, refresh_token_enc, access_token_enc, token_expires_at, scopes, status (connecting, connected, disconnecting, disconnected, revoked, rejected), status_reason, connected_at, disconnected_at. A YouTube channel is live in one account at most |
 | audit_log | id, actor, account_id, action, details (jsonb), created_at |
 | videos | id, channel_id, youtube_video_id, title, published_at, poll_tier, last_polled_at |
-| campaigns | id, channel_id, name, keyword, keyword_aliases, destination_url, mode (approval only, D-25), video_scope (all, list), active |
+| campaigns | id, channel_id, name, keyword (from the catalog), aliases (misspellings), intent (the lead temperature: cold, warm, hot), destination_url, video_ids (null means all videos), active; replies are approval only (D-25) |
 | templates | id, campaign_id, language, body, approved_at |
 | comments | id, video_id, youtube_comment_id, author_channel_id, text, language, matched_campaign_id, fetched_at, refresh_due_at (API data, 30-day rule) |
 | replies | id, comment_id, template_id, status (queued, pending_approval, sent, failed, skipped), youtube_reply_id, sent_at, error |
@@ -158,7 +167,7 @@ Accounts, users, sessions, magic_link_tokens, plans, provisioning_events, channe
 ### Reply engine
 
 1. Only top-level comments trigger; replies inside a thread never do (Q-19). Normalize, then match campaign keywords anywhere in the comment, whole word, case-insensitive, with aliases (Q-10). False positives are filtered by the creator in the approval queue.
-   - Several keywords in one comment: one reply. Each keyword has an intent level HOT, WARM or COLD (default WARM); the highest wins, then a video-scoped campaign over a channel-wide one, then the keyword that appears first. The approval card lists the other matches and lets the creator switch (Q-10b).
+   - Several keywords in one comment: one reply. Each keyword has a lead temperature Hot, Warm or Cold (set by the keyword catalog; stored as `intent`); the hottest wins, then a video-scoped campaign over a channel-wide one, then the keyword that appears first. The approval card lists the other matches and lets the creator switch (Q-10b).
 2. Skip if: author is the channel owner, plan cap or the daily safety ceiling reached. Commenters are not deduplicated (Q-14): every keyword comment gets a draft; the queue may show "already replied to this person on this video" as information only.
 3. Language (B-06): detect comment language; use an approved template in that language if one exists; else the channel `default_language` template; else English.
 4. Draft: generated by AI with the owner's platform Gemini key (billing-enabled project, no training) by default; the creator may switch to their own Anthropic, OpenAI or Gemini key, encrypted at rest (Q-13c). Model names are configuration. The commenter's name is never sent to the AI. Falls back to approved templates. Rotate among approved templates, append the tracked link.
@@ -211,7 +220,7 @@ Each opt-in emits outbound `opt_in` and applies tags where the connector support
 
 - Per video and per keyword: comments matched, replies sent, clicks, subscribers, buyers, revenue, conversion rates (reply to click to subscriber to buyer).
 - Headline (Q-09, replaces the D-05 sentence): attributed revenue this month and lifetime, the recurring part of it, and the subscription cost as a percentage of attributed revenue ("Your subscription cost 0.13% of what your comments made"). The percentage line is omitted on free plans or when revenue is zero.
-- Also (R-35): clicks and buyers per reply template and per keyword intent (HOT, WARM, COLD); approval time vs conversion; a weekly email with the week's attributed revenue; a permanent ROI line; instant milestone notifications (first click, subscriber, buyer).
+- Also (R-35): clicks and buyers per reply template and per lead temperature (Hot, Warm, Cold); approval time vs conversion; a weekly email with the week's attributed revenue; a permanent ROI line; instant milestone notifications (first click, subscriber, buyer).
 - Date filters (this month, last 30/90 days, all time). All numbers derived from stored events; no estimates. Dashboards read precomputed aggregates.
 - UI vocabulary: Comment, Subscriber, Buyer, Revenue (B-01).
 - Phase 7 (DECISIONS section 12, P7-05 to P7-13): `report_snapshots` per account and period (this month, last 7, 30, 90 days, all time) in the account's time zone, rebuilt by the worker; `/app/reports`; headline on `/app`; weekly email, milestone emails, renewal recap, `/app/settings/billing`. Plans carry `price_cents` and `price_currency`; env addition `BILLING_PORTAL_URL`.

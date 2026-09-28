@@ -39,6 +39,9 @@ export async function POST(request: Request): Promise<Response> {
         await db.update(audits).set({ reportSentAt: null }).where(eq(audits.id, auditId));
         throw error;
       }
+      // The lead for the owner's CRM; the report is already on its way, so a
+      // failure here must not fail the visitor's request.
+      await enqueue(QUEUES.auditLead, { auditId }).catch((error: unknown) => log("error", "audit lead enqueue failed", errorFields(error)));
     }
     return back("sent=1");
   } catch (error) {

@@ -22,7 +22,11 @@ interface GhlCookie extends Record<string, unknown> {
 }
 
 const PAGE = "/app/settings/gohighlevel";
-const fail = (message: string) => redirectTo(`${PAGE}?error=${encodeURIComponent(message)}`);
+// Back to the GoHighLevel page, or to onboarding while it is not done.
+const fail = (message: string, account?: { onboardedAt: Date | null }) => {
+  const path = `${PAGE}?error=${encodeURIComponent(message)}`;
+  return redirectTo(account ? returnPath(account, path) : path);
+};
 const failPublic = (reason: string) => redirectTo(`${GHL_CLAIM_PAGE}?error=${reason}`);
 
 // HighLevel redirects here after the creator picked a location. The code has to
@@ -40,28 +44,28 @@ export async function GET(request: Request): Promise<Response> {
   const code = params.get("code");
 
   if (!saved) {
-    if (!code && !params.get("error")) return session ? fail("The connection request expired. Try again.") : failPublic("expired");
+    if (!code && !params.get("error")) return session ? fail("The connection request expired. Try again.", session?.account) : failPublic("expired");
     return marketplaceInstall(session, code, params.get("error"));
   }
 
   if (!session) return redirectTo("/login");
-  if (!ghlConfigured()) return fail("Connecting GoHighLevel is not available yet.");
-  if (params.get("error")) return fail("The GoHighLevel permission was not granted.");
+  if (!ghlConfigured()) return fail("Connecting GoHighLevel is not available yet.", session?.account);
+  if (params.get("error")) return fail("The GoHighLevel permission was not granted.", session?.account);
   if (!code || params.get("state") !== saved.state || saved.userId !== session.user.id) {
-    return fail("The connection request expired. Try again.");
+    return fail("The connection request expired. Try again.", session?.account);
   }
-  if (session.account.status !== "active") return fail("Your account is suspended.");
+  if (session.account.status !== "active") return fail("Your account is suspended.", session?.account);
 
   try {
     const tokens = await exchangeGhlCode(ghlClient(), code);
     const result = await connectGhl(getDb(), requireEnv("ENCRYPTION_KEY"), session.account.id, tokens);
-    if (!result.ok) return fail(CONNECT_ERRORS[result.error]);
+    if (!result.ok) return fail(CONNECT_ERRORS[result.error], session?.account);
     await enqueue(QUEUES.ghlSetup, { integrationId: result.id }, { singletonKey: result.id });
     log("info", "ghl connect started", { accountId: session.account.id, integrationId: result.id });
     return redirectTo(returnPath(session.account, `${PAGE}?ghl_connected=1`));
   } catch (error) {
     log("error", "ghl oauth callback failed", errorFields(error));
-    return fail("Connecting GoHighLevel failed. Try again.");
+    return fail("Connecting GoHighLevel failed. Try again.", session?.account);
   }
 }
 
@@ -76,7 +80,7 @@ async function marketplaceInstall(session: Awaited<ReturnType<typeof currentSess
     // Signed in already: connect straight away, exactly as the button would.
     if (session?.account.status === "active") {
       const result = await connectGhl(db, key, session.account.id, tokens);
-      if (!result.ok) return fail(CONNECT_ERRORS[result.error]);
+      if (!result.ok) return fail(CONNECT_ERRORS[result.error], session?.account);
       await enqueue(QUEUES.ghlSetup, { integrationId: result.id }, { singletonKey: result.id });
       log("info", "ghl marketplace install connected", { accountId: session.account.id, integrationId: result.id });
       return redirectTo(returnPath(session.account, `${PAGE}?ghl_connected=1`));

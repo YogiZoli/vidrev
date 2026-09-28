@@ -1,6 +1,6 @@
 # STATUS
 
-Last updated: 2026-09-29 (Phase 14 restructure, step 2 of 6 done)
+Last updated: 2026-09-29 (Phase 14 restructure, step 3 of 6 done)
 
 ## End goal
 
@@ -44,7 +44,7 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 | 9 | Audit my channel | **DONE** (2026-09-26), PRs #26 to #28; needs the owner setup below before it works live |
 | 10 | GHL Marketplace connector | **DONE** (2026-09-26), PRs #30 to #32; the app is ready for "Start Public review", which waits for the LLC ([docs/MARKETPLACE-LISTING.md](docs/MARKETPLACE-LISTING.md)) |
 | 12 | Compliance and launch readiness | **DONE** (2026-09-26), PRs #34 and #35; submission waits for the LLC and owner steps ([docs/compliance/LAUNCH-CHECKLIST.md](docs/compliance/LAUNCH-CHECKLIST.md)) |
-| 14 | App restructure: mandatory onboarding, one core flow (Video, Keyword, Target URL), new navigation | **In progress** (2026-09-29): 1 navigation and Settings done (#85, #86); 2 onboarding gate done; next 3 wizard polish |
+| 14 | App restructure: mandatory onboarding, one core flow (Video, Keyword, Target URL), new navigation | **In progress** (2026-09-29): 1 navigation and Settings done (#85, #86); 2 onboarding gate done (#87); 3 wizard polish done; next 4 Campaigns flow (Video, Target URL) |
 | 13 | Restyle to the Shine design (v3): tokens, shells, every page, micro-interactions | **DONE** (2026-09-26), PRs #40 to #58; test fix #59 |
 
 Phase plan changes (all accepted): compliance pack and quota extension request right after Phase 5 (Q-17 a); one GHL Marketplace app created Private in Phase 6 and made Public in Phase 10 (Q-17 b); retention job in Phase 4 (Q-17 c, done); Cloudflare for SaaS spike once the brand domain exists (Q-17 d).
@@ -55,6 +55,7 @@ Plan (owner approved 2026-09-29): 1 navigation and Settings, 2 onboarding gate (
 
 - Step 1 done: top tabs Home (approval queue plus this month's numbers), Campaigns, Reports, Settings (dropdown), Owner admin for ADMIN_EMAILS only (server gate unchanged). Settings groups: Account (Account, Billing and cancel), Connections (YouTube channel, GoHighLevel, Stripe), Developers (Webhooks, Inbound endpoints), Links (Linked domain). Old paths redirect; `/app/settings/integrations` forwards each notice to its page.
 - Step 2 done: `drizzle/0012` adds `accounts.onboarded_at`, `purchase_source` (`ghl` or `stripe`), `default_target_url`. `/app` redirects to `/onboarding` until `onboarded_at` is set (`src/server/onboarding.ts`: four steps in order, stamped once, never unset by a later disconnect). The worker neither polls, reads RSS nor drafts for an account without it. OAuth and Stripe connects return to `/onboarding` while it is not done. Existing accounts (the owner's vidrev Sub-account too) go through `/onboarding` once after deploy; until then their channel is not polled.
+- Step 3 done: target URL prefilled from the GoHighLevel Sub-account website (read at setup with `locations.readonly`, stored as `locationWebsite` in the sealed config; no new scope); GoHighLevel connect errors return to `/onboarding`; the onboarding header offers Sign out. Optional `GHL_AFFILIATE_URL` (owner's affiliate link) shows "No GoHighLevel yet? Start a free trial" with a commission disclosure on the CRM step; off until set.
 
 ## Contacts (Q-23): what was built
 

@@ -5,11 +5,15 @@ import { Eyebrow } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 import { Meta, Page } from "@/components/ui/page";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
+import { integrations } from "@/db/schema";
+import { env, requireEnv } from "@/lib/env";
 import { cn } from "@/lib/cn";
 import { requireSession } from "@/server/auth/current";
 import { ghlConfigured } from "@/server/ghl/config";
-import { completeOnboardingIfReady, type OnboardingStep, onboardingState } from "@/server/onboarding";
+import { readGhlConfig } from "@/server/ghl/tokens";
+import { completeOnboardingIfReady, type OnboardingStep, onboardingState, parseTargetUrl } from "@/server/onboarding";
 import { Notice } from "../ui";
 
 export const dynamic = "force-dynamic";
@@ -65,6 +69,16 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
   if (await completeOnboardingIfReady(db, account.id)) redirect("/app?welcome=1");
   const params = await searchParams;
   const state = await onboardingState(db, account.id);
+  // Target URL prefill: the saved one, else the website of the GoHighLevel Sub-account.
+  let suggested: string | null = null;
+  if (!state.defaultTargetUrl && state.current === "target") {
+    const [ghl] = await db
+      .select({ configEnc: integrations.configEnc })
+      .from(integrations)
+      .where(and(eq(integrations.accountId, account.id), eq(integrations.type, "ghl"), eq(integrations.status, "active")));
+    const website = ghl?.configEnc ? readGhlConfig(ghl.configEnc, requireEnv("ENCRYPTION_KEY")).locationWebsite : null;
+    suggested = website ? parseTargetUrl(website) : null;
+  }
   const stateOf = (key: OnboardingStep) => (state.done[key] ? "done" : state.current === key ? "current" : "later");
 
   return (
@@ -109,6 +123,15 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
             <Meta className="text-[15px]">Connecting GoHighLevel is not available yet.</Meta>
           )}
           <Meta>One click: pick your Sub-account and approve.</Meta>
+          {env().GHL_AFFILIATE_URL ? (
+            <Meta className="text-[15px]">
+              No GoHighLevel yet?{" "}
+              <a href={env().GHL_AFFILIATE_URL} target="_blank" rel="noopener sponsored">
+                Start a GoHighLevel free trial
+              </a>{" "}
+              (affiliate link: we may earn a commission), then come back here.
+            </Meta>
+          ) : null}
         </Step>
 
         <Step n={3} {...STEPS[2]} state={stateOf("purchases")}>
@@ -142,8 +165,15 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
         <Step n={4} {...STEPS[3]} state={stateOf("target")}>
           <form method="post" action="/api/onboarding" className="grid gap-3">
             <input type="hidden" name="action" value="target" />
-            <Field label="Opt-in page URL" hint="Links run on go.vidrev.app. Your own link domain is optional, later in Settings.">
-              <Input name="url" type="url" required placeholder="https://yoursite.com/guide" defaultValue={state.defaultTargetUrl ?? ""} className="font-mono" />
+            <Field
+              label="Opt-in page URL"
+              hint={
+                suggested
+                  ? "Filled in from your GoHighLevel Sub-account website. Change it to the exact page where viewers opt in. Links run on go.vidrev.app; your own link domain is optional, later in Settings."
+                  : "Links run on go.vidrev.app. Your own link domain is optional, later in Settings."
+              }
+            >
+              <Input name="url" type="url" required placeholder="https://yoursite.com/guide" defaultValue={state.defaultTargetUrl ?? suggested ?? ""} className="font-mono" />
             </Field>
             <div>
               <Button type="submit" pulse>

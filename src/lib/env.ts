@@ -16,6 +16,8 @@ const envSchema = z.object({
   BILLING_PORTAL_URL: z.string().trim().url().optional(),
   // GoHighLevel checkout of the founding offer; the audit CTA leads here (L-12).
   FOUNDING_CHECKOUT_URL: z.string().trim().url().optional(),
+  // Owner's GoHighLevel affiliate link, offered in onboarding to creators without GoHighLevel.
+  GHL_AFFILIATE_URL: z.string().trim().url().optional(),
   ENCRYPTION_KEY: optional,
   AUTH_SECRET: optional,
   PROVISIONING_SECRET: optional,

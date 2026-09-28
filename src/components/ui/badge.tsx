@@ -26,6 +26,24 @@ export function Keyword({ className, ...props }: HTMLAttributes<HTMLSpanElement>
   return <span className={cn("inline-flex items-center rounded-sm bg-muted px-2 py-0.5 font-mono text-[13px] text-foreground", className)} {...props} />;
 }
 
+// Lead temperature chip: Cold blue, Warm amber, Hot red, with a dot.
+const TEMPERATURE_STYLE = {
+  cold: "bg-cold-surface text-cold-text [--dot:var(--cold-dot)]",
+  warm: "bg-warm-surface text-warm-text [--dot:var(--warm-dot)]",
+  hot: "bg-hot-surface text-hot-text [--dot:var(--hot-dot)]",
+} as const;
+const TEMPERATURE_TEXT = { cold: "Cold", warm: "Warm", hot: "Hot" } as const;
+
+export function TemperatureChip({ temperature, className }: { temperature: keyof typeof TEMPERATURE_STYLE; className?: string }) {
+  return (
+    <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[12px] font-bold", TEMPERATURE_STYLE[temperature], className)}>
+      <span aria-hidden className="size-1.5 rounded-full bg-[var(--dot)]" />
+      {TEMPERATURE_TEXT[temperature]}
+      <span className="sr-only"> lead</span>
+    </span>
+  );
+}
+
 // Intent tag: outline, 11/700.
 export function IntentTag({ className, ...props }: HTMLAttributes<HTMLSpanElement>) {
   return <span className={cn("inline-flex items-center rounded-full border border-border-strong px-2 py-0.5 text-[11px] font-bold text-label", className)} {...props} />;

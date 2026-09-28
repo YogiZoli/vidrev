@@ -31,7 +31,7 @@ describe.skipIf(!hasDb)("campaigns (integration)", () => {
 
   it("refuses a new rule without a video and stores picked plus pasted videos", async () => {
     const { db, account, channel } = await setup();
-    expect(await createCampaign(db, account.id, { ...input, channelId: channel.id })).toEqual({ ok: false, error: "Pick at least one video." });
+    expect(await createCampaign(db, account.id, { ...input, channelId: channel.id })).toEqual({ ok: false, error: "Pick at least one video, or all of them." });
     expect(await createCampaign(db, account.id, { ...input, channelId: channel.id, videoIds: ["bad"] })).toMatchObject({ ok: false });
     const result = await createCampaign(db, account.id, {
       ...input,
@@ -42,6 +42,21 @@ describe.skipIf(!hasDb)("campaigns (integration)", () => {
     expect(result).toEqual({ ok: true });
     const [row] = await db.select().from(campaigns).where(eq(campaigns.accountId, account.id));
     expect(row?.videoIds).toEqual(["aaaaaaaaaaa", "bbbbbbbbbbb", "ccccccccccc"]);
+  });
+
+  it("takes keywords only from the catalog, with its temperature and automatic misspellings, and allows all videos", async () => {
+    const { db, account, channel } = await setup();
+    expect(await createCampaign(db, account.id, { ...input, keyword: "MYWORD", channelId: channel.id, allVideos: true })).toEqual({
+      ok: false,
+      error: "Pick a keyword from the list.",
+    });
+    expect(await createCampaign(db, account.id, { ...input, keyword: "price", intent: "cold", channelId: channel.id, allVideos: true })).toEqual({ ok: true });
+    expect(await createCampaign(db, account.id, { ...input, aliases: "gudie, guidd", channelId: channel.id, allVideos: true })).toEqual({ ok: true });
+    const rows = await db.select().from(campaigns).where(eq(campaigns.accountId, account.id));
+    const price = rows.find((r) => r.keyword === "PRICE")!;
+    expect(price).toMatchObject({ intent: "hot", videoIds: null });
+    expect(price.aliases).toContain("PRCIE");
+    expect(rows.find((r) => r.keyword === "GUIDE")?.aliases).toEqual(["GUDIE", "GUIDD"]);
   });
 
   it("lists feed videos and known videos newest first, without duplicates", async () => {

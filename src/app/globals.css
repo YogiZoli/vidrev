@@ -39,6 +39,11 @@
   --warning-text: #6B4E00;   --warning-dot: #E5A400;   --warning-surface: #FBF2DD;
   --danger-text: #A33A00;    --danger-dot: #F2651B;    --danger-surface: #FFF1E8;   --danger-border: rgba(242, 101, 27, 0.4);
 
+  /* Lead temperature chips (Phase 14): Cold blue, Warm amber, Hot red */
+  --cold-text: #1D4F9C;      --cold-dot: #2E6FE0;      --cold-surface: #E7EFFC;
+  --warm-text: #6B4E00;      --warm-dot: #E5A400;      --warm-surface: #FBF2DD;
+  --hot-text: #A5161B;       --hot-dot: #D92D20;       --hot-surface: #FDECEA;
+
   /* Role tokens */
   --background: var(--ground);
   --foreground: var(--ink);
@@ -134,6 +139,15 @@
   --color-danger-dot: var(--danger-dot);
   --color-danger-surface: var(--danger-surface);
   --color-danger-border: var(--danger-border);
+  --color-cold-text: var(--cold-text);
+  --color-cold-dot: var(--cold-dot);
+  --color-cold-surface: var(--cold-surface);
+  --color-warm-text: var(--warm-text);
+  --color-warm-dot: var(--warm-dot);
+  --color-warm-surface: var(--warm-surface);
+  --color-hot-text: var(--hot-text);
+  --color-hot-dot: var(--hot-dot);
+  --color-hot-surface: var(--hot-surface);
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);

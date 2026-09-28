@@ -41,6 +41,7 @@ export async function POST(request: Request): Promise<Response> {
         destinationUrl: field("destinationUrl") || session.account.defaultTargetUrl || "",
         videos: field("videos"),
         videoIds: form.getAll("videoIds").map(String),
+        allVideos: field("allVideos") === "1",
       });
       break;
     case "pause":

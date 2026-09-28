@@ -53,7 +53,7 @@ Status column: **valid** = applies as written; **refined** = still valid, a late
 | D-34 | Audit my channel gets its own separate GCP project (different use case). | | valid |
 | D-35 | Quota extension has no official deadline (reports range from days to months; a typical first approval is 50,000 to 100,000 units per day). The legacy app's 1-day approval was OAuth verification, not a quota extension. | | valid (planning fact) |
 | D-36 | Stack (approved 2026-09-25): TypeScript + Next.js + Postgres, no Redis. Speed: the UI never waits on an external API; every YouTube and GHL call runs in the worker. | | valid |
-| D-37 | Pricing: the 29/49/99 USD draft is rejected. 14-day trial with card required. No forever-free plan (the free entry point is Audit my channel). The standard monthly price is not decided yet and stays configurable. | | valid |
+| D-37 | Pricing: the 29/49/99 USD draft is rejected. 14-day trial with card required (**trial paused by L-08**). No forever-free plan (the free entry point is Audit my channel). The standard monthly price is not decided yet and stays configurable. | | valid |
 
 ## 2. Build brief decisions (owner, 2026-09-25)
 
@@ -65,7 +65,7 @@ These come from the owner's build brief to Claude Code. They add detail to the 0
 | B-02 | Target: active owner-creators who already sell their own offer and upload regularly; entry segment GHL users in coaching, agency, real estate and fitness niches. |
 | B-03 | Stack details: Next.js App Router, Drizzle ORM, pg-boss worker, Resend, Vitest. Railway services `web` and `worker` plus Postgres. |
 | B-04 | Billing is not in the app. Checkout lives in GHL and calls a signed provisioning webhook (purchase: activate and send magic link; cancel or failed payment: suspend). |
-| B-05 | Plans are data: `standard_monthly` (price not decided, configurable), `founding` (annual, 97 USD/year, renewal locked for life, first 100 buyers), `ghl_affiliate_free` (manual or by webhook), `enterprise` (BYOK, price later), `internal`. 14-day trial with card (D-37). No forever-free plan, no lifetime plan. |
+| B-05 | Plans are data: `standard_monthly` (price not decided, configurable), `founding` (annual, 97 USD/year, renewal locked for life, first 100 buyers), `ghl_affiliate_free` (manual or by webhook), `enterprise` (BYOK, price later), `internal`. 14-day trial with card (D-37, **paused by L-08**). No forever-free plan, no lifetime plan. |
 | B-06 | Reply language cascade: the commenter's language only if an approved template exists in that language, else the creator's default language (set manually), else English. Never post an unapproved machine translation. UI in English only. |
 | B-07 | YouTube compliance: scopes `youtube.force-ssl` plus `openid email profile` only; reply only to explicit keyword comments; varied templates; per-video and per-hour limits; never require like or subscribe; store YouTube API data max 30 days or refresh every 30 days; never use Google user data for model training. |
 | B-08 | Attribution default: last touch within 180 days; refunds reduce revenue. (Resolves SPEC open decision 3.) |
@@ -418,7 +418,7 @@ Open questions for the owner. Each has a recommended default, which is what gets
 | ID | Decision |
 | --- | --- |
 | Q-24 | **Owner decision:** the 30 day rule for YouTube API data (Q-17 c, III.E.4.c and d) **stays fully intact**. Nothing in the Contact model may keep YouTube API data beyond 30 days without a refresh that YouTube's own policy allows. The implementation in 13.9 (confirm with YouTube every 30 days, otherwise delete) is the accepted baseline and is built. |
-| L-01 | **Review later (parked, not started):** investigate whether a **legal way** exists to recognise a returning commenter for longer or more reliably than the refresh in 13.9 allows, without weakening the 30 day rule. Questions for that review: (1) whether the Google or YouTube API policies, or a written answer from the YouTube API compliance team, allow keeping a one-way derived key of the commenter (a salted hash) as first-party data; (2) whether the commenter's own explicit consent on the opt-in page (a consent line that links the email to their YouTube comment) makes the correlation of channel id and email permitted, and how to collect and store that consent; (3) whether identifying a returning commenter through first-party signals only (the tracked link, the cookie of CC-07 layer 3, the email itself) can replace the channel id for most cases; (4) how the answer changes the Google OAuth verification pack. Until this review is done and the owner decides, **the refresh-or-delete design stays and no derived key is stored**. |
+| L-01 | Main call to action: "Audit my channel, free". **No free trial** is offered until the first 100 founding sales; the owner may decide otherwise after that. (Replaces the first L-01 of the same day, "Start your free trial".) |
 
 ## 14. Phase plan change (owner, 2026-09-26)
 
@@ -482,4 +482,6 @@ Method and signatures come from the 03 research (`c2c-market-research/fingerprin
 | L-04 | No social proof exists yet; the layout keeps a place for it. |
 | L-05 | Section structure follows commentshark.com and replytide.co (the owner's reference pages), without social proof. Structure is mirrored; all copy is our own. |
 | L-06 | Lead magnet direction (fixed): every lead magnet is personal to the visitor (never a generic PDF), gives value at once, and demonstrates what vidrev would do on their own channel. Audit my channel is the first one; it gets a redesign phase after the landing page. |
+| L-08 | The 14-day trial (D-37, B-05) is **paused**: no page, email or checkout offers it, and provisioning must not grant it. The trial code and plan data stay dormant until the owner reopens it; future work must not build on the trial. |
+| L-09 | USPs: the only revenue attribution app for YouTube organic traffic; direct integration with GoHighLevel or the creator's CRM; "No more cold outreach" (buyers raise their hand in the comments). Section plan: Drive doc "06 vidrev Landing szekciók". |
 | L-07 | Privacy and Terms go live once the LLC exists; drafts stay in docs/compliance. |

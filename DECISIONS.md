@@ -502,3 +502,15 @@ Method and signatures come from the 03 research (`c2c-market-research/fingerprin
 | R-06 | Webhooks and Inbound endpoints are self-service, without support for connecting other systems. |
 | R-08 | Keyword catalog (owner, 2026-09-29), 5 per temperature: Cold GUIDE, CHECKLIST, TEMPLATE, PDF, START; Warm TRAINING, WORKSHOP, WEBINAR, COURSE, SURVEY (the ASK Method entry point); Hot TRIGGER (the owner's closing CTA), CALL, BUY, APPLY, ACTION. Dropped: FREE, DEMO, PRICE, IMPLEMENT, CHALLENGE, EBOOK, BOOK, LINK, INFO, YES. The GoHighLevel Marketplace C2C app is aligned to this list by the owner. |
 | R-07 | Additive migration `0012`: `accounts.onboarded_at`, `purchase_source`, `default_target_url`. No other schema change. |
+
+## 20. Reliability review (owner, 2026-09-29)
+
+| # | Decision |
+| --- | --- |
+| RR-01 | A reply is never posted twice. After YouTube accepts a post the reply never returns to approved. When YouTube does not answer, the reply stays "sending"; after 10 minutes the comment's replies are read (1 unit): found means sent, not found means sent again; when YouTube cannot be asked it fails with `send_unconfirmed` and the creator can post it by hand. |
+| RR-02 | Stuck states resolve themselves: a channel "connecting" for 30 minutes is rejected with `connect_timeout` and the onboarding says why. |
+| RR-03 | The poll cursor only moves when every new comment was read; a stop by budget or YouTube refusal keeps it. |
+| RR-04 | Owner alerts are emails to `ADMIN_EMAILS`: a job that failed for good, a failed step of a scheduled job, a refused provisioning webhook, a new customer without a sign-in email, the custom hostname cap. At most one email an hour per problem from the worker; repeats are counted. A dead worker cannot alert: `/api/health/worker` is for an external uptime monitor (owner step). |
+| RR-05 | Every creator and owner action is kept in `audit_log`; refusals are logged with the reason; personal fields (emails, comment text) never go into job logs. |
+| RR-06 | Every integration test file runs on its own fresh database (vitest projects "unit" and "integration"), so parallel global sweeps cannot make CI fail at random. |
+| RR-07 | One rule per keyword and video: a second rule for the same keyword on an overlapping video scope is refused. |

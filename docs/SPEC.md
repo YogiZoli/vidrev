@@ -251,6 +251,7 @@ Each opt-in emits outbound `opt_in` and applies tags where the connector support
 ## 16. Observability
 
 - Structured logs, error tracking (Sentry free tier or equivalent), health endpoint, worker heartbeat, quota and delivery dashboards for the owner.
+- Built (reliability review 2026-09-29, DECISIONS section 20): one-line JSON logs with error type, short stack and cause (`src/lib/log.ts`); every worker queue through `runJob` (failed attempts logged with queue, job id, attempt, payload ids; the last attempt emails the owner, at most once an hour per problem); scheduled jobs as independent steps (`runSteps`); 20 s limit on every outbound call (`src/lib/http.ts`); missing settings fail loudly (`MissingConfigError`); every creator and owner action in the log and in `audit_log` (`src/server/events.ts`); every inbound hook and GoHighLevel event logged with its outcome; every server error of a page or route logged by `src/instrumentation.ts` with the digest the error page shows; `/api/health/worker` (503 when the worker heartbeat is stale, for an external uptime monitor); System health panel on `/admin`. Sentry is not used; the logs plus owner emails cover it for the founding cohort.
 
 ## 17. Testing
 

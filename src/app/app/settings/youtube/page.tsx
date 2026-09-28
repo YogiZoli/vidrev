@@ -25,6 +25,7 @@ export default async function YoutubeSettingsPage({ searchParams }: { searchPara
       {connecting ? <meta httpEquiv="refresh" content="3" /> : null}
       <PageHeader title="YouTube channel" />
       {params.error && CHANNEL_CONNECT_ERRORS[params.error] ? <Notice tone="error">{CHANNEL_CONNECT_ERRORS[params.error]}</Notice> : null}
+      {params.connected ? <Notice tone="info">Google access granted. Finishing the connection.</Notice> : null}
       {params.disconnected ? <Notice tone="info">Channel disconnected. Its YouTube data is being deleted.</Notice> : null}
         <Card className="grid content-start gap-3">
           <SectionTitle>Channel</SectionTitle>

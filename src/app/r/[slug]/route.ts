@@ -36,8 +36,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
       ipSecret: AUTH_SECRET ?? "",
       fallbackHost: fallback,
     });
-    if (result.kind === "not_found") return page(404, "This link does not exist.");
-    if (result.kind === "blocked") return page(410, "This link is no longer available.");
+    if (result.kind === "not_found") {
+      log("info", "link not found", { slug, host });
+      return page(404, "This link does not exist.");
+    }
+    if (result.kind === "blocked") {
+      log("info", "link blocked", { slug, host });
+      return page(410, "This link is no longer available.");
+    }
     const headers = new Headers({ ...NO_STORE, location: result.location, "referrer-policy": "no-referrer-when-downgrade" });
     if (result.setCookie) headers.append("set-cookie", result.setCookie);
     // Outbound link_clicked event (Phase 6), after the redirect is decided.

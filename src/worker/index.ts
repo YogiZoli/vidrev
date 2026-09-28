@@ -42,7 +42,12 @@ async function main(): Promise<void> {
   await boss.createQueue(HEARTBEAT_QUEUE);
   await boss.schedule(HEARTBEAT_QUEUE, "* * * * *");
   await boss.work(HEARTBEAT_QUEUE, async () => {
-    await beat();
+    try {
+      await beat();
+    } catch (error) {
+      log("error", "worker heartbeat failed", errorFields(error));
+      throw error;
+    }
   });
   await registerHandlers(boss);
 

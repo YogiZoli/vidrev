@@ -1,6 +1,7 @@
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import { accounts, channels, integrations } from "@/db/schema";
+import { log } from "@/lib/log";
 
 // Onboarding (Phase 14): an account that cannot turn a comment into a lead
 // and a sale spends no polling, no AI drafts and no quota. Each step blocks
@@ -64,7 +65,12 @@ export async function onboardingState(db: Db, accountId: string): Promise<Onboar
 export async function completeOnboardingIfReady(db: Db, accountId: string, now = new Date()): Promise<boolean> {
   const state = await onboardingState(db, accountId);
   if (state.current !== null) return false;
-  await db.update(accounts).set({ onboardedAt: now }).where(and(eq(accounts.id, accountId), isNull(accounts.onboardedAt)));
+  const stamped = await db
+    .update(accounts)
+    .set({ onboardedAt: now })
+    .where(and(eq(accounts.id, accountId), isNull(accounts.onboardedAt)))
+    .returning({ id: accounts.id });
+  if (stamped.length > 0) log("info", "onboarding completed, polling starts", { accountId, purchaseSource: state.purchaseSource });
   return true;
 }
 

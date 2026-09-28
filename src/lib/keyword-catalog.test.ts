@@ -18,6 +18,8 @@ describe("keyword catalog", () => {
 
   it("keeps short words safe and never suggests another catalog keyword", () => {
     expect(misspellings("CALL")).not.toContain("CAL");
+    expect(misspellings("COURSE")).not.toContain("CURSE");
+    expect(misspellings("TRIGGER")).toEqual(expect.arrayContaining(["TRIGER", "TIRGGER", "TRIGGERS"]));
     for (const k of KEYWORD_CATALOG) {
       for (const v of misspellings(k.keyword)) expect(catalogKeyword(v)).toBeUndefined();
     }

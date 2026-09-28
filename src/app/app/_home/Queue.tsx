@@ -12,11 +12,11 @@ import { dayUsage } from "@/server/quota";
 import { replyUsage } from "@/server/replies";
 import { commentUrl } from "@/server/youtube/api";
 import { Keyword } from "@/components/ui/badge";
-import { Meta, Page, PageHeader, SectionTitle } from "@/components/ui/page";
+import { Meta, SectionTitle } from "@/components/ui/page";
 import { Table, TableWrap, Td } from "@/components/ui/table";
 import { type CardData, PendingCards, WaitingCards } from "./QueueCards";
 
-export const dynamic = "force-dynamic";
+
 
 const REASONS: Record<string, string> = {
   monthly_cap: "monthly plan limit reached",
@@ -32,7 +32,8 @@ function formatUtc(date: Date): string {
   return `${date.toISOString().slice(0, 16).replace("T", " ")} UTC`;
 }
 
-export default async function QueuePage() {
+// The approval queue, the daily action on Home.
+export async function ApprovalQueue() {
   const { account, plan } = await requireSession();
   const db = getDb();
   const now = new Date();
@@ -84,17 +85,15 @@ export default async function QueuePage() {
   const quotaLeft = repliesLeftToday(await dayUsage(db, pacificDate(now)), env().QUOTA_DAILY_LIMIT);
 
   return (
-    <Page width="md">
-      <PageHeader
-        title="Approval queue"
-        lead={
-          <>
-            Every reply waits for your approval. Replies this month: {usage.thisMonth}
-            {plan.monthlyReplyCap !== null ? ` of ${plan.monthlyReplyCap}` : ""}; today: {usage.today}
-            {plan.dailyReplyCap !== null ? ` of ${plan.dailyReplyCap}` : ""}.
-          </>
-        }
-      />
+    <section className="grid gap-4" aria-labelledby="queue-title">
+      <div className="grid gap-1">
+        <SectionTitle id="queue-title">Approval queue</SectionTitle>
+        <Meta className="text-[15px]">
+          Every reply waits for your approval. Replies this month: {usage.thisMonth}
+          {plan.monthlyReplyCap !== null ? ` of ${plan.monthlyReplyCap}` : ""}; today: {usage.today}
+          {plan.dailyReplyCap !== null ? ` of ${plan.dailyReplyCap}` : ""}.
+        </Meta>
+      </div>
       <PendingCards cards={pending} usage={{ today: usage.today, dailyCap: plan.dailyReplyCap }} />
 
       {waiting.length ? (
@@ -131,6 +130,6 @@ export default async function QueuePage() {
           </TableWrap>
         </section>
       ) : null}
-    </Page>
+    </section>
   );
 }

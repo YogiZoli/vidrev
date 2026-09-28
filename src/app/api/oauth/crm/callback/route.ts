@@ -20,7 +20,7 @@ interface GhlCookie extends Record<string, unknown> {
   userId: string;
 }
 
-const PAGE = "/app/integrations";
+const PAGE = "/app/settings/integrations";
 const fail = (message: string) => redirectTo(`${PAGE}?error=${encodeURIComponent(message)}`);
 const failPublic = (reason: string) => redirectTo(`${GHL_CLAIM_PAGE}?error=${reason}`);
 

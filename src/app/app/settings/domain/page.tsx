@@ -14,7 +14,7 @@ import { cookieDomain, suggestHostname } from "@/lib/links";
 import { requireSession } from "@/server/auth/current";
 import { cnameRecord, providerById } from "@/server/domains/dns";
 import { liveDomain } from "@/server/domains/service";
-import { Notice, productName } from "../../ui";
+import { Notice, productName } from "../../../ui";
 
 export const dynamic = "force-dynamic";
 

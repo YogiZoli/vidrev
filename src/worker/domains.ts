@@ -119,7 +119,7 @@ export async function checkDomain(deps: DomainDeps, domainId: string): Promise<v
     log("info", "custom domain live", { domainId: domain.id });
     const [user] = await deps.db.select({ email: users.email }).from(users).where(eq(users.accountId, domain.accountId));
     if (user) {
-      const text = `Your link domain ${domain.hostname} is live. New replies now carry links on your own domain.\n\n${deps.appBaseUrl}/app/domain`;
+      const text = `Your link domain ${domain.hostname} is live. New replies now carry links on your own domain.\n\n${deps.appBaseUrl}/app/settings/domain`;
       await deps.enqueue("email.send", { to: user.email, subject: `${domain.hostname} is live`, text, html: `<p>${text.replace(/\n/g, "<br>")}</p>` });
     }
   } else if (!live && domain.status === "active") {

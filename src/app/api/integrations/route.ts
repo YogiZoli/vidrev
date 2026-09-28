@@ -15,9 +15,9 @@ import { createEndpoint, queuePing, removeEndpoint, rotateSecret, setEndpointEna
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const PAGE = "/app/integrations";
+const PAGE = "/app/settings/integrations";
 
-// Form posts from /app/integrations for outbound webhook endpoints. Delivery
+// Form posts from /app/settings/integrations for outbound webhook endpoints. Delivery
 // itself always runs in the worker.
 export async function POST(request: Request): Promise<Response> {
   if (!isSameOrigin(request)) return new Response("Forbidden", { status: 403 });

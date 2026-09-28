@@ -34,7 +34,7 @@ export async function POST(request: Request): Promise<Response> {
     store.delete({ name: GHL_CLAIM_COOKIE, path: "/" });
     await enqueue(QUEUES.ghlSetup, { integrationId: result.id }, { singletonKey: result.id });
     log("info", "ghl marketplace install claimed", { accountId: session.account.id, integrationId: result.id });
-    return redirectTo("/app/integrations?ghl_connected=1");
+    return redirectTo("/app/settings/integrations?ghl_connected=1");
   } catch (error) {
     log("error", "ghl claim failed", errorFields(error));
     return back("failed");

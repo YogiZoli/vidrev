@@ -56,6 +56,11 @@ export default async function AppPage({ searchParams }: { searchParams: Promise<
           You installed the app from HighLevel. <a href={GHL_CLAIM_PAGE}>Finish connecting it to this account.</a>
         </Notice>
       ) : null}
+      {params.welcome ? (
+        <Notice tone="info">
+          Setup done. Next: <Link href="/app/campaigns">create your first campaign</Link> (video, keyword, target URL).
+        </Notice>
+      ) : null}
       {params.connected ? <Notice tone="info">Google access granted. Finishing the connection.</Notice> : null}
       {params.disconnected ? <Notice tone="info">Channel disconnected. Its YouTube data is being deleted.</Notice> : null}
       {account.status === "suspended" ? (

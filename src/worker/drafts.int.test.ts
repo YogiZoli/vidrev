@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { campaigns, channels, comments, replies, templates } from "@/db/schema";
+import { accounts, campaigns, channels, comments, replies, templates } from "@/db/schema";
 import { runMigrations } from "@/scripts/migrate";
 import { createAccountWithUser } from "@/server/accounts";
 import { createDraft, type DraftDeps } from "./drafts";
@@ -35,6 +35,8 @@ function deps(ai: { apiKey?: string; answer?: string; fail?: boolean } = {}) {
 async function setup(text: string, opts: { defaultLanguage?: string } = {}) {
   const db = getDb();
   const { account } = await createAccountWithUser(db, { email: `draft-${randomUUID()}@example.com`, planCode: "standard_monthly" });
+  // Onboarding done (Phase 14): polling and drafts run only after it.
+  await db.update(accounts).set({ onboardedAt: new Date() }).where(eq(accounts.id, account.id));
   const [channel] = await db
     .insert(channels)
     .values({ accountId: account.id, youtubeChannelId: `UC${randomUUID()}`, status: "connected", defaultLanguage: opts.defaultLanguage ?? "en" })

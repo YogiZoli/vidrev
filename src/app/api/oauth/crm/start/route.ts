@@ -6,6 +6,7 @@ import { currentSession } from "@/server/auth/current";
 import { ghlClient, ghlConfigured, GHL_COOKIE, GHL_COOKIE_PATH, GHL_COOKIE_TTL_MS, ghlScopes } from "@/server/ghl/config";
 import { buildInstallUrl } from "@/server/ghl/oauth";
 import { clientIsSecure, redirectTo } from "@/server/http";
+import { returnPath } from "@/server/onboarding";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -17,8 +18,8 @@ const PAGE = "/app/settings/gohighlevel";
 export async function GET(): Promise<Response> {
   const session = await currentSession();
   if (!session) return redirectTo("/login");
-  if (!ghlConfigured()) return redirectTo(`${PAGE}?error=${encodeURIComponent("Connecting GoHighLevel is not available yet.")}`);
-  if (session.account.status !== "active") return redirectTo(`${PAGE}?error=${encodeURIComponent("Your account is suspended.")}`);
+  if (!ghlConfigured()) return redirectTo(returnPath(session.account, `${PAGE}?error=${encodeURIComponent("Connecting GoHighLevel is not available yet.")}`));
+  if (session.account.status !== "active") return redirectTo(returnPath(session.account, `${PAGE}?error=${encodeURIComponent("Your account is suspended.")}`));
 
   const state = randomToken(24);
   (await cookies()).set({

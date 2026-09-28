@@ -2,12 +2,12 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { campaigns, channels, comments, quotaLedger, videos } from "@/db/schema";
+import { accounts, campaigns, channels, comments, quotaLedger, videos } from "@/db/schema";
 import { encryptSecret } from "@/lib/crypto";
 import { runMigrations } from "@/scripts/migrate";
 import { createAccountWithUser } from "@/server/accounts";
 import { applyFeedEntries } from "@/server/uploads";
-import { type EngineDeps, engineTick, pollChannel } from "./polling";
+import { activeChannels, checkRss, type EngineDeps, engineTick, pollChannel } from "./polling";
 
 const hasDb = Boolean(process.env.DATABASE_URL);
 const key = randomBytes(32).toString("base64");
@@ -60,6 +60,8 @@ function engine(pages: unknown[][], opts: { quotaLimit?: number } = {}) {
 async function setup(campaignCreatedAt = new Date(now.getTime() - 3_600_000)) {
   const db = getDb();
   const { account } = await createAccountWithUser(db, { email: `poll-${randomUUID()}@example.com`, planCode: "standard_monthly" });
+  // Onboarding done (Phase 14): polling and drafts run only after it.
+  await db.update(accounts).set({ onboardedAt: new Date() }).where(eq(accounts.id, account.id));
   const ytId = `UC${randomUUID()}`;
   const [channel] = await db
     .insert(channels)
@@ -90,6 +92,16 @@ describe.skipIf(!hasDb)("channel polling (integration)", () => {
 
   afterAll(async () => {
     await closeDb();
+  });
+
+  it("never polls or calls YouTube for an account that has not finished onboarding", async () => {
+    const { account, channel } = await setup();
+    await getDb().update(accounts).set({ onboardedAt: null }).where(eq(accounts.id, account.id));
+    expect((await activeChannels(getDb())).some((c) => c.id === channel.id)).toBe(false);
+    const { deps, urls } = engine([[thread(`c-${randomUUID()}`, "GUIDE please", minutesAgo(5))]]);
+    await pollChannel(deps, channel.id);
+    await checkRss(deps, channel.id);
+    expect(urls).toEqual([]);
   });
 
   it("stores only new keyword comments from viewers and queues a draft for each", async () => {

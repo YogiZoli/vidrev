@@ -9,6 +9,7 @@ import { currentSession } from "@/server/auth/current";
 import { countLiveChannels, createConnectingChannel } from "@/server/channels";
 import { appGoogleClient, googleConfigured, OAUTH_COOKIE, OAUTH_COOKIE_PATH } from "@/server/google/config";
 import { exchangeCode, grantedYoutubeScope, revokeToken } from "@/server/google/oauth";
+import { returnPath } from "@/server/onboarding";
 import { redirectTo } from "@/server/http";
 
 export const dynamic = "force-dynamic";
@@ -25,22 +26,22 @@ interface OAuthCookie extends Record<string, unknown> {
 export async function GET(request: Request): Promise<Response> {
   const session = await currentSession();
   if (!session) return redirectTo("/login");
-  if (!googleConfigured()) return redirectTo("/app?error=google_not_configured");
+  if (!googleConfigured()) return redirectTo(returnPath(session.account, "/app?error=google_not_configured"));
 
   const store = await cookies();
   const saved = verifySignedValue<OAuthCookie>(store.get(OAUTH_COOKIE)?.value, requireEnv("AUTH_SECRET"));
   store.delete({ name: OAUTH_COOKIE, path: OAUTH_COOKIE_PATH });
 
   const params = new URL(request.url).searchParams;
-  if (params.get("error")) return redirectTo("/app?error=google_denied");
+  if (params.get("error")) return redirectTo(returnPath(session.account, "/app?error=google_denied"));
   const code = params.get("code");
   if (!saved || !code || params.get("state") !== saved.state || saved.userId !== session.user.id) {
-    return redirectTo("/app?error=oauth_state");
+    return redirectTo(returnPath(session.account, "/app?error=oauth_state"));
   }
 
   const db = getDb();
   if ((await countLiveChannels(db, session.account.id)) >= session.plan.channelLimit) {
-    return redirectTo("/app?error=channel_limit");
+    return redirectTo(returnPath(session.account, "/app?error=channel_limit"));
   }
 
   try {
@@ -64,9 +65,9 @@ export async function GET(request: Request): Promise<Response> {
     );
     await enqueue(QUEUES.channelSync, { channelId });
     log("info", "channel connect started", { accountId: session.account.id, channelId });
-    return redirectTo("/app?connected=1");
+    return redirectTo(returnPath(session.account, "/app?connected=1"));
   } catch (error) {
     log("error", "google oauth callback failed", errorFields(error));
-    return redirectTo("/app?error=oauth_failed");
+    return redirectTo(returnPath(session.account, "/app?error=oauth_failed"));
   }
 }

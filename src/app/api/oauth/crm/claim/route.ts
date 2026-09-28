@@ -9,6 +9,7 @@ import { currentSession } from "@/server/auth/current";
 import { GHL_CLAIM_COOKIE, GHL_CLAIM_PAGE } from "@/server/ghl/config";
 import { claimInstall } from "@/server/ghl/install";
 import { isSameOrigin, redirectTo } from "@/server/http";
+import { returnPath } from "@/server/onboarding";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -34,7 +35,7 @@ export async function POST(request: Request): Promise<Response> {
     store.delete({ name: GHL_CLAIM_COOKIE, path: "/" });
     await enqueue(QUEUES.ghlSetup, { integrationId: result.id }, { singletonKey: result.id });
     log("info", "ghl marketplace install claimed", { accountId: session.account.id, integrationId: result.id });
-    return redirectTo("/app/settings/gohighlevel?ghl_connected=1");
+    return redirectTo(returnPath(session.account, "/app/settings/gohighlevel?ghl_connected=1"));
   } catch (error) {
     log("error", "ghl claim failed", errorFields(error));
     return back("failed");

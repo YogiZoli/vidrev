@@ -8,6 +8,7 @@ import { countLiveChannels } from "@/server/channels";
 import { appGoogleClient, googleConfigured, OAUTH_COOKIE, OAUTH_COOKIE_PATH, OAUTH_COOKIE_TTL_MS } from "@/server/google/config";
 import { buildAuthUrl, createPkcePair } from "@/server/google/oauth";
 import { clientIsSecure, redirectTo } from "@/server/http";
+import { returnPath } from "@/server/onboarding";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -15,10 +16,10 @@ export const runtime = "nodejs";
 export async function GET(): Promise<Response> {
   const session = await currentSession();
   if (!session) return redirectTo("/login");
-  if (!googleConfigured()) return redirectTo("/app?error=google_not_configured");
-  if (session.account.status !== "active") return redirectTo("/app?error=account_suspended");
+  if (!googleConfigured()) return redirectTo(returnPath(session.account, "/app?error=google_not_configured"));
+  if (session.account.status !== "active") return redirectTo(returnPath(session.account, "/app?error=account_suspended"));
   if ((await countLiveChannels(getDb(), session.account.id)) >= session.plan.channelLimit) {
-    return redirectTo("/app?error=channel_limit");
+    return redirectTo(returnPath(session.account, "/app?error=channel_limit"));
   }
 
   const state = randomToken(24);

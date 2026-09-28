@@ -11,6 +11,7 @@ import { GHL_CLAIM_COOKIE, GHL_CLAIM_PAGE, ghlClient, ghlConfigured, GHL_COOKIE,
 import { INSTALL_TTL_MS, receiveMarketplaceInstall } from "@/server/ghl/install";
 import { exchangeGhlCode } from "@/server/ghl/oauth";
 import { clientIsSecure, redirectTo } from "@/server/http";
+import { returnPath } from "@/server/onboarding";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -57,7 +58,7 @@ export async function GET(request: Request): Promise<Response> {
     if (!result.ok) return fail(CONNECT_ERRORS[result.error]);
     await enqueue(QUEUES.ghlSetup, { integrationId: result.id }, { singletonKey: result.id });
     log("info", "ghl connect started", { accountId: session.account.id, integrationId: result.id });
-    return redirectTo(`${PAGE}?ghl_connected=1`);
+    return redirectTo(returnPath(session.account, `${PAGE}?ghl_connected=1`));
   } catch (error) {
     log("error", "ghl oauth callback failed", errorFields(error));
     return fail("Connecting GoHighLevel failed. Try again.");
@@ -78,7 +79,7 @@ async function marketplaceInstall(session: Awaited<ReturnType<typeof currentSess
       if (!result.ok) return fail(CONNECT_ERRORS[result.error]);
       await enqueue(QUEUES.ghlSetup, { integrationId: result.id }, { singletonKey: result.id });
       log("info", "ghl marketplace install connected", { accountId: session.account.id, integrationId: result.id });
-      return redirectTo(`${PAGE}?ghl_connected=1`);
+      return redirectTo(returnPath(session.account, `${PAGE}?ghl_connected=1`));
     }
 
     const install = await receiveMarketplaceInstall(db, key, tokens);

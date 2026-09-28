@@ -40,7 +40,7 @@ describe("discoverDomainConnect", () => {
 
 describe("applyUrl", () => {
   it("builds an unsigned URL without redirect_uri", () => {
-    expect(applyUrl({ urlSyncUX: "https://dcc.example" }, config, { registrable: "coach.com", host: "go", redirectUri: "https://app.vidrev.app/app/domain" })).toBe(
+    expect(applyUrl({ urlSyncUX: "https://dcc.example" }, config, { registrable: "coach.com", host: "go", redirectUri: "https://app.vidrev.app/app/settings/domain" })).toBe(
       "https://dcc.example/v2/domainTemplates/providers/vidrev.app/services/links/apply?domain=coach.com&host=go",
     );
   });
@@ -48,10 +48,10 @@ describe("applyUrl", () => {
   it("signs the query with the private key", () => {
     const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
     const signed = { ...config, privateKey: privateKey.export({ type: "pkcs8", format: "pem" }).toString(), keyHost: "_dck1" };
-    const url = new URL(applyUrl({ urlSyncUX: "https://dcc.example" }, signed, { registrable: "coach.com", host: "go", redirectUri: "https://app.vidrev.app/app/domain", state: "s1" }));
+    const url = new URL(applyUrl({ urlSyncUX: "https://dcc.example" }, signed, { registrable: "coach.com", host: "go", redirectUri: "https://app.vidrev.app/app/settings/domain", state: "s1" }));
     const query = url.search.slice(1);
     const unsignedPart = query.slice(0, query.indexOf("&sig="));
-    expect(unsignedPart).toBe("domain=coach.com&host=go&redirect_uri=https%3A%2F%2Fapp.vidrev.app%2Fapp%2Fdomain&state=s1");
+    expect(unsignedPart).toBe("domain=coach.com&host=go&redirect_uri=https%3A%2F%2Fapp.vidrev.app%2Fapp%2Fsettings%2Fdomain&state=s1");
     expect(url.searchParams.get("key")).toBe("_dck1");
     const ok = createVerify("RSA-SHA256").update(unsignedPart).verify(publicKey, url.searchParams.get("sig")!, "base64");
     expect(ok).toBe(true);

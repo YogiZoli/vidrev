@@ -17,7 +17,7 @@ export async function GET(): Promise<Response> {
   const domain = await liveDomain(getDb(), session.account.id);
   const config = domainConnectConfig();
   const registrable = domain ? cookieDomain(domain.hostname) : null;
-  if (!domain?.domainConnect || !config || !registrable) return redirectTo("/app/domain");
+  if (!domain?.domainConnect || !config || !registrable) return redirectTo("/app/settings/domain");
   const host = domain.hostname.slice(0, -(registrable.length + 1));
-  return redirectTo(applyUrl(domain.domainConnect, config, { registrable, host, redirectUri: `${appBaseUrl()}/app/domain?checking=1` }), 302);
+  return redirectTo(applyUrl(domain.domainConnect, config, { registrable, host, redirectUri: `${appBaseUrl()}/app/settings/domain?checking=1` }), 302);
 }

@@ -16,8 +16,8 @@ export async function POST(request: Request): Promise<Response> {
   if (!session) return redirectTo("/login");
   const channelId = String((await request.formData()).get("channelId") ?? "");
   if (!channelId || !(await markDisconnecting(getDb(), session.account.id, channelId))) {
-    return redirectTo("/app?error=channel_not_found");
+    return redirectTo("/app/settings/youtube?error=channel_not_found");
   }
   await enqueue(QUEUES.channelDisconnect, { channelId });
-  return redirectTo("/app?disconnected=1");
+  return redirectTo("/app/settings/youtube?disconnected=1");
 }

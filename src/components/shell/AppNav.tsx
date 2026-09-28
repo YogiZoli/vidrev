@@ -1,26 +1,27 @@
 "use client";
 
-import { BarChart3, Home, Inbox, Link2, Tags } from "lucide-react";
+import { BarChart3, ChevronDown, Home, Megaphone, Settings } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
+import { SETTINGS_GROUPS } from "./settings-nav";
 
+// Home carries the approval queue, so its count is the queue count.
 const TOP = [
-  { href: "/app", label: "Dashboard", exact: true },
-  { href: "/app/queue", label: "Approval queue", count: true },
-  { href: "/app/campaigns", label: "Keywords" },
+  { href: "/app", label: "Home", exact: true, count: true },
+  { href: "/app/campaigns", label: "Campaigns" },
   { href: "/app/reports", label: "Reports" },
-  { href: "/app/domain", label: "Link domain" },
-  { href: "/app/integrations", label: "Integrations" },
 ];
 
 const BOTTOM = [
-  { href: "/app", label: "Home", icon: Home, exact: true },
-  { href: "/app/queue", label: "Queue", icon: Inbox, count: true },
-  { href: "/app/campaigns", label: "Keywords", icon: Tags },
+  { href: "/app", label: "Home", icon: Home, exact: true, count: true },
+  { href: "/app/campaigns", label: "Campaigns", icon: Megaphone },
   { href: "/app/reports", label: "Reports", icon: BarChart3 },
-  { href: "/app/integrations", label: "Connect", icon: Link2 },
+  { href: "/app/settings", label: "Settings", icon: Settings },
 ];
+
+const TAB = "inline-flex min-h-11 flex-none items-center whitespace-nowrap border-b-2 px-2.5 text-[15px] no-underline hover:text-foreground";
 
 function isActive(path: string, href: string, exact?: boolean) {
   return exact ? path === href : path === href || path.startsWith(`${href}/`);
@@ -35,12 +36,68 @@ function CountPill({ n }: { n: number }) {
   );
 }
 
+// Settings tab with a dropdown of grouped sub-pages.
+function SettingsMenu({ path }: { path: string }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const active = isActive(path, "/app/settings");
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+  return (
+    <div ref={ref} className="relative flex-none">
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-haspopup="true"
+        onClick={() => setOpen((v) => !v)}
+        className={cn(TAB, "cursor-pointer gap-1 bg-transparent", active ? "border-primary font-bold text-foreground" : "border-transparent font-medium text-muted-foreground")}
+      >
+        Settings <ChevronDown className={cn("size-4 transition-transform", open && "rotate-180")} aria-hidden />
+      </button>
+      {open ? (
+        <div className="absolute right-0 top-full z-20 mt-1 grid w-64 gap-3 rounded-lg border border-border bg-surface p-3 shadow-lg">
+          {SETTINGS_GROUPS.map((g) => (
+            <div key={g.label} className="grid gap-0.5">
+              <span className="px-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">{g.label}</span>
+              {g.links.map((l) => (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  aria-current={path === l.href ? "page" : undefined}
+                  onClick={() => setOpen(false)}
+                  className={cn("rounded-md px-2 py-1.5 text-[15px] no-underline hover:bg-background", path === l.href ? "font-bold text-foreground" : "text-label")}
+                >
+                  {l.label}
+                </Link>
+              ))}
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 // Underline tabs from md up (Owner admin joins when the user is the owner).
 export function TopTabs({ queueCount, isAdmin }: { queueCount: number; isAdmin: boolean }) {
   const path = usePathname();
-  const items: { href: string; label: string; exact?: boolean; count?: boolean }[] = isAdmin ? [...TOP, { href: "/admin", label: "Owner admin" }] : TOP;
+  const items: { href: string; label: string; exact?: boolean; count?: boolean }[] = TOP;
+  const adminActive = isActive(path, "/admin");
   return (
-    <nav aria-label="Main" className="-mx-1 hidden gap-1 overflow-x-auto md:flex">
+    <nav aria-label="Main" className="-mx-1 hidden gap-1 md:flex">
       {items.map((t) => {
         const active = isActive(path, t.href, t.exact);
         return (
@@ -48,27 +105,34 @@ export function TopTabs({ queueCount, isAdmin }: { queueCount: number; isAdmin: 
             key={t.href}
             href={t.href}
             aria-current={active ? "page" : undefined}
-            className={cn(
-              "inline-flex min-h-11 flex-none items-center whitespace-nowrap border-b-2 px-2.5 text-[15px] no-underline hover:text-foreground",
-              active ? "border-primary font-bold text-foreground" : "border-transparent font-medium text-muted-foreground",
-            )}
+            className={cn(TAB, active ? "border-primary font-bold text-foreground" : "border-transparent font-medium text-muted-foreground")}
           >
             {t.label}
             {t.count ? <CountPill n={queueCount} /> : null}
           </Link>
         );
       })}
+      <SettingsMenu path={path} />
+      {isAdmin ? (
+        <Link
+          href="/admin"
+          aria-current={adminActive ? "page" : undefined}
+          className={cn(TAB, adminActive ? "border-primary font-bold text-foreground" : "border-transparent font-medium text-muted-foreground")}
+        >
+          Owner admin
+        </Link>
+      ) : null}
     </nav>
   );
 }
 
-// Five-item bottom tab bar on phones.
+// Four-item bottom tab bar on phones.
 export function BottomTabs({ queueCount }: { queueCount: number }) {
   const path = usePathname();
   return (
     <nav
       aria-label="Main"
-      className="sticky bottom-0 z-10 grid grid-cols-5 border-t border-border bg-white/90 px-1 pt-1.5 backdrop-blur-md md:hidden"
+      className="sticky bottom-0 z-10 grid grid-cols-4 border-t border-border bg-white/90 px-1 pt-1.5 backdrop-blur-md md:hidden"
       style={{ paddingBottom: "calc(6px + env(safe-area-inset-bottom))" }}
     >
       {BOTTOM.map((b) => {

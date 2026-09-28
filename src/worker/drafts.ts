@@ -185,7 +185,7 @@ async function notifyDraftsWaiting(deps: DraftDeps, account: typeof accounts.$in
   for (const { email } of recipients) {
     await deps.enqueue(
       "email.send",
-      draftsWaitingEmail({ to: email, count: pending?.n ?? 1, url: `${deps.appBaseUrl}/app/queue`, productName: deps.productName }),
+      draftsWaitingEmail({ to: email, count: pending?.n ?? 1, url: `${deps.appBaseUrl}/app`, productName: deps.productName }),
     );
   }
 }

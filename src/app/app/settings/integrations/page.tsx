@@ -20,7 +20,7 @@ import { readGhlConfig } from "@/server/ghl/tokens";
 import { ensureHookToken } from "@/server/integrations/inbound";
 import { readStripeConfig } from "@/server/stripe/connect";
 import { listEndpoints, MAX_ENDPOINTS, readConfig, recentDeliveries } from "@/server/integrations/outbound";
-import { Notice } from "../../ui";
+import { Notice } from "../../../ui";
 
 export const dynamic = "force-dynamic";
 

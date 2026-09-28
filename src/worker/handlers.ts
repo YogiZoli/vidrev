@@ -44,7 +44,7 @@ function ghlDeps(boss: PgBoss): GhlWorkerDeps | null {
     onReauth: async (accountId) => {
       const recipients = await db.select({ email: users.email }).from(users).where(eq(users.accountId, accountId));
       for (const { email } of recipients) {
-        await boss.send(QUEUES.sendEmail, ghlReconnectEmail({ to: email, url: `${appBaseUrl()}/app/integrations`, productName: PRODUCT_NAME }) as object, {});
+        await boss.send(QUEUES.sendEmail, ghlReconnectEmail({ to: email, url: `${appBaseUrl()}/app/settings/integrations`, productName: PRODUCT_NAME }) as object, {});
       }
     },
   };
@@ -65,7 +65,7 @@ function stripeDeps(boss: PgBoss): StripeWorkerDeps | null {
     onKeyRejected: async (accountId) => {
       const recipients = await db.select({ email: users.email }).from(users).where(eq(users.accountId, accountId));
       for (const { email } of recipients) {
-        await boss.send(QUEUES.sendEmail, stripeReconnectEmail({ to: email, url: `${appBaseUrl()}/app/integrations`, productName: PRODUCT_NAME }) as object, {});
+        await boss.send(QUEUES.sendEmail, stripeReconnectEmail({ to: email, url: `${appBaseUrl()}/app/settings/integrations`, productName: PRODUCT_NAME }) as object, {});
       }
     },
   };

@@ -2,10 +2,10 @@ import { CopyMono } from "@/components/motion/CopyButton";
 import { Badge, Keyword, TemperatureChip } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Field, Input, Select, Textarea } from "@/components/ui/input";
+import { Field, Input, Textarea } from "@/components/ui/input";
 import { Meta, Page, PageHeader, SectionTitle } from "@/components/ui/page";
 import { getDb } from "@/db/client";
-import { LANGUAGE_OPTIONS } from "@/lib/language";
+import { LanguageSelect } from "@/components/forms/LanguageSelect";
 import { fallbackHost } from "@/lib/link-host";
 import { requireSession } from "@/server/auth/current";
 import { listCampaigns, parseVideoIds } from "@/server/campaigns";
@@ -26,17 +26,6 @@ function StepNo({ n }: { n: number }) {
   );
 }
 
-function LanguageSelect({ name, value }: { name: string; value?: string }) {
-  return (
-    <Select name={name} defaultValue={value ?? "en"}>
-      {LANGUAGE_OPTIONS.map((code) => (
-        <option key={code} value={code}>
-          {code}
-        </option>
-      ))}
-    </Select>
-  );
-}
 
 export default async function CampaignsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const { account } = await requireSession();

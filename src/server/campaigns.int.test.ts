@@ -5,7 +5,7 @@ import { closeDb, getDb } from "@/db/client";
 import { campaigns, channels, videos } from "@/db/schema";
 import { runMigrations } from "@/scripts/migrate";
 import { createAccountWithUser } from "./accounts";
-import { createCampaign } from "./campaigns";
+import { createCampaign, overlaps } from "./campaigns";
 import { pickableVideos } from "./video-picker";
 
 const hasDb = Boolean(process.env.DATABASE_URL);
@@ -59,6 +59,20 @@ describe.skipIf(!hasDb)("campaigns (integration)", () => {
     expect(rows.find((r) => r.keyword === "GUIDE")?.aliases).toEqual(["GUDIE", "GUIDD"]);
   });
 
+  it("refuses a second rule for the same keyword on a video it already watches", async () => {
+    const { db, account, channel } = await setup();
+    const base = { ...input, channelId: channel.id };
+    expect(await createCampaign(db, account.id, { ...base, videoIds: ["aaaaaaaaaaa"] })).toEqual({ ok: true });
+    // Same keyword, other video: fine. Other keyword, same video: fine.
+    expect(await createCampaign(db, account.id, { ...base, videoIds: ["bbbbbbbbbbb"] })).toEqual({ ok: true });
+    expect(await createCampaign(db, account.id, { ...base, keyword: "CALL", videoIds: ["aaaaaaaaaaa"] })).toEqual({ ok: true });
+    const overlap = await createCampaign(db, account.id, { ...base, videoIds: ["ccccccccccc", "aaaaaaaaaaa"] });
+    expect(overlap).toMatchObject({ ok: false });
+    expect((overlap as { error: string }).error).toContain("GUIDE is already watched on some of these videos");
+    const all = await createCampaign(db, account.id, { ...base, allVideos: true });
+    expect((all as { error: string }).error).toContain("GUIDE is already watched on these videos");
+  });
+
   it("lists feed videos and known videos newest first, without duplicates", async () => {
     const { db, channel, ytId } = await setup();
     await db.insert(videos).values([
@@ -78,5 +92,14 @@ describe.skipIf(!hasDb)("campaigns (integration)", () => {
       throw new Error("offline");
     });
     expect(offline.map((v) => v.youtubeVideoId)).toEqual(["both0000001", "known000001"]);
+  });
+});
+
+describe("overlaps", () => {
+  it("treats all videos as overlapping everything", () => {
+    expect(overlaps(null, ["a"])).toBe(true);
+    expect(overlaps(["a"], null)).toBe(true);
+    expect(overlaps(["a", "b"], ["b"])).toBe(true);
+    expect(overlaps(["a"], ["b"])).toBe(false);
   });
 });

@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Field, Input, Select } from "@/components/ui/input";
 import { Meta, Page, PageHeader, SectionTitle } from "@/components/ui/page";
 import { getDb } from "@/db/client";
-import { LANGUAGE_OPTIONS } from "@/lib/language";
+import { LanguageSelect } from "@/components/forms/LanguageSelect";
 import { DEFAULT_MODELS } from "@/server/ai";
 import { requireSession } from "@/server/auth/current";
 import { listChannels } from "@/server/channels";
@@ -30,13 +30,7 @@ export default async function RepliesSettingsPage({ searchParams }: { searchPara
             <input type="hidden" name="back" value="/app/settings/replies" />
             <input type="hidden" name="channelId" value={channel.id} />
             <div className="w-40">
-              <Select name="language" defaultValue={channel.defaultLanguage ?? "en"} aria-label="Default reply language">
-                {LANGUAGE_OPTIONS.map((code) => (
-                  <option key={code} value={code}>
-                    {code}
-                  </option>
-                ))}
-              </Select>
+              <LanguageSelect name="language" value={channel.defaultLanguage} label="Default reply language" />
             </div>
             <Button name="action" value="language" variant="outline">
               Save

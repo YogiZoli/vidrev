@@ -61,3 +61,8 @@ export function addDays(day: string, days: number): string {
   const [y, m, d] = day.split("-").map(Number);
   return new Date(Date.UTC(y!, m! - 1, d! + days)).toISOString().slice(0, 10);
 }
+
+// "2026-09-29 10:30 UTC": the one format for times shown to creators in lists.
+export function formatUtcMinute(date: Date | null, empty = "never"): string {
+  return date ? `${date.toISOString().slice(0, 16).replace("T", " ")} UTC` : empty;
+}

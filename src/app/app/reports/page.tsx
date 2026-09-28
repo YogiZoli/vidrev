@@ -18,7 +18,7 @@ import { ago, HeadlineCard } from "./Headline";
 
 export const dynamic = "force-dynamic";
 
-const INTENT_LABELS: Record<string, string> = { hot: "HOT", warm: "WARM", cold: "COLD", "(none)": "No keyword intent" };
+const INTENT_LABELS: Record<string, string> = { hot: "Hot", warm: "Warm", cold: "Cold", "(none)": "No keyword" };
 
 const COMMON_ZONES = ["UTC", "America/Los_Angeles", "America/Denver", "America/Chicago", "America/New_York", "Europe/London", "Europe/Berlin", "Europe/Budapest", "Asia/Dubai", "Asia/Kolkata", "Asia/Bangkok", "Asia/Singapore", "Asia/Manila", "Asia/Tokyo", "Australia/Sydney"];
 
@@ -195,7 +195,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
               return template ? `${template.body.slice(0, 80)}${template.body.length > 80 ? "..." : ""} [${template.language}]${intent}` : `Deleted template${intent}`;
             }}
           />
-          <ReportTable title="By keyword intent" first="Intent" rows={report.byIntent} currency={currency} label={(row) => INTENT_LABELS[row.key] ?? row.key} />
+          <ReportTable title="By lead temperature" first="Lead temperature" rows={report.byIntent} currency={currency} label={(row) => INTENT_LABELS[row.key] ?? row.key} />
           <ReportTable
             title="Reply speed"
             note="Replies posted in this period, grouped by the time from draft to posted reply, with every click, subscriber and buyer they led to."

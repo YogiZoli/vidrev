@@ -3,6 +3,7 @@ import type { Db } from "@/db/client";
 import { type AiProvider, accounts, campaigns, channels, comments, type Intent, replies, templates, videos } from "@/db/schema";
 import { encryptSecret } from "@/lib/crypto";
 import { LANGUAGE_OPTIONS } from "@/lib/language";
+import { catalogKeyword, misspellings } from "@/lib/keyword-catalog";
 import { templateProblems, TEMPLATE_PROBLEM_TEXT } from "@/lib/templates";
 
 // Campaign, template and AI settings management for the signed-in account.
@@ -10,7 +11,6 @@ import { templateProblems, TEMPLATE_PROBLEM_TEXT } from "@/lib/templates";
 
 export type Result = { ok: true } | { ok: false; error: string };
 
-const INTENTS: Intent[] = ["hot", "warm", "cold"];
 
 function splitList(value: string): string[] {
   return [...new Set(value.split(/[,\n]/).map((v) => v.trim()).filter(Boolean))];
@@ -48,18 +48,23 @@ export interface CampaignInput {
   // Videos ticked in the picker (Phase 14). At least one video is required:
   // new rules are never channel-wide.
   videoIds?: string[];
+  // "All my videos": channel-wide, new uploads included.
+  allVideos?: boolean;
 }
 
 export async function createCampaign(db: Db, accountId: string, input: CampaignInput): Promise<Result> {
-  const keyword = input.keyword.trim();
-  if (!keyword || keyword.length > 50) return { ok: false, error: "Enter a keyword of up to 50 characters." };
-  if (!INTENTS.includes(input.intent as Intent)) return { ok: false, error: "Pick an intent level." };
+  // Keywords come from the catalog, which also sets the lead temperature
+  // (Phase 14). Own keywords are not offered yet.
+  const picked = catalogKeyword(input.keyword);
+  if (!picked) return { ok: false, error: "Pick a keyword from the list." };
+  const keyword = picked.keyword;
+  const intent: Intent = picked.temperature;
   if (!validUrl(input.destinationUrl.trim())) return { ok: false, error: "Enter the full address of your opt-in page (https://...)." };
   const pasted = input.videos.trim() ? parseVideoIds(input.videos) : [];
   if (pasted === null) return { ok: false, error: "Some video links were not recognized." };
-  const picked = (input.videoIds ?? []).filter((id) => /^[A-Za-z0-9_-]{11}$/.test(id));
-  const videoIds = [...new Set([...picked, ...pasted])].slice(0, 200);
-  if (videoIds.length === 0) return { ok: false, error: "Pick at least one video." };
+  const ticked = (input.videoIds ?? []).filter((id) => /^[A-Za-z0-9_-]{11}$/.test(id));
+  const videoIds = input.allVideos ? null : [...new Set([...ticked, ...pasted])].slice(0, 200);
+  if (videoIds !== null && videoIds.length === 0) return { ok: false, error: "Pick at least one video, or all of them." };
   const [channel] = await db
     .select({ id: channels.id })
     .from(channels)
@@ -70,8 +75,9 @@ export async function createCampaign(db: Db, accountId: string, input: CampaignI
     channelId: channel.id,
     name: input.name.trim() || keyword,
     keyword,
-    aliases: splitList(input.aliases).slice(0, 10),
-    intent: input.intent as Intent,
+    // Misspellings: as edited in Advanced, else the automatic ones.
+    aliases: (input.aliases.trim() ? splitList(input.aliases.toUpperCase()) : misspellings(keyword)).filter((a) => a !== keyword).slice(0, 10),
+    intent,
     destinationUrl: input.destinationUrl.trim(),
     videoIds,
   });

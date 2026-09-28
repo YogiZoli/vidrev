@@ -1,5 +1,5 @@
 import { CopyMono } from "@/components/motion/CopyButton";
-import { Badge, IntentTag, Keyword } from "@/components/ui/badge";
+import { Badge, Keyword, TemperatureChip } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Input, Select, Textarea } from "@/components/ui/input";
@@ -13,10 +13,10 @@ import { ensureStaticLink } from "@/server/links";
 import { listChannels } from "@/server/channels";
 import { pickableVideos } from "@/server/video-picker";
 import { Notice } from "../../ui";
+import { KeywordPicker } from "./KeywordPicker";
 
 export const dynamic = "force-dynamic";
 
-const INTENT_LABEL = { hot: "HOT", warm: "WARM", cold: "COLD" } as const;
 
 function StepNo({ n }: { n: number }) {
   return (
@@ -76,6 +76,13 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
               <legend className="mb-2 flex items-center gap-2 p-0 text-base font-bold">
                 <StepNo n={1} /> Video
               </legend>
+              <label className="flex cursor-pointer items-start gap-2.5 rounded-md border border-border bg-surface p-2.5">
+                <input type="checkbox" name="allVideos" value="1" className="mt-1 size-4 flex-none accent-[var(--primary-600)]" />
+                <span className="grid gap-0.5">
+                  <span className="text-[15px] font-semibold">All my videos, including new uploads</span>
+                  <Meta>Or pick videos below.</Meta>
+                </span>
+              </label>
               {pickable.length ? (
                 <div className="grid max-h-80 gap-1 overflow-y-auto rounded-md border border-border bg-surface p-2">
                   {pickable.map((video) => (
@@ -94,23 +101,15 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
               <Field label="Or paste video links (optional)">
                 <Textarea name="videos" rows={2} placeholder="https://youtu.be/..." />
               </Field>
-              <Meta>Pick at least one video. Only comments on these videos get a reply draft.</Meta>
+              <Meta>Pick at least one video, or all of them. Only comments on the chosen videos get a reply draft.</Meta>
             </fieldset>
 
             <fieldset className="m-0 grid gap-3 border-0 p-0">
               <legend className="mb-2 flex items-center gap-2 p-0 text-base font-bold">
                 <StepNo n={2} /> Keyword
               </legend>
-              <Field label="Keyword viewers comment (whole word, any case)">
-                <Input name="keyword" required maxLength={50} defaultValue="GUIDE" className="font-mono" />
-              </Field>
-              <Field label="Lead temperature">
-                <Select name="intent" defaultValue="warm">
-                  <option value="hot">Hot (ready to buy)</option>
-                  <option value="warm">Warm</option>
-                  <option value="cold">Cold</option>
-                </Select>
-              </Field>
+              <KeywordPicker />
+              <Meta>The lead temperature shows how ready a viewer who comments it is: Cold wants a free resource, Warm wants to learn more, Hot is ready to buy.</Meta>
             </fieldset>
 
             <fieldset className="m-0 grid gap-3 border-0 p-0">
@@ -141,11 +140,10 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
               <div className="flex flex-wrap items-center gap-2">
                 <strong className="text-lg">{campaign.name}</strong>
                 <Badge tone={campaign.active ? "success" : "neutral"}>{campaign.active ? "on" : "paused"}</Badge>
-                <IntentTag>{INTENT_LABEL[campaign.intent]}</IntentTag>
+                <TemperatureChip temperature={campaign.intent} />
               </div>
               <p className="m-0 text-[15px]">
                 Keyword: <Keyword>{campaign.keyword}</Keyword>
-                {campaign.aliases.length ? ` (also: ${campaign.aliases.join(", ")})` : ""}
               </p>
               <Meta className="[overflow-wrap:anywhere]">
                 {campaign.videoIds ? `${campaign.videoIds.length} video(s)` : "All videos"} · {campaign.destinationUrl}

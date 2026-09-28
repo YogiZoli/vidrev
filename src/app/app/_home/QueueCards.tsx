@@ -5,7 +5,7 @@ import { useCopied } from "@/components/motion/CopyButton";
 import { useToast } from "@/components/motion/Toast";
 import { EmptyState } from "@/components/ui/empty";
 import { cn } from "@/lib/cn";
-import { Badge, IntentTag, Keyword } from "@/components/ui/badge";
+import { Badge, Keyword, TemperatureChip } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/input";
@@ -16,7 +16,7 @@ export interface CardData {
   status: string;
   statusReason: string | null;
   keyword: string;
-  intent: string;
+  intent: "hot" | "warm" | "cold";
   otherMatches: { campaignId: string; keyword: string; intent: string }[];
   body: string;
   link: string;
@@ -128,7 +128,7 @@ export function PendingCards({ cards, usage }: { cards: CardData[]; usage?: { to
         <Badge tone="primary">{items.length} waiting</Badge>
         <span>{card.videoTitle ?? "Video"}</span>
         <Keyword>{card.keyword}</Keyword>
-        <IntentTag>{card.intent.toUpperCase()}</IntentTag>
+        <TemperatureChip temperature={card.intent} />
       </p>
       <blockquote className="m-0 rounded-md border-l-[3px] border-border-strong bg-background px-3 py-2 text-base">{card.commentText ?? "(comment no longer stored)"}</blockquote>
       {card.repliedBefore ? <Meta>You already replied to this person on this video.</Meta> : null}

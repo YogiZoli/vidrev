@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import { type AiProvider, accounts, campaigns, channels, comments, type Intent, replies, templates, videos } from "@/db/schema";
 import { encryptSecret } from "@/lib/crypto";
@@ -82,7 +82,7 @@ export async function createCampaign(db: Db, accountId: string, input: CampaignI
   const sameKeyword = await db
     .select({ videoIds: campaigns.videoIds, active: campaigns.active })
     .from(campaigns)
-    .where(and(eq(campaigns.channelId, channel.id), eq(campaigns.keyword, keyword)));
+    .where(and(eq(campaigns.channelId, channel.id), sql`upper(${campaigns.keyword}) = ${keyword}`));
   const clash = sameKeyword.find((rule) => overlaps(rule.videoIds, videoIds));
   if (clash) {
     return {

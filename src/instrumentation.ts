@@ -1,10 +1,9 @@
 import type { Instrumentation } from "next";
 import { errorFields, log } from "@/lib/log";
 
-// Web process: anything thrown outside a request would otherwise vanish.
-export function register(): void {
-  if (process.env.NEXT_RUNTIME !== "nodejs") return;
-  process.on("unhandledRejection", (reason) => log("error", "unhandled promise rejection in web", errorFields(reason)));
+// Node-only process hooks live in their own file, loaded only there.
+export async function register(): Promise<void> {
+  if (process.env.NEXT_RUNTIME === "nodejs") await import("./instrumentation-node");
 }
 
 // Every server error of a page, route handler or proxy, as one structured

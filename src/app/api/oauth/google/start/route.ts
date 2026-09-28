@@ -16,10 +16,10 @@ export const runtime = "nodejs";
 export async function GET(): Promise<Response> {
   const session = await currentSession();
   if (!session) return redirectTo("/login");
-  if (!googleConfigured()) return redirectTo(returnPath(session.account, "/app?error=google_not_configured"));
-  if (session.account.status !== "active") return redirectTo(returnPath(session.account, "/app?error=account_suspended"));
+  if (!googleConfigured()) return redirectTo(returnPath(session.account, "/app/settings/youtube?error=google_not_configured"));
+  if (session.account.status !== "active") return redirectTo(returnPath(session.account, "/app/settings/youtube?error=account_suspended"));
   if ((await countLiveChannels(getDb(), session.account.id)) >= session.plan.channelLimit) {
-    return redirectTo(returnPath(session.account, "/app?error=channel_limit"));
+    return redirectTo(returnPath(session.account, "/app/settings/youtube?error=channel_limit"));
   }
 
   const state = randomToken(24);

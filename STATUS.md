@@ -1,6 +1,6 @@
 # STATUS
 
-Last updated: 2026-09-29 (reliability review, all five fix phases done)
+Last updated: 2026-09-29 (reliability review done: five fix phases and a second full pass)
 
 ## End goal
 
@@ -49,7 +49,7 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 
 Phase plan changes (all accepted): compliance pack and quota extension request right after Phase 5 (Q-17 a); one GHL Marketplace app created Private in Phase 6 and made Public in Phase 10 (Q-17 b); retention job in Phase 4 (Q-17 c, done); Cloudflare for SaaS spike once the brand domain exists (Q-17 d).
 
-## Reliability review 2026-09-29 (in progress)
+## Reliability review 2026-09-29 (done, DECISIONS section 20)
 
 Findings 1 to 16 were agreed with the owner; fixes run in five small phases: 2 correctness (this PR), 1 observability foundation, 3 event logs, 4 duplicates, 5 System health panel on /admin.
 
@@ -59,6 +59,7 @@ Findings 1 to 16 were agreed with the owner; fixes run in five small phases: 2 c
 - Phase 3 done (event logs): every creator and owner action is logged and kept in `audit_log` (`recordAction` in `src/server/events.ts`: onboarding steps and completion, campaign create, pause, resume, delete, templates, language, AI settings, every integration action, channel disconnect, domain add, check, remove, reply approve, dismiss, manual, switch); refusals are logged with their reason (`logRefused`). Sign-in, sign-out and admin actions are logged; cross-origin posts are logged. Inbound opt-in and purchase hooks log every outcome (recorded, ignored, refused with reason and issues); GoHighLevel webhooks and the workflow action log received, ignored and refused events. Every server error of a page or route is logged by `src/instrumentation.ts` (`onRequestError`: route, path without query, digest, type, stack, cause); the new error pages (`src/app/error.tsx`, `global-error.tsx`) show that digest as a reference. Swallowed errors now log a warning (GoHighLevel old config and Sub-account lookup, Turnstile, DNS lookups, Google revoke). Fixed on the way: the Google callback's scope and offline branches now return to onboarding with their message; the domain cap alert uses `alertOwners`.
 - Phase 4 done (duplicates): a second rule for the same keyword on a video it already watches (or all videos) is refused with a clear message (`overlaps` in `src/server/campaigns.ts`). One client IP helper (`src/lib/client-ip.ts`), one UTC time format (`formatUtcMinute`), one language select (`src/components/forms/LanguageSelect.tsx`); dead code removed from the front door page. Lint is clean (0 warnings).
 - Phase 5 done (System health on /admin, `src/server/system-health.ts`): one verdict ("all good" or "needs a look") from the worker heartbeat, jobs that failed for good in 24 h per queue with the last error (read from `pgboss.job`), jobs retrying now, replies being sent and stuck over 30 minutes, channels connecting, timed out or revoked, and GoHighLevel or Stripe connections in error. When the job tables cannot be read the panel says so instead of showing green.
+- Second full pass done: a refused provisioning webhook (bad secret, JSON or body) is now logged and emailed to the owner (before: silent 4xx, a paying customer could end up without an account); a new customer whose sign-in email failed alerts the owner; unknown and blocked tracked links are logged; the duplicate rule check ignores letter case (older rules may be lowercase); onboarding completion is logged wherever it happens; after onboarding a channel connect returns to Settings > YouTube channel with its notice; the heartbeat job logs its own failure; the web instrumentation no longer warns in the build (Node-only hook in `src/instrumentation-node.ts`). SPEC section 16 describes the observability built.
 - Owner step (optional, 5 minutes): add a free uptime monitor (for example UptimeRobot or Better Stack) on `https://app.vidrev.app/api/health/worker` with an email alert; this is the only way to hear about a worker that is down, because a dead worker cannot send its own alert.
 
 ## Phase 14: restructure (done)

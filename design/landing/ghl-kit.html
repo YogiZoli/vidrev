@@ -1,0 +1,633 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>vidrev GHL kit</title>
+<style>
+body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:#F7F8FC;color:#0E1330}
+main{max-width:960px;margin:0 auto;padding:32px 16px 64px;display:grid;gap:14px}
+h1{margin:0 0 4px;font-size:28px}
+.kit-note{margin:0 0 10px;color:#5B6178}
+.kit-card{background:#fff;border:1px solid #E4E6EE;border-radius:14px;padding:16px 18px}
+.kit-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.kit-head h2{margin:0;font-size:17px}
+.kit-copy{font:inherit;font-weight:700;background:#D91E50;color:#fff;border:0;border-radius:10px;padding:10px 18px;cursor:pointer;white-space:nowrap}
+.kit-copy.kit-done{background:#00B1B0}
+details{margin-top:10px} summary{cursor:pointer;color:#5B6178;font-size:14px}
+pre{max-height:320px;overflow:auto;background:#0E1330;color:#E4E6EE;padding:12px;border-radius:10px;font-size:12px;white-space:pre-wrap}
+</style></head><body><main>
+<h1>vidrev landing: GoHighLevel kit</h1>
+<p class="kit-note">Generated from design/landing/index.html. In GoHighLevel: one Custom Code element per block, in this order. Block 0 goes first, once.</p>
+<article class="kit-card"><div class="kit-head"><h2>Global CSS: paste once, before every block</h2><button class="kit-copy" data-target="kit-0">Copy</button></div><details><summary>Show code (7,094 characters)</summary><pre>&lt;link href=&quot;https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&amp;display=swap&quot; rel=&quot;stylesheet&quot;&gt;
+&lt;style&gt;
+/* vidrev landing, prototype for DECISIONS L-01 to L-12. Every class and id
+   starts with vidrev- so each section can be pasted into a GoHighLevel
+   Custom Code element (L-10). One &lt;section&gt; = one GoHighLevel block. */
+.vidrev-page{--vidrev-p:#D91E50;--vidrev-p5:#E42256;--vidrev-p0:#FFE9EF;--vidrev-pink:#FF7AA0;--vidrev-live:#00B1B0;--vidrev-live0:#E6F7F7;
+  --vidrev-ink:#0E1330;--vidrev-ink2:#2A3048;--vidrev-muted:#5B6178;--vidrev-line:#E4E6EE;--vidrev-bg:#F7F8FC;
+  font-family:&quot;Open Sans&quot;,&quot;Segoe UI&quot;,system-ui,sans-serif;color:var(--vidrev-ink);background:var(--vidrev-bg);line-height:1.55;font-size:17px}
+.vidrev-page *{box-sizing:border-box}
+.vidrev-wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+.vidrev-sec{padding:88px 0}
+.vidrev-dots{background-image:radial-gradient(#D9DCE8 1px,transparent 1px);background-size:22px 22px}
+.vidrev-dark{background:var(--vidrev-ink);color:#fff}
+.vidrev-eyebrow{font-size:13px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--vidrev-p5);margin:0 0 12px}
+.vidrev-dark .vidrev-eyebrow{color:var(--vidrev-pink)}
+.vidrev-h1{font-size:clamp(38px,6vw,68px);line-height:1.03;font-weight:800;letter-spacing:-.025em;margin:0}
+.vidrev-h2{font-size:clamp(30px,4vw,46px);line-height:1.08;font-weight:800;letter-spacing:-.02em;margin:0 0 16px}
+.vidrev-lead{font-size:20px;color:var(--vidrev-ink2);max-width:680px;margin:18px 0 0}
+.vidrev-dark .vidrev-lead{color:rgba(255,255,255,.8)}
+.vidrev-center{text-align:center}.vidrev-center .vidrev-lead{margin-left:auto;margin-right:auto}
+.vidrev-btn{display:inline-flex;align-items:center;gap:10px;background:var(--vidrev-p);color:#fff;font-weight:800;font-size:18px;padding:16px 26px;border-radius:12px;text-decoration:none;border:0;cursor:pointer;box-shadow:0 8px 24px rgba(217,30,80,.28)}
+.vidrev-btn:hover{background:var(--vidrev-p5)}
+.vidrev-btn-ghost{background:transparent;color:var(--vidrev-ink);box-shadow:none;border:1.5px solid var(--vidrev-line)}
+.vidrev-card{background:#fff;border:1px solid var(--vidrev-line);border-radius:18px;padding:28px}
+.vidrev-grid2{display:grid;gap:24px;grid-template-columns:1fr 1fr}
+.vidrev-grid3{display:grid;gap:24px;grid-template-columns:repeat(3,1fr)}
+@media (max-width:860px){.vidrev-grid2,.vidrev-grid3{grid-template-columns:1fr}.vidrev-sec{padding:60px 0}}
+.vidrev-num{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--vidrev-p0);color:var(--vidrev-p);font-weight:800;margin-bottom:12px}
+.vidrev-h3{font-size:20px;font-weight:800;margin:0 0 8px}
+.vidrev-muted{color:var(--vidrev-muted)}
+/* 0 nav */
+.vidrev-nav{display:flex;align-items:center;justify-content:space-between;padding:18px 0}
+.vidrev-logo{font-weight:800;font-size:24px;letter-spacing:-.02em;text-decoration:none;color:var(--vidrev-ink)}
+.vidrev-logo span{color:var(--vidrev-p5)}
+.vidrev-navlinks{display:flex;gap:26px;align-items:center}
+.vidrev-navlinks a{color:var(--vidrev-ink2);text-decoration:none;font-weight:600;font-size:15px}
+@media (max-width:860px){.vidrev-navlinks a:not(.vidrev-btn){display:none}}
+/* 1 hero */
+.vidrev-hero{padding:48px 0 96px}
+.vidrev-hero-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:48px;align-items:center}
+@media (max-width:960px){.vidrev-hero-grid{grid-template-columns:1fr}}
+.vidrev-hero-form{display:flex;gap:10px;margin-top:30px;flex-wrap:wrap}
+.vidrev-hero-form input{flex:1 1 260px;font:inherit;font-size:18px;padding:15px 16px;border:1.5px solid var(--vidrev-line);border-radius:12px;background:#fff}
+.vidrev-mock{background:#fff;border:1px solid var(--vidrev-line);border-radius:20px;padding:22px;box-shadow:0 24px 60px rgba(14,19,48,.12)}
+.vidrev-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--vidrev-line);font-size:15px}
+.vidrev-row:last-child{border-bottom:0}
+.vidrev-money{font-weight:800;color:var(--vidrev-live)}
+.vidrev-kw{display:inline-block;font-size:12px;font-weight:800;border-radius:999px;padding:3px 10px;background:var(--vidrev-p0);color:var(--vidrev-p)}
+.vidrev-pill{display:inline-block;font-size:13px;font-weight:700;padding:5px 12px;border-radius:999px;background:var(--vidrev-live0);color:#007C7B}
+/* 5 before and after */
+.vidrev-ba{display:grid;grid-template-columns:1fr 1fr;border-radius:20px;overflow:hidden;border:1px solid var(--vidrev-line)}
+@media (max-width:860px){.vidrev-ba{grid-template-columns:1fr}}
+.vidrev-ba&gt;div{padding:30px}
+.vidrev-ba ul{margin:0;padding-left:20px;display:grid;gap:10px}
+.vidrev-before{background:#fff}
+.vidrev-after{background:var(--vidrev-ink);color:#fff}
+/* 6 demo */
+.vidrev-demo{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+@media (max-width:860px){.vidrev-demo{grid-template-columns:1fr}}
+.vidrev-field{display:grid;gap:6px;margin-bottom:14px}
+.vidrev-field label{font-weight:700;font-size:14px}
+.vidrev-field input{font:inherit;padding:12px 14px;border:1.5px solid var(--vidrev-line);border-radius:10px}
+.vidrev-comment{border:1px solid var(--vidrev-line);border-radius:14px;padding:14px;margin-bottom:12px;background:#fff}
+.vidrev-reply{margin-top:10px;background:var(--vidrev-live0);border-left:3px solid var(--vidrev-live);border-radius:8px;padding:10px 12px;font-size:15px}
+/* 7 audit */
+.vidrev-audit{background:linear-gradient(135deg,#FFE9EF 0%,#E6F7F7 100%);border-radius:24px;padding:48px}
+@media (max-width:860px){.vidrev-audit{padding:28px}}
+/* 11 pricing */
+.vidrev-price{max-width:560px;margin:0 auto;border:2px solid var(--vidrev-p5);border-radius:24px;padding:36px;background:#fff;box-shadow:0 24px 60px rgba(217,30,80,.15)}
+.vidrev-bignum{font-size:64px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.vidrev-check{list-style:none;padding:0;margin:22px 0;display:grid;gap:10px}
+.vidrev-check li{padding-left:28px;position:relative}
+.vidrev-check li::before{content:&quot;&quot;;position:absolute;left:0;top:7px;width:14px;height:8px;border-left:3px solid var(--vidrev-live);border-bottom:3px solid var(--vidrev-live);transform:rotate(-45deg)}
+.vidrev-seats{height:10px;border-radius:99px;background:#EEF0F5;overflow:hidden;margin:8px 0 6px}
+.vidrev-seats span{display:block;height:100%;background:var(--vidrev-p5)}
+/* 12 faq */
+.vidrev-faq details{border-bottom:1px solid var(--vidrev-line);padding:18px 0}
+.vidrev-faq summary{font-weight:800;font-size:19px;cursor:pointer;list-style:none}
+.vidrev-faq summary::-webkit-details-marker{display:none}
+.vidrev-faq p{margin:10px 0 0;color:var(--vidrev-ink2)}
+/* 10 proof placeholder */
+.vidrev-proof{border:2px dashed var(--vidrev-line);border-radius:20px;padding:40px;text-align:center;color:var(--vidrev-muted)}
+/* footer */
+.vidrev-foot{padding:48px 0;border-top:1px solid var(--vidrev-line);font-size:15px}
+.vidrev-foot-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:24px}
+@media (max-width:860px){.vidrev-foot-grid{grid-template-columns:1fr 1fr}}
+.vidrev-foot a{display:block;color:var(--vidrev-ink2);text-decoration:none;margin:6px 0}
+&lt;/style&gt;</pre></details><textarea id="kit-0" hidden>&lt;link href=&quot;https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&amp;display=swap&quot; rel=&quot;stylesheet&quot;&gt;
+&lt;style&gt;
+/* vidrev landing, prototype for DECISIONS L-01 to L-12. Every class and id
+   starts with vidrev- so each section can be pasted into a GoHighLevel
+   Custom Code element (L-10). One &lt;section&gt; = one GoHighLevel block. */
+.vidrev-page{--vidrev-p:#D91E50;--vidrev-p5:#E42256;--vidrev-p0:#FFE9EF;--vidrev-pink:#FF7AA0;--vidrev-live:#00B1B0;--vidrev-live0:#E6F7F7;
+  --vidrev-ink:#0E1330;--vidrev-ink2:#2A3048;--vidrev-muted:#5B6178;--vidrev-line:#E4E6EE;--vidrev-bg:#F7F8FC;
+  font-family:&quot;Open Sans&quot;,&quot;Segoe UI&quot;,system-ui,sans-serif;color:var(--vidrev-ink);background:var(--vidrev-bg);line-height:1.55;font-size:17px}
+.vidrev-page *{box-sizing:border-box}
+.vidrev-wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+.vidrev-sec{padding:88px 0}
+.vidrev-dots{background-image:radial-gradient(#D9DCE8 1px,transparent 1px);background-size:22px 22px}
+.vidrev-dark{background:var(--vidrev-ink);color:#fff}
+.vidrev-eyebrow{font-size:13px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--vidrev-p5);margin:0 0 12px}
+.vidrev-dark .vidrev-eyebrow{color:var(--vidrev-pink)}
+.vidrev-h1{font-size:clamp(38px,6vw,68px);line-height:1.03;font-weight:800;letter-spacing:-.025em;margin:0}
+.vidrev-h2{font-size:clamp(30px,4vw,46px);line-height:1.08;font-weight:800;letter-spacing:-.02em;margin:0 0 16px}
+.vidrev-lead{font-size:20px;color:var(--vidrev-ink2);max-width:680px;margin:18px 0 0}
+.vidrev-dark .vidrev-lead{color:rgba(255,255,255,.8)}
+.vidrev-center{text-align:center}.vidrev-center .vidrev-lead{margin-left:auto;margin-right:auto}
+.vidrev-btn{display:inline-flex;align-items:center;gap:10px;background:var(--vidrev-p);color:#fff;font-weight:800;font-size:18px;padding:16px 26px;border-radius:12px;text-decoration:none;border:0;cursor:pointer;box-shadow:0 8px 24px rgba(217,30,80,.28)}
+.vidrev-btn:hover{background:var(--vidrev-p5)}
+.vidrev-btn-ghost{background:transparent;color:var(--vidrev-ink);box-shadow:none;border:1.5px solid var(--vidrev-line)}
+.vidrev-card{background:#fff;border:1px solid var(--vidrev-line);border-radius:18px;padding:28px}
+.vidrev-grid2{display:grid;gap:24px;grid-template-columns:1fr 1fr}
+.vidrev-grid3{display:grid;gap:24px;grid-template-columns:repeat(3,1fr)}
+@media (max-width:860px){.vidrev-grid2,.vidrev-grid3{grid-template-columns:1fr}.vidrev-sec{padding:60px 0}}
+.vidrev-num{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--vidrev-p0);color:var(--vidrev-p);font-weight:800;margin-bottom:12px}
+.vidrev-h3{font-size:20px;font-weight:800;margin:0 0 8px}
+.vidrev-muted{color:var(--vidrev-muted)}
+/* 0 nav */
+.vidrev-nav{display:flex;align-items:center;justify-content:space-between;padding:18px 0}
+.vidrev-logo{font-weight:800;font-size:24px;letter-spacing:-.02em;text-decoration:none;color:var(--vidrev-ink)}
+.vidrev-logo span{color:var(--vidrev-p5)}
+.vidrev-navlinks{display:flex;gap:26px;align-items:center}
+.vidrev-navlinks a{color:var(--vidrev-ink2);text-decoration:none;font-weight:600;font-size:15px}
+@media (max-width:860px){.vidrev-navlinks a:not(.vidrev-btn){display:none}}
+/* 1 hero */
+.vidrev-hero{padding:48px 0 96px}
+.vidrev-hero-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:48px;align-items:center}
+@media (max-width:960px){.vidrev-hero-grid{grid-template-columns:1fr}}
+.vidrev-hero-form{display:flex;gap:10px;margin-top:30px;flex-wrap:wrap}
+.vidrev-hero-form input{flex:1 1 260px;font:inherit;font-size:18px;padding:15px 16px;border:1.5px solid var(--vidrev-line);border-radius:12px;background:#fff}
+.vidrev-mock{background:#fff;border:1px solid var(--vidrev-line);border-radius:20px;padding:22px;box-shadow:0 24px 60px rgba(14,19,48,.12)}
+.vidrev-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--vidrev-line);font-size:15px}
+.vidrev-row:last-child{border-bottom:0}
+.vidrev-money{font-weight:800;color:var(--vidrev-live)}
+.vidrev-kw{display:inline-block;font-size:12px;font-weight:800;border-radius:999px;padding:3px 10px;background:var(--vidrev-p0);color:var(--vidrev-p)}
+.vidrev-pill{display:inline-block;font-size:13px;font-weight:700;padding:5px 12px;border-radius:999px;background:var(--vidrev-live0);color:#007C7B}
+/* 5 before and after */
+.vidrev-ba{display:grid;grid-template-columns:1fr 1fr;border-radius:20px;overflow:hidden;border:1px solid var(--vidrev-line)}
+@media (max-width:860px){.vidrev-ba{grid-template-columns:1fr}}
+.vidrev-ba&gt;div{padding:30px}
+.vidrev-ba ul{margin:0;padding-left:20px;display:grid;gap:10px}
+.vidrev-before{background:#fff}
+.vidrev-after{background:var(--vidrev-ink);color:#fff}
+/* 6 demo */
+.vidrev-demo{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+@media (max-width:860px){.vidrev-demo{grid-template-columns:1fr}}
+.vidrev-field{display:grid;gap:6px;margin-bottom:14px}
+.vidrev-field label{font-weight:700;font-size:14px}
+.vidrev-field input{font:inherit;padding:12px 14px;border:1.5px solid var(--vidrev-line);border-radius:10px}
+.vidrev-comment{border:1px solid var(--vidrev-line);border-radius:14px;padding:14px;margin-bottom:12px;background:#fff}
+.vidrev-reply{margin-top:10px;background:var(--vidrev-live0);border-left:3px solid var(--vidrev-live);border-radius:8px;padding:10px 12px;font-size:15px}
+/* 7 audit */
+.vidrev-audit{background:linear-gradient(135deg,#FFE9EF 0%,#E6F7F7 100%);border-radius:24px;padding:48px}
+@media (max-width:860px){.vidrev-audit{padding:28px}}
+/* 11 pricing */
+.vidrev-price{max-width:560px;margin:0 auto;border:2px solid var(--vidrev-p5);border-radius:24px;padding:36px;background:#fff;box-shadow:0 24px 60px rgba(217,30,80,.15)}
+.vidrev-bignum{font-size:64px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.vidrev-check{list-style:none;padding:0;margin:22px 0;display:grid;gap:10px}
+.vidrev-check li{padding-left:28px;position:relative}
+.vidrev-check li::before{content:&quot;&quot;;position:absolute;left:0;top:7px;width:14px;height:8px;border-left:3px solid var(--vidrev-live);border-bottom:3px solid var(--vidrev-live);transform:rotate(-45deg)}
+.vidrev-seats{height:10px;border-radius:99px;background:#EEF0F5;overflow:hidden;margin:8px 0 6px}
+.vidrev-seats span{display:block;height:100%;background:var(--vidrev-p5)}
+/* 12 faq */
+.vidrev-faq details{border-bottom:1px solid var(--vidrev-line);padding:18px 0}
+.vidrev-faq summary{font-weight:800;font-size:19px;cursor:pointer;list-style:none}
+.vidrev-faq summary::-webkit-details-marker{display:none}
+.vidrev-faq p{margin:10px 0 0;color:var(--vidrev-ink2)}
+/* 10 proof placeholder */
+.vidrev-proof{border:2px dashed var(--vidrev-line);border-radius:20px;padding:40px;text-align:center;color:var(--vidrev-muted)}
+/* footer */
+.vidrev-foot{padding:48px 0;border-top:1px solid var(--vidrev-line);font-size:15px}
+.vidrev-foot-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:24px}
+@media (max-width:860px){.vidrev-foot-grid{grid-template-columns:1fr 1fr}}
+.vidrev-foot a{display:block;color:var(--vidrev-ink2);text-decoration:none;margin:6px 0}
+&lt;/style&gt;</textarea></article><article class="kit-card"><div class="kit-head"><h2>0. Navigation</h2><button class="kit-copy" data-target="kit-1">Copy</button></div><details><summary>Show code (480 characters)</summary><pre>&lt;div class=&quot;vidrev-page&quot;&gt;
+&lt;header class=&quot;vidrev-wrap vidrev-nav&quot;&gt;
+  &lt;a class=&quot;vidrev-logo&quot; href=&quot;#&quot;&gt;vid&lt;span&gt;rev&lt;/span&gt;&lt;/a&gt;
+  &lt;nav class=&quot;vidrev-navlinks&quot;&gt;
+    &lt;a href=&quot;#vidrev-how&quot;&gt;How it works&lt;/a&gt;
+    &lt;a href=&quot;#vidrev-features&quot;&gt;Features&lt;/a&gt;
+    &lt;a href=&quot;#vidrev-pricing&quot;&gt;Pricing&lt;/a&gt;
+    &lt;a href=&quot;https://app.vidrev.app/login&quot;&gt;Sign in&lt;/a&gt;
+    &lt;a class=&quot;vidrev-btn&quot; style=&quot;padding:10px 16px;font-size:15px&quot; href=&quot;#vidrev-audit&quot;&gt;See where I lose money&lt;/a&gt;
+  &lt;/nav&gt;
+&lt;/header&gt;
+&lt;/div&gt;</pre></details><textarea id="kit-1" hidden>&lt;div class=&quot;vidrev-page&quot;&gt;
+&lt;header class=&quot;vidrev-wrap vidrev-nav&quot;&gt;
+  &lt;a class=&quot;vidrev-logo&quot; href=&quot;#&quot;&gt;vid&lt;span&gt;rev&lt;/span&gt;&lt;/a&gt;
+  &lt;nav class=&quot;vidrev-navlinks&quot;&gt;
+    &lt;a href=&quot;#vidrev-how&quot;&gt;How it works&lt;/a&gt;
+    &lt;a href=&quot;#vidrev-features&quot;&gt;Features&lt;/a&gt;
+    &lt;a href=&quot;#vidrev-pricing&quot;&gt;Pricing&lt;/a&gt;
+    &lt;a href=&quot;https://app.vidrev.app/login&quot;&gt;Sign in&lt;/a&gt;
+    &lt;a class=&quot;vidrev-btn&quot; style=&quot;padding:10px 16px;font-size:15px&quot; href=&quot;#vidrev-audit&quot;&gt;See where I lose money&lt;/a&gt;
+  &lt;/nav&gt;
+&lt;/header&gt;
+&lt;/div&gt;</textarea></article><article class="kit-card"><div class="kit-head"><h2>1. Hero (CommentShark + ReplyTide)</h2><button class="kit-copy" data-target="kit-2">Copy</button></div><details><summary>Show code (1,969 characters)</summary><pre>&lt;div class=&quot;vidrev-page&quot;&gt;
+&lt;section class=&quot;vidrev-hero vidrev-dots&quot; id=&quot;vidrev-hero&quot;&gt;
+  &lt;div class=&quot;vidrev-wrap vidrev-hero-grid&quot;&gt;
+    &lt;div&gt;
+      &lt;p class=&quot;vidrev-eyebrow&quot;&gt;For YouTube creators who sell something&lt;/p&gt;
+      &lt;h1 class=&quot;vidrev-h1&quot;&gt;Stop losing money on YouTube.&lt;/h1&gt;
+      &lt;p class=&quot;vidrev-lead&quot;&gt;Right now, people are asking how to buy from you in your comments. Nobody answers. They leave. They buy from someone else. Every day. Stop renting an audience from YouTube. Own your leads, and see exactly which video makes the money.&lt;/p&gt;
+      &lt;form class=&quot;vidrev-hero-form&quot; action=&quot;https://app.vidrev.app/audit&quot; method=&quot;get&quot;&gt;
+        &lt;input name=&quot;channel&quot; placeholder=&quot;@yourchannel&quot; aria-label=&quot;Your YouTube channel&quot;&gt;
+        &lt;button class=&quot;vidrev-btn&quot; type=&quot;submit&quot;&gt;See where I lose money on YouTube&lt;/button&gt;
+      &lt;/form&gt;
+      &lt;p class=&quot;vidrev-muted&quot; style=&quot;font-size:14px;margin-top:10px&quot;&gt;Free, 30 seconds, no sign-in. Only public data is read.&lt;/p&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;vidrev-mock&quot; aria-label=&quot;Report preview&quot;&gt;
+      &lt;div style=&quot;display:flex;justify-content:space-between;align-items:center;margin-bottom:6px&quot;&gt;&lt;b&gt;Revenue by video, this month&lt;/b&gt;&lt;span class=&quot;vidrev-pill&quot;&gt;Live&lt;/span&gt;&lt;/div&gt;
+      &lt;div class=&quot;vidrev-row&quot;&gt;&lt;span&gt;My exact funnel: video to booked call &lt;span class=&quot;vidrev-kw&quot;&gt;FUNNEL&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;vidrev-money&quot;&gt;$2,910&lt;/span&gt;&lt;/div&gt;
+      &lt;div class=&quot;vidrev-row&quot;&gt;&lt;span&gt;3 email mistakes that cost me sales &lt;span class=&quot;vidrev-kw&quot;&gt;GUIDE&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;vidrev-money&quot;&gt;$1,164&lt;/span&gt;&lt;/div&gt;
+      &lt;div class=&quot;vidrev-row&quot;&gt;&lt;span&gt;The pricing page that doubled sales &lt;span class=&quot;vidrev-kw&quot;&gt;TEMPLATE&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;vidrev-money&quot;&gt;$776&lt;/span&gt;&lt;/div&gt;
+      &lt;div class=&quot;vidrev-row&quot;&gt;&lt;span class=&quot;vidrev-muted&quot;&gt;Comments 412, clicks 188, leads 96, buyers 50&lt;/span&gt;&lt;b&gt;$4,850&lt;/b&gt;&lt;/div&gt;
+      &lt;p class=&quot;vidrev-muted&quot; style=&quot;font-size:12px;margin:8px 0 0&quot;&gt;Illustration with example data.&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/section&gt;
+&lt;/div&gt;</pre></details><textarea id="kit-2" hidden>&lt;div class=&quot;vidrev-page&quot;&gt;
+&lt;section class=&quot;vidrev-hero vidrev-dots&quot; id=&quot;vidrev-hero&quot;&gt;
+  &lt;div class=&quot;vidrev-wrap vidrev-hero-grid&quot;&gt;
+    &lt;div&gt;
+      &lt;p class=&quot;vidrev-eyebrow&quot;&gt;For YouTube creators who sell something&lt;/p&gt;
+      &lt;h1 class=&quot;vidrev-h1&quot;&gt;Stop losing money on YouTube.&lt;/h1&gt;
+      &lt;p class=&quot;vidrev-lead&quot;&gt;Right now, people are asking how to buy from you in your comments. Nobody answers. They leave. They buy from someone else. Every day. Stop renting an audience from YouTube. Own your leads, and see exactly which video makes the money.&lt;/p&gt;
+      &lt;form class=&quot;vidrev-hero-form&quot; action=&quot;https://app.vidrev.app/audit&quot; method=&quot;get&quot;&gt;
+        &lt;input name=&quot;channel&quot; placeholder=&quot;@yourchannel&quot; aria-label=&quot;Your YouTube channel&quot;&gt;
+        &lt;button class=&quot;vidrev-btn&quot; type=&quot;submit&quot;&gt;See where I lose money on YouTube&lt;/button&gt;
+      &lt;/form&gt;
+      &lt;p class=&quot;vidrev-muted&quot; style=&quot;font-size:14px;margin-top:10px&quot;&gt;Free, 30 seconds, no sign-in. Only public data is read.&lt;/p&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;vidrev-mock&quot; aria-label=&quot;Report preview&quot;&gt;
+      &lt;div style=&quot;display:flex;justify-content:space-between;align-items:center;margin-bottom:6px&quot;&gt;&lt;b&gt;Revenue by video, this month&lt;/b&gt;&lt;span class=&quot;vidrev-pill&quot;&gt;Live&lt;/span&gt;&lt;/div&gt;
+      &lt;div class=&quot;vidrev-row&quot;&gt;&lt;span&gt;My exact funnel: video to booked call &lt;span class=&quot;vidrev-kw&quot;&gt;FUNNEL&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;vidrev-money&quot;&gt;$2,910&lt;/span&gt;&lt;/div&gt;
+      &lt;div class=&quot;vidrev-row&quot;&gt;&lt;span&gt;3 email mistakes that cost me sales &lt;span class=&quot;vidrev-kw&quot;&gt;GUIDE&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;vidrev-money&quot;&gt;$1,164&lt;/span&gt;&lt;/div&gt;
+      &lt;div class=&quot;vidrev-row&quot;&gt;&lt;span&gt;The pricing page that doubled sales &lt;span class=&quot;vidrev-kw&quot;&gt;TEMPLATE&lt;/span&gt;&lt;/span&gt;&lt;span class=&quot;vidrev-money&quot;&gt;$776&lt;/span&gt;&lt;/div&gt;
+      &lt;div class=&quot;vidrev-row&quot;&gt;&lt;span class=&quot;vidrev-muted&quot;&gt;Comments 412, clicks 188, leads 96, buyers 50&lt;/span&gt;&lt;b&gt;$4,850&lt;/b&gt;&lt;/div&gt;
+      &lt;p class=&quot;vidrev-muted&quot; style=&quot;font-size:12px;margin:8px 0 0&quot;&gt;Illustration with example data.&lt;/p&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/section&gt;
+&lt;/div&gt;</textarea></article><article class="kit-card"><div class="kit-head"><h2>2. Trust: replies from your own account (ReplyTide)</h2><button class="kit-copy" data-target="kit-3">Copy</button></div><details><summary>Show code (795 characters)</summary><pre>&lt;div class=&quot;vidrev-page&quot;&gt;
+&lt;section class=&quot;vidrev-sec&quot; id=&quot;vidrev-trust&quot; style=&quot;padding-top:40px&quot;&gt;
+  &lt;div class=&quot;vidrev-wrap vidrev-grid3&quot;&gt;
+    &lt;div class=&quot;vidrev-card&quot;&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;From your own channel&lt;/h3&gt;&lt;p class=&quot;vidrev-muted&quot; style=&quot;margin:0&quot;&gt;Replies go out from your YouTube account, in your words. Viewers talk to you, not a bot.&lt;/p&gt;&lt;/div&gt;
+    &lt;div class=&quot;vidrev-card&quot;&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;Only what you approve&lt;/h3&gt;&lt;p class=&quot;vidrev-muted&quot; style=&quot;margin:0&quot;&gt;Nothing is posted until you say yes. Every reply waits in your queue first.&lt;/p&gt;&lt;/div&gt;
+    &lt;div class=&quot;vidrev-card&quot;&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;Links on your domain&lt;/h3&gt;&lt;p class=&quot;vidrev-muted&quot; style=&quot;margin:0&quot;&gt;go.yourdomain.com, not a stranger&#x27;s short link. Your brand, your data, your list.&lt;/p&gt;&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/section&gt;
+&lt;/div&gt;</pre></details><textarea id="kit-3" hidden>&lt;div class=&quot;vidrev-page&quot;&gt;
+&lt;section class=&quot;vidrev-sec&quot; id=&quot;vidrev-trust&quot; style=&quot;padding-top:40px&quot;&gt;
+  &lt;div class=&quot;vidrev-wrap vidrev-grid3&quot;&gt;
+    &lt;div class=&quot;vidrev-card&quot;&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;From your own channel&lt;/h3&gt;&lt;p class=&quot;vidrev-muted&quot; style=&quot;margin:0&quot;&gt;Replies go out from your YouTube account, in your words. Viewers talk to you, not a bot.&lt;/p&gt;&lt;/div&gt;
+    &lt;div class=&quot;vidrev-card&quot;&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;Only what you approve&lt;/h3&gt;&lt;p class=&quot;vidrev-muted&quot; style=&quot;margin:0&quot;&gt;Nothing is posted until you say yes. Every reply waits in your queue first.&lt;/p&gt;&lt;/div&gt;
+    &lt;div class=&quot;vidrev-card&quot;&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;Links on your domain&lt;/h3&gt;&lt;p class=&quot;vidrev-muted&quot; style=&quot;margin:0&quot;&gt;go.yourdomain.com, not a stranger&#x27;s short link. Your brand, your data, your list.&lt;/p&gt;&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/section&gt;
+&lt;/div&gt;</textarea></article><article class="kit-card"><div class="kit-head"><h2>3. The problem, six leaks (ReplyTide)</h2><button class="kit-copy" data-target="kit-4">Copy</button></div><details><summary>Show code (2,131 characters)</summary><pre>&lt;div class=&quot;vidrev-page&quot;&gt;
+&lt;section class=&quot;vidrev-sec vidrev-dark&quot; id=&quot;vidrev-problem&quot;&gt;
+  &lt;div class=&quot;vidrev-wrap&quot;&gt;
+    &lt;p class=&quot;vidrev-eyebrow&quot;&gt;The problem&lt;/p&gt;
+    &lt;h2 class=&quot;vidrev-h2&quot; style=&quot;max-width:860px&quot;&gt;You are bleeding money in six places. You just cannot see it.&lt;/h2&gt;
+    &lt;div class=&quot;vidrev-grid3&quot; style=&quot;margin-top:36px;row-gap:36px&quot;&gt;
+      &lt;div&gt;&lt;span class=&quot;vidrev-num&quot;&gt;1&lt;/span&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;You are building YouTube&#x27;s business, not yours.&lt;/h3&gt;&lt;p style=&quot;margin:0;color:rgba(255,255,255,.75)&quot;&gt;YouTube owns YOUR channel and the algorithm. One change and your money is gone.&lt;/p&gt;&lt;/div&gt;
+      &lt;div&gt;&lt;span class=&quot;vidrev-num&quot;&gt;2&lt;/span&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;YouTube owns the relationship.&lt;/h3&gt;&lt;p style=&quot;margin:0;color:rgba(255,255,255,.75)&quot;&gt;A view is not a lead. No email, no list, no way to reach them tomorrow.&lt;/p&gt;&lt;/div&gt;
+      &lt;div&gt;&lt;span class=&quot;vidrev-num&quot;&gt;3&lt;/span&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;You treat every viewer the same.&lt;/h3&gt;&lt;p style=&quot;margin:0;color:rgba(255,255,255,.75)&quot;&gt;COLD viewers just found you. WARM viewers already watched your videos or know you. HOT leads are ready to buy: why make them wait? Sell to them directly, from your video, without being pushy or weird.&lt;/p&gt;&lt;/div&gt;
+      &lt;div&gt;&lt;span class=&quot;vidrev-num&quot;&gt;4&lt;/span&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;Same effort, a fraction of the money.&lt;/h3&gt;&lt;p style=&quot;margin:0;color:rgba(255,255,255,.75)&quot;&gt;AdSense pays once. A list pays every month. On the same 1,000 views: 38.80x.&lt;/p&gt;&lt;/div&gt;
+      &lt;div&gt;&lt;span class=&quot;vidrev-num&quot;&gt;5&lt;/span&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;You HOPE instead of CONTROL.&lt;/h3&gt;&lt;p style=&quot;margin:0;color:rgba(255,255,255,.75)&quot;&gt;Which video makes money? You guess. vidrev&#x27;s revenue attribution measures every step, end to end: comment, reply, click, lead, sale. It shows the exact video, the keyword and the money. HOPE is not a strategy. OWNERSHIP is.&lt;/p&gt;&lt;/div&gt;
+      &lt;div&gt;&lt;span class=&quot;vidrev-num&quot;&gt;6&lt;/span&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;You think you need an audience first?&lt;/h3&gt;&lt;p style=&quot;margin:0;color:rgba(255,255,255,.75)&quot;&gt;You do not. No need to go viral, no big audience, no cold outreach. The buyers are already in your comments.&lt;/p&gt;&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/section&gt;
+&lt;/div&gt;</pre></details><textarea id="kit-4" hidden>&lt;div class=&quot;vidrev-page&quot;&gt;
+&lt;section class=&quot;vidrev-sec vidrev-dark&quot; id=&quot;vidrev-problem&quot;&gt;
+  &lt;div class=&quot;vidrev-wrap&quot;&gt;
+    &lt;p class=&quot;vidrev-eyebrow&quot;&gt;The problem&lt;/p&gt;
+    &lt;h2 class=&quot;vidrev-h2&quot; style=&quot;max-width:860px&quot;&gt;You are bleeding money in six places. You just cannot see it.&lt;/h2&gt;
+    &lt;div class=&quot;vidrev-grid3&quot; style=&quot;margin-top:36px;row-gap:36px&quot;&gt;
+      &lt;div&gt;&lt;span class=&quot;vidrev-num&quot;&gt;1&lt;/span&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;You are building YouTube&#x27;s business, not yours.&lt;/h3&gt;&lt;p style=&quot;margin:0;color:rgba(255,255,255,.75)&quot;&gt;YouTube owns YOUR channel and the algorithm. One change and your money is gone.&lt;/p&gt;&lt;/div&gt;
+      &lt;div&gt;&lt;span class=&quot;vidrev-num&quot;&gt;2&lt;/span&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;YouTube owns the relationship.&lt;/h3&gt;&lt;p style=&quot;margin:0;color:rgba(255,255,255,.75)&quot;&gt;A view is not a lead. No email, no list, no way to reach them tomorrow.&lt;/p&gt;&lt;/div&gt;
+      &lt;div&gt;&lt;span class=&quot;vidrev-num&quot;&gt;3&lt;/span&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;You treat every viewer the same.&lt;/h3&gt;&lt;p style=&quot;margin:0;color:rgba(255,255,255,.75)&quot;&gt;COLD viewers just found you. WARM viewers already watched your videos or know you. HOT leads are ready to buy: why make them wait? Sell to them directly, from your video, without being pushy or weird.&lt;/p&gt;&lt;/div&gt;
+      &lt;div&gt;&lt;span class=&quot;vidrev-num&quot;&gt;4&lt;/span&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;Same effort, a fraction of the money.&lt;/h3&gt;&lt;p style=&quot;margin:0;color:rgba(255,255,255,.75)&quot;&gt;AdSense pays once. A list pays every month. On the same 1,000 views: 38.80x.&lt;/p&gt;&lt;/div&gt;
+      &lt;div&gt;&lt;span class=&quot;vidrev-num&quot;&gt;5&lt;/span&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;You HOPE instead of CONTROL.&lt;/h3&gt;&lt;p style=&quot;margin:0;color:rgba(255,255,255,.75)&quot;&gt;Which video makes money? You guess. vidrev&#x27;s revenue attribution measures every step, end to end: comment, reply, click, lead, sale. It shows the exact video, the keyword and the money. HOPE is not a strategy. OWNERSHIP is.&lt;/p&gt;&lt;/div&gt;
+      &lt;div&gt;&lt;span class=&quot;vidrev-num&quot;&gt;6&lt;/span&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;You think you need an audience first?&lt;/h3&gt;&lt;p style=&quot;margin:0;color:rgba(255,255,255,.75)&quot;&gt;You do not. No need to go viral, no big audience, no cold outreach. The buyers are already in your comments.&lt;/p&gt;&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/section&gt;
+&lt;/div&gt;</textarea></article><article class="kit-card"><div class="kit-head"><h2>4. How it works, 3 steps (both)</h2><button class="kit-copy" data-target="kit-5">Copy</button></div><details><summary>Show code (1,045 characters)</summary><pre>&lt;div class=&quot;vidrev-page&quot;&gt;
+&lt;section class=&quot;vidrev-sec&quot; id=&quot;vidrev-how&quot;&gt;
+  &lt;div class=&quot;vidrev-wrap&quot;&gt;
+    &lt;div class=&quot;vidrev-center&quot;&gt;&lt;p class=&quot;vidrev-eyebrow&quot;&gt;How it works&lt;/p&gt;&lt;h2 class=&quot;vidrev-h2&quot;&gt;From comment to revenue in 3 steps&lt;/h2&gt;&lt;/div&gt;
+    &lt;div class=&quot;vidrev-grid3&quot; style=&quot;margin-top:36px&quot;&gt;
+      &lt;div class=&quot;vidrev-card&quot;&gt;&lt;span class=&quot;vidrev-num&quot;&gt;1&lt;/span&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;Pick a keyword&lt;/h3&gt;&lt;p class=&quot;vidrev-muted&quot; style=&quot;margin:0&quot;&gt;Say &quot;comment GUIDE&quot; in your video. vidrev watches your channel for it.&lt;/p&gt;&lt;/div&gt;
+      &lt;div class=&quot;vidrev-card&quot;&gt;&lt;span class=&quot;vidrev-num&quot;&gt;2&lt;/span&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;Approve the reply&lt;/h3&gt;&lt;p class=&quot;vidrev-muted&quot; style=&quot;margin:0&quot;&gt;A reply with your tracked link is drafted. One tap and it goes out from your account.&lt;/p&gt;&lt;/div&gt;
+      &lt;div class=&quot;vidrev-card&quot;&gt;&lt;span class=&quot;vidrev-num&quot;&gt;3&lt;/span&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;See the money&lt;/h3&gt;&lt;p class=&quot;vidrev-muted&quot; style=&quot;margin:0&quot;&gt;Opt-ins and sales come back from your CRM. You see revenue per video and per keyword.&lt;/p&gt;&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/section&gt;
+&lt;/div&gt;</pre></details><textarea id="kit-5" hidden>&lt;div class=&quot;vidrev-page&quot;&gt;
+&lt;section class=&quot;vidrev-sec&quot; id=&quot;vidrev-how&quot;&gt;
+  &lt;div class=&quot;vidrev-wrap&quot;&gt;
+    &lt;div class=&quot;vidrev-center&quot;&gt;&lt;p class=&quot;vidrev-eyebrow&quot;&gt;How it works&lt;/p&gt;&lt;h2 class=&quot;vidrev-h2&quot;&gt;From comment to revenue in 3 steps&lt;/h2&gt;&lt;/div&gt;
+    &lt;div class=&quot;vidrev-grid3&quot; style=&quot;margin-top:36px&quot;&gt;
+      &lt;div class=&quot;vidrev-card&quot;&gt;&lt;span class=&quot;vidrev-num&quot;&gt;1&lt;/span&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;Pick a keyword&lt;/h3&gt;&lt;p class=&quot;vidrev-muted&quot; style=&quot;margin:0&quot;&gt;Say &quot;comment GUIDE&quot; in your video. vidrev watches your channel for it.&lt;/p&gt;&lt;/div&gt;
+      &lt;div class=&quot;vidrev-card&quot;&gt;&lt;span class=&quot;vidrev-num&quot;&gt;2&lt;/span&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;Approve the reply&lt;/h3&gt;&lt;p class=&quot;vidrev-muted&quot; style=&quot;margin:0&quot;&gt;A reply with your tracked link is drafted. One tap and it goes out from your account.&lt;/p&gt;&lt;/div&gt;
+      &lt;div class=&quot;vidrev-card&quot;&gt;&lt;span class=&quot;vidrev-num&quot;&gt;3&lt;/span&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;See the money&lt;/h3&gt;&lt;p class=&quot;vidrev-muted&quot; style=&quot;margin:0&quot;&gt;Opt-ins and sales come back from your CRM. You see revenue per video and per keyword.&lt;/p&gt;&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/section&gt;
+&lt;/div&gt;</textarea></article><article class="kit-card"><div class="kit-head"><h2>5. Before and after (ReplyTide)</h2><button class="kit-copy" data-target="kit-6">Copy</button></div><details><summary>Show code (1,056 characters)</summary><pre>&lt;div class=&quot;vidrev-page&quot;&gt;
+&lt;section class=&quot;vidrev-sec vidrev-dots&quot; id=&quot;vidrev-before-after&quot;&gt;
+  &lt;div class=&quot;vidrev-wrap&quot;&gt;
+    &lt;div class=&quot;vidrev-center&quot; style=&quot;margin-bottom:36px&quot;&gt;&lt;p class=&quot;vidrev-eyebrow&quot;&gt;Before and after&lt;/p&gt;&lt;h2 class=&quot;vidrev-h2&quot;&gt;Views are rented. Leads are yours. Stop renting.&lt;/h2&gt;&lt;/div&gt;
+    &lt;div class=&quot;vidrev-ba&quot;&gt;
+      &lt;div class=&quot;vidrev-before&quot;&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;Before vidrev&lt;/h3&gt;&lt;ul class=&quot;vidrev-muted&quot;&gt;
+        &lt;li&gt;You paste the same link into comment after comment&lt;/li&gt;&lt;li&gt;You do not know which video made the sale&lt;/li&gt;&lt;li&gt;AdSense pays once, and only if the algorithm likes you&lt;/li&gt;&lt;li&gt;Buyers wait days for an answer, then leave&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;
+      &lt;div class=&quot;vidrev-after&quot;&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;With vidrev&lt;/h3&gt;&lt;ul&gt;
+        &lt;li&gt;Every keyword comment gets your reply, approved by you&lt;/li&gt;&lt;li&gt;Revenue per video and per keyword, from your real sales&lt;/li&gt;&lt;li&gt;Every viewer who clicks becomes a lead with an email&lt;/li&gt;&lt;li&gt;Your list keeps paying, whatever the algorithm does&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/section&gt;
+&lt;/div&gt;</pre></details><textarea id="kit-6" hidden>&lt;div class=&quot;vidrev-page&quot;&gt;
+&lt;section class=&quot;vidrev-sec vidrev-dots&quot; id=&quot;vidrev-before-after&quot;&gt;
+  &lt;div class=&quot;vidrev-wrap&quot;&gt;
+    &lt;div class=&quot;vidrev-center&quot; style=&quot;margin-bottom:36px&quot;&gt;&lt;p class=&quot;vidrev-eyebrow&quot;&gt;Before and after&lt;/p&gt;&lt;h2 class=&quot;vidrev-h2&quot;&gt;Views are rented. Leads are yours. Stop renting.&lt;/h2&gt;&lt;/div&gt;
+    &lt;div class=&quot;vidrev-ba&quot;&gt;
+      &lt;div class=&quot;vidrev-before&quot;&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;Before vidrev&lt;/h3&gt;&lt;ul class=&quot;vidrev-muted&quot;&gt;
+        &lt;li&gt;You paste the same link into comment after comment&lt;/li&gt;&lt;li&gt;You do not know which video made the sale&lt;/li&gt;&lt;li&gt;AdSense pays once, and only if the algorithm likes you&lt;/li&gt;&lt;li&gt;Buyers wait days for an answer, then leave&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;
+      &lt;div class=&quot;vidrev-after&quot;&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;With vidrev&lt;/h3&gt;&lt;ul&gt;
+        &lt;li&gt;Every keyword comment gets your reply, approved by you&lt;/li&gt;&lt;li&gt;Revenue per video and per keyword, from your real sales&lt;/li&gt;&lt;li&gt;Every viewer who clicks becomes a lead with an email&lt;/li&gt;&lt;li&gt;Your list keeps paying, whatever the algorithm does&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/section&gt;
+&lt;/div&gt;</textarea></article><article class="kit-card"><div class="kit-head"><h2>6. Try your first keyword rule (CommentShark)</h2><button class="kit-copy" data-target="kit-7">Copy</button></div><details><summary>Show code (2,096 characters)</summary><pre>&lt;div class=&quot;vidrev-page&quot;&gt;
+&lt;section class=&quot;vidrev-sec&quot; id=&quot;vidrev-demo&quot;&gt;
+  &lt;div class=&quot;vidrev-wrap&quot;&gt;
+    &lt;div class=&quot;vidrev-center&quot; style=&quot;margin-bottom:36px&quot;&gt;&lt;p class=&quot;vidrev-eyebrow&quot;&gt;Try it&lt;/p&gt;&lt;h2 class=&quot;vidrev-h2&quot;&gt;Try your first keyword rule&lt;/h2&gt;&lt;p class=&quot;vidrev-lead&quot;&gt;Type a keyword and the link to your opt-in page. See what your viewers would get.&lt;/p&gt;&lt;/div&gt;
+    &lt;div class=&quot;vidrev-demo&quot;&gt;
+      &lt;div class=&quot;vidrev-card&quot;&gt;
+        &lt;div class=&quot;vidrev-field&quot;&gt;&lt;label for=&quot;vidrev-demo-kw&quot;&gt;Keyword&lt;/label&gt;&lt;input id=&quot;vidrev-demo-kw&quot; value=&quot;GUIDE&quot;&gt;&lt;/div&gt;
+        &lt;div class=&quot;vidrev-field&quot;&gt;&lt;label for=&quot;vidrev-demo-domain&quot;&gt;Your domain&lt;/label&gt;&lt;input id=&quot;vidrev-demo-domain&quot; value=&quot;yourdomain.com&quot;&gt;&lt;/div&gt;
+        &lt;p class=&quot;vidrev-muted&quot; style=&quot;font-size:14px;margin:0&quot;&gt;In the app you approve every reply before it is posted.&lt;/p&gt;
+      &lt;/div&gt;
+      &lt;div id=&quot;vidrev-demo-out&quot;&gt;&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/section&gt;
+&lt;/div&gt;
+&lt;script&gt;
+// Section 6 demo: the reply a viewer would get, drawn from the two inputs.
+(function () {
+  var kw = document.getElementById(&quot;vidrev-demo-kw&quot;), dom = document.getElementById(&quot;vidrev-demo-domain&quot;), out = document.getElementById(&quot;vidrev-demo-out&quot;);
+  var viewers = [[&quot;@maria_builds&quot;, &quot;%k please, this is exactly what I need&quot;], [&quot;@tom.k&quot;, &quot;%k&quot;], [&quot;@sam_creates&quot;, &quot;can I get the %k?&quot;]];
+  var slugs = [&quot;a8Kd2pQ&quot;, &quot;Xp3mR7t&quot;, &quot;Lq9Zb4w&quot;];
+  function esc(s) { return String(s).replace(/[&amp;&lt;&gt;&quot;]/g, function (c) { return { &quot;&amp;&quot;: &quot;&amp;amp;&quot;, &quot;&lt;&quot;: &quot;&amp;lt;&quot;, &quot;&gt;&quot;: &quot;&amp;gt;&quot;, &#x27;&quot;&#x27;: &quot;&amp;quot;&quot; }[c]; }); }
+  function render() {
+    var k = esc(kw.value.trim() || &quot;GUIDE&quot;), d = esc((dom.value.trim() || &quot;yourdomain.com&quot;).replace(/^https?:\/\//, &quot;&quot;).replace(/\/.*$/, &quot;&quot;));
+    out.innerHTML = viewers.map(function (v, i) {
+      return &#x27;&lt;div class=&quot;vidrev-comment&quot;&gt;&lt;b&gt;&#x27; + v[0] + &#x27;&lt;/b&gt; &lt;span class=&quot;vidrev-kw&quot;&gt;&#x27; + k.toUpperCase() + &#x27;&lt;/span&gt;&lt;p style=&quot;margin:6px 0 0&quot;&gt;&#x27; + v[1].replace(&quot;%k&quot;, k) + &#x27;&lt;/p&gt;&lt;div class=&quot;vidrev-reply&quot;&gt;Here you go: go.&#x27; + d + &#x27;/&#x27; + slugs[i] + &#x27;&lt;/div&gt;&lt;/div&gt;&#x27;;
+    }).join(&quot;&quot;);
+  }
+  kw.addEventListener(&quot;input&quot;, render); dom.addEventListener(&quot;input&quot;, render); render();
+})();
+&lt;/script&gt;</pre></details><textarea id="kit-7" hidden>&lt;div class=&quot;vidrev-page&quot;&gt;
+&lt;section class=&quot;vidrev-sec&quot; id=&quot;vidrev-demo&quot;&gt;
+  &lt;div class=&quot;vidrev-wrap&quot;&gt;
+    &lt;div class=&quot;vidrev-center&quot; style=&quot;margin-bottom:36px&quot;&gt;&lt;p class=&quot;vidrev-eyebrow&quot;&gt;Try it&lt;/p&gt;&lt;h2 class=&quot;vidrev-h2&quot;&gt;Try your first keyword rule&lt;/h2&gt;&lt;p class=&quot;vidrev-lead&quot;&gt;Type a keyword and the link to your opt-in page. See what your viewers would get.&lt;/p&gt;&lt;/div&gt;
+    &lt;div class=&quot;vidrev-demo&quot;&gt;
+      &lt;div class=&quot;vidrev-card&quot;&gt;
+        &lt;div class=&quot;vidrev-field&quot;&gt;&lt;label for=&quot;vidrev-demo-kw&quot;&gt;Keyword&lt;/label&gt;&lt;input id=&quot;vidrev-demo-kw&quot; value=&quot;GUIDE&quot;&gt;&lt;/div&gt;
+        &lt;div class=&quot;vidrev-field&quot;&gt;&lt;label for=&quot;vidrev-demo-domain&quot;&gt;Your domain&lt;/label&gt;&lt;input id=&quot;vidrev-demo-domain&quot; value=&quot;yourdomain.com&quot;&gt;&lt;/div&gt;
+        &lt;p class=&quot;vidrev-muted&quot; style=&quot;font-size:14px;margin:0&quot;&gt;In the app you approve every reply before it is posted.&lt;/p&gt;
+      &lt;/div&gt;
+      &lt;div id=&quot;vidrev-demo-out&quot;&gt;&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/section&gt;
+&lt;/div&gt;
+&lt;script&gt;
+// Section 6 demo: the reply a viewer would get, drawn from the two inputs.
+(function () {
+  var kw = document.getElementById(&quot;vidrev-demo-kw&quot;), dom = document.getElementById(&quot;vidrev-demo-domain&quot;), out = document.getElementById(&quot;vidrev-demo-out&quot;);
+  var viewers = [[&quot;@maria_builds&quot;, &quot;%k please, this is exactly what I need&quot;], [&quot;@tom.k&quot;, &quot;%k&quot;], [&quot;@sam_creates&quot;, &quot;can I get the %k?&quot;]];
+  var slugs = [&quot;a8Kd2pQ&quot;, &quot;Xp3mR7t&quot;, &quot;Lq9Zb4w&quot;];
+  function esc(s) { return String(s).replace(/[&amp;&lt;&gt;&quot;]/g, function (c) { return { &quot;&amp;&quot;: &quot;&amp;amp;&quot;, &quot;&lt;&quot;: &quot;&amp;lt;&quot;, &quot;&gt;&quot;: &quot;&amp;gt;&quot;, &#x27;&quot;&#x27;: &quot;&amp;quot;&quot; }[c]; }); }
+  function render() {
+    var k = esc(kw.value.trim() || &quot;GUIDE&quot;), d = esc((dom.value.trim() || &quot;yourdomain.com&quot;).replace(/^https?:\/\//, &quot;&quot;).replace(/\/.*$/, &quot;&quot;));
+    out.innerHTML = viewers.map(function (v, i) {
+      return &#x27;&lt;div class=&quot;vidrev-comment&quot;&gt;&lt;b&gt;&#x27; + v[0] + &#x27;&lt;/b&gt; &lt;span class=&quot;vidrev-kw&quot;&gt;&#x27; + k.toUpperCase() + &#x27;&lt;/span&gt;&lt;p style=&quot;margin:6px 0 0&quot;&gt;&#x27; + v[1].replace(&quot;%k&quot;, k) + &#x27;&lt;/p&gt;&lt;div class=&quot;vidrev-reply&quot;&gt;Here you go: go.&#x27; + d + &#x27;/&#x27; + slugs[i] + &#x27;&lt;/div&gt;&lt;/div&gt;&#x27;;
+    }).join(&quot;&quot;);
+  }
+  kw.addEventListener(&quot;input&quot;, render); dom.addEventListener(&quot;input&quot;, render); render();
+})();
+&lt;/script&gt;</textarea></article><article class="kit-card"><div class="kit-head"><h2>7. See where I lose money on YouTube (CommentShark &quot;See it on your own channel&quot;)</h2><button class="kit-copy" data-target="kit-8">Copy</button></div><details><summary>Show code (1,191 characters)</summary><pre>&lt;div class=&quot;vidrev-page&quot;&gt;
+&lt;section class=&quot;vidrev-sec&quot; id=&quot;vidrev-audit&quot; style=&quot;padding-top:0&quot;&gt;
+  &lt;div class=&quot;vidrev-wrap&quot;&gt;
+    &lt;div class=&quot;vidrev-audit vidrev-grid2&quot; style=&quot;align-items:center&quot;&gt;
+      &lt;div&gt;
+        &lt;p class=&quot;vidrev-eyebrow&quot;&gt;Free, personal, 30 seconds&lt;/p&gt;
+        &lt;h2 class=&quot;vidrev-h2&quot;&gt;See where I lose money on YouTube&lt;/h2&gt;
+        &lt;p style=&quot;font-size:19px;margin:0&quot;&gt;We count the people who asked how to buy on your last 5 videos and got no answer. Then you see what they are worth, in your own numbers. Not a generic PDF: your channel, your comments.&lt;/p&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;vidrev-card&quot;&gt;
+        &lt;form action=&quot;https://app.vidrev.app/audit&quot; method=&quot;get&quot;&gt;
+          &lt;div class=&quot;vidrev-field&quot;&gt;&lt;label for=&quot;vidrev-audit-ch&quot;&gt;Your @handle or channel URL&lt;/label&gt;&lt;input id=&quot;vidrev-audit-ch&quot; name=&quot;channel&quot; placeholder=&quot;@yourchannel&quot;&gt;&lt;/div&gt;
+          &lt;button class=&quot;vidrev-btn&quot; type=&quot;submit&quot; style=&quot;width:100%;justify-content:center&quot;&gt;Show me where I lose money&lt;/button&gt;
+        &lt;/form&gt;
+        &lt;p class=&quot;vidrev-muted&quot; style=&quot;font-size:14px;margin:10px 0 0&quot;&gt;No sign-in. Comment text is never stored. Nothing is posted.&lt;/p&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/section&gt;
+&lt;/div&gt;</pre></details><textarea id="kit-8" hidden>&lt;div class=&quot;vidrev-page&quot;&gt;
+&lt;section class=&quot;vidrev-sec&quot; id=&quot;vidrev-audit&quot; style=&quot;padding-top:0&quot;&gt;
+  &lt;div class=&quot;vidrev-wrap&quot;&gt;
+    &lt;div class=&quot;vidrev-audit vidrev-grid2&quot; style=&quot;align-items:center&quot;&gt;
+      &lt;div&gt;
+        &lt;p class=&quot;vidrev-eyebrow&quot;&gt;Free, personal, 30 seconds&lt;/p&gt;
+        &lt;h2 class=&quot;vidrev-h2&quot;&gt;See where I lose money on YouTube&lt;/h2&gt;
+        &lt;p style=&quot;font-size:19px;margin:0&quot;&gt;We count the people who asked how to buy on your last 5 videos and got no answer. Then you see what they are worth, in your own numbers. Not a generic PDF: your channel, your comments.&lt;/p&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;vidrev-card&quot;&gt;
+        &lt;form action=&quot;https://app.vidrev.app/audit&quot; method=&quot;get&quot;&gt;
+          &lt;div class=&quot;vidrev-field&quot;&gt;&lt;label for=&quot;vidrev-audit-ch&quot;&gt;Your @handle or channel URL&lt;/label&gt;&lt;input id=&quot;vidrev-audit-ch&quot; name=&quot;channel&quot; placeholder=&quot;@yourchannel&quot;&gt;&lt;/div&gt;
+          &lt;button class=&quot;vidrev-btn&quot; type=&quot;submit&quot; style=&quot;width:100%;justify-content:center&quot;&gt;Show me where I lose money&lt;/button&gt;
+        &lt;/form&gt;
+        &lt;p class=&quot;vidrev-muted&quot; style=&quot;font-size:14px;margin:10px 0 0&quot;&gt;No sign-in. Comment text is never stored. Nothing is posted.&lt;/p&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/section&gt;
+&lt;/div&gt;</textarea></article><article class="kit-card"><div class="kit-head"><h2>8. Features, 6 cards (ReplyTide)</h2><button class="kit-copy" data-target="kit-9">Copy</button></div><details><summary>Show code (1,710 characters)</summary><pre>&lt;div class=&quot;vidrev-page&quot;&gt;
+&lt;section class=&quot;vidrev-sec vidrev-dots&quot; id=&quot;vidrev-features&quot;&gt;
+  &lt;div class=&quot;vidrev-wrap&quot;&gt;
+    &lt;div class=&quot;vidrev-center&quot; style=&quot;margin-bottom:36px&quot;&gt;&lt;p class=&quot;vidrev-eyebrow&quot;&gt;Why vidrev&lt;/p&gt;&lt;h2 class=&quot;vidrev-h2&quot;&gt;Built for creators who sell&lt;/h2&gt;&lt;/div&gt;
+    &lt;div class=&quot;vidrev-grid3&quot;&gt;
+      &lt;div class=&quot;vidrev-card&quot;&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;End-to-end revenue attribution&lt;/h3&gt;&lt;p class=&quot;vidrev-muted&quot; style=&quot;margin:0&quot;&gt;The only revenue attribution app for YouTube organic traffic. Every step measured, from comment to sale. Revenue per video, per keyword, per reply. Real sales, never estimates.&lt;/p&gt;&lt;/div&gt;
+      &lt;div class=&quot;vidrev-card&quot;&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;Direct GoHighLevel integration&lt;/h3&gt;&lt;p class=&quot;vidrev-muted&quot; style=&quot;margin:0&quot;&gt;One-click connect. Leads arrive tagged with the video and keyword. Any other CRM through webhooks.&lt;/p&gt;&lt;/div&gt;
+      &lt;div class=&quot;vidrev-card&quot;&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;Stripe revenue&lt;/h3&gt;&lt;p class=&quot;vidrev-muted&quot; style=&quot;margin:0&quot;&gt;Read-only key. Sales, refunds and renewals matched to the comment that started them.&lt;/p&gt;&lt;/div&gt;
+      &lt;div class=&quot;vidrev-card&quot;&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;Links on your own domain&lt;/h3&gt;&lt;p class=&quot;vidrev-muted&quot; style=&quot;margin:0&quot;&gt;One DNS record and your links run on go.yourdomain.com.&lt;/p&gt;&lt;/div&gt;
+      &lt;div class=&quot;vidrev-card&quot;&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;One person, one contact&lt;/h3&gt;&lt;p class=&quot;vidrev-muted&quot; style=&quot;margin:0&quot;&gt;A viewer who comments on three videos is one lead, not three. Reports count people.&lt;/p&gt;&lt;/div&gt;
+      &lt;div class=&quot;vidrev-card&quot;&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;Weekly money email&lt;/h3&gt;&lt;p class=&quot;vidrev-muted&quot; style=&quot;margin:0&quot;&gt;Every Monday: what your comments made last week, and which video did it.&lt;/p&gt;&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/section&gt;
+&lt;/div&gt;</pre></details><textarea id="kit-9" hidden>&lt;div class=&quot;vidrev-page&quot;&gt;
+&lt;section class=&quot;vidrev-sec vidrev-dots&quot; id=&quot;vidrev-features&quot;&gt;
+  &lt;div class=&quot;vidrev-wrap&quot;&gt;
+    &lt;div class=&quot;vidrev-center&quot; style=&quot;margin-bottom:36px&quot;&gt;&lt;p class=&quot;vidrev-eyebrow&quot;&gt;Why vidrev&lt;/p&gt;&lt;h2 class=&quot;vidrev-h2&quot;&gt;Built for creators who sell&lt;/h2&gt;&lt;/div&gt;
+    &lt;div class=&quot;vidrev-grid3&quot;&gt;
+      &lt;div class=&quot;vidrev-card&quot;&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;End-to-end revenue attribution&lt;/h3&gt;&lt;p class=&quot;vidrev-muted&quot; style=&quot;margin:0&quot;&gt;The only revenue attribution app for YouTube organic traffic. Every step measured, from comment to sale. Revenue per video, per keyword, per reply. Real sales, never estimates.&lt;/p&gt;&lt;/div&gt;
+      &lt;div class=&quot;vidrev-card&quot;&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;Direct GoHighLevel integration&lt;/h3&gt;&lt;p class=&quot;vidrev-muted&quot; style=&quot;margin:0&quot;&gt;One-click connect. Leads arrive tagged with the video and keyword. Any other CRM through webhooks.&lt;/p&gt;&lt;/div&gt;
+      &lt;div class=&quot;vidrev-card&quot;&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;Stripe revenue&lt;/h3&gt;&lt;p class=&quot;vidrev-muted&quot; style=&quot;margin:0&quot;&gt;Read-only key. Sales, refunds and renewals matched to the comment that started them.&lt;/p&gt;&lt;/div&gt;
+      &lt;div class=&quot;vidrev-card&quot;&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;Links on your own domain&lt;/h3&gt;&lt;p class=&quot;vidrev-muted&quot; style=&quot;margin:0&quot;&gt;One DNS record and your links run on go.yourdomain.com.&lt;/p&gt;&lt;/div&gt;
+      &lt;div class=&quot;vidrev-card&quot;&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;One person, one contact&lt;/h3&gt;&lt;p class=&quot;vidrev-muted&quot; style=&quot;margin:0&quot;&gt;A viewer who comments on three videos is one lead, not three. Reports count people.&lt;/p&gt;&lt;/div&gt;
+      &lt;div class=&quot;vidrev-card&quot;&gt;&lt;h3 class=&quot;vidrev-h3&quot;&gt;Weekly money email&lt;/h3&gt;&lt;p class=&quot;vidrev-muted&quot; style=&quot;margin:0&quot;&gt;Every Monday: what your comments made last week, and which video did it.&lt;/p&gt;&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/section&gt;
+&lt;/div&gt;</textarea></article><article class="kit-card"><div class="kit-head"><h2>9. Review replies before they go live (CommentShark)</h2><button class="kit-copy" data-target="kit-10">Copy</button></div><details><summary>Show code (1,219 characters)</summary><pre>&lt;div class=&quot;vidrev-page&quot;&gt;
+&lt;section class=&quot;vidrev-sec&quot; id=&quot;vidrev-approve&quot;&gt;
+  &lt;div class=&quot;vidrev-wrap vidrev-grid2&quot; style=&quot;align-items:center&quot;&gt;
+    &lt;div&gt;
+      &lt;p class=&quot;vidrev-eyebrow&quot;&gt;You stay in control&lt;/p&gt;
+      &lt;h2 class=&quot;vidrev-h2&quot;&gt;Review replies before they go live&lt;/h2&gt;
+      &lt;p class=&quot;vidrev-lead&quot; style=&quot;margin-top:0&quot;&gt;Every reply waits in your queue. Edit it, approve it or skip it. Nothing is posted in your name without your yes, and YouTube&#x27;s limits are respected for you.&lt;/p&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;vidrev-mock&quot;&gt;
+      &lt;div class=&quot;vidrev-comment&quot;&gt;&lt;b&gt;@maria_builds&lt;/b&gt; &lt;span class=&quot;vidrev-kw&quot;&gt;GUIDE&lt;/span&gt;&lt;p style=&quot;margin:6px 0 0&quot;&gt;guide please, this is exactly what I need&lt;/p&gt;
+        &lt;div class=&quot;vidrev-reply&quot;&gt;Here you go Maria: go.yourdomain.com/a8Kd2pQ&lt;/div&gt;
+        &lt;div style=&quot;display:flex;gap:8px;margin-top:10px&quot;&gt;&lt;span class=&quot;vidrev-btn&quot; style=&quot;padding:8px 14px;font-size:14px&quot;&gt;Approve&lt;/span&gt;&lt;span class=&quot;vidrev-btn vidrev-btn-ghost&quot; style=&quot;padding:8px 14px;font-size:14px&quot;&gt;Edit&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;
+      &lt;div class=&quot;vidrev-comment&quot; style=&quot;opacity:.6;margin-bottom:0&quot;&gt;&lt;b&gt;@tom.k&lt;/b&gt; &lt;span class=&quot;vidrev-kw&quot;&gt;GUIDE&lt;/span&gt;&lt;p style=&quot;margin:6px 0 0&quot;&gt;GUIDE&lt;/p&gt;&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/section&gt;
+&lt;/div&gt;</pre></details><textarea id="kit-10" hidden>&lt;div class=&quot;vidrev-page&quot;&gt;
+&lt;section class=&quot;vidrev-sec&quot; id=&quot;vidrev-approve&quot;&gt;
+  &lt;div class=&quot;vidrev-wrap vidrev-grid2&quot; style=&quot;align-items:center&quot;&gt;
+    &lt;div&gt;
+      &lt;p class=&quot;vidrev-eyebrow&quot;&gt;You stay in control&lt;/p&gt;
+      &lt;h2 class=&quot;vidrev-h2&quot;&gt;Review replies before they go live&lt;/h2&gt;
+      &lt;p class=&quot;vidrev-lead&quot; style=&quot;margin-top:0&quot;&gt;Every reply waits in your queue. Edit it, approve it or skip it. Nothing is posted in your name without your yes, and YouTube&#x27;s limits are respected for you.&lt;/p&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;vidrev-mock&quot;&gt;
+      &lt;div class=&quot;vidrev-comment&quot;&gt;&lt;b&gt;@maria_builds&lt;/b&gt; &lt;span class=&quot;vidrev-kw&quot;&gt;GUIDE&lt;/span&gt;&lt;p style=&quot;margin:6px 0 0&quot;&gt;guide please, this is exactly what I need&lt;/p&gt;
+        &lt;div class=&quot;vidrev-reply&quot;&gt;Here you go Maria: go.yourdomain.com/a8Kd2pQ&lt;/div&gt;
+        &lt;div style=&quot;display:flex;gap:8px;margin-top:10px&quot;&gt;&lt;span class=&quot;vidrev-btn&quot; style=&quot;padding:8px 14px;font-size:14px&quot;&gt;Approve&lt;/span&gt;&lt;span class=&quot;vidrev-btn vidrev-btn-ghost&quot; style=&quot;padding:8px 14px;font-size:14px&quot;&gt;Edit&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;
+      &lt;div class=&quot;vidrev-comment&quot; style=&quot;opacity:.6;margin-bottom:0&quot;&gt;&lt;b&gt;@tom.k&lt;/b&gt; &lt;span class=&quot;vidrev-kw&quot;&gt;GUIDE&lt;/span&gt;&lt;p style=&quot;margin:6px 0 0&quot;&gt;GUIDE&lt;/p&gt;&lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/section&gt;
+&lt;/div&gt;</textarea></article><article class="kit-card"><div class="kit-head"><h2>10. Social proof: placeholder (L-04)</h2><button class="kit-copy" data-target="kit-11">Copy</button></div><details><summary>Show code (290 characters)</summary><pre>&lt;div class=&quot;vidrev-page&quot;&gt;
+&lt;section class=&quot;vidrev-sec&quot; id=&quot;vidrev-proof&quot; style=&quot;padding-top:0&quot;&gt;
+  &lt;div class=&quot;vidrev-wrap&quot;&gt;&lt;div class=&quot;vidrev-proof&quot;&gt;&lt;b&gt;Social proof goes here.&lt;/b&gt;&lt;br&gt;Hidden until the first founding creators share their numbers (DECISIONS L-04).&lt;/div&gt;&lt;/div&gt;
+&lt;/section&gt;
+&lt;/div&gt;</pre></details><textarea id="kit-11" hidden>&lt;div class=&quot;vidrev-page&quot;&gt;
+&lt;section class=&quot;vidrev-sec&quot; id=&quot;vidrev-proof&quot; style=&quot;padding-top:0&quot;&gt;
+  &lt;div class=&quot;vidrev-wrap&quot;&gt;&lt;div class=&quot;vidrev-proof&quot;&gt;&lt;b&gt;Social proof goes here.&lt;/b&gt;&lt;br&gt;Hidden until the first founding creators share their numbers (DECISIONS L-04).&lt;/div&gt;&lt;/div&gt;
+&lt;/section&gt;
+&lt;/div&gt;</textarea></article><article class="kit-card"><div class="kit-head"><h2>11. Pricing: Founding 100 (L-01, no trial)</h2><button class="kit-copy" data-target="kit-12">Copy</button></div><details><summary>Show code (1,220 characters)</summary><pre>&lt;div class=&quot;vidrev-page&quot;&gt;
+&lt;section class=&quot;vidrev-sec vidrev-dots&quot; id=&quot;vidrev-pricing&quot;&gt;
+  &lt;div class=&quot;vidrev-wrap&quot;&gt;
+    &lt;div class=&quot;vidrev-center&quot; style=&quot;margin-bottom:36px&quot;&gt;&lt;p class=&quot;vidrev-eyebrow&quot;&gt;Founding 100&lt;/p&gt;&lt;h2 class=&quot;vidrev-h2&quot;&gt;Plug the leak. One price, locked for life.&lt;/h2&gt;&lt;/div&gt;
+    &lt;div class=&quot;vidrev-price&quot;&gt;
+      &lt;div class=&quot;vidrev-bignum&quot;&gt;$97&lt;span style=&quot;font-size:22px;font-weight:700;color:var(--vidrev-muted)&quot;&gt; / year&lt;/span&gt;&lt;/div&gt;
+      &lt;p class=&quot;vidrev-muted&quot; style=&quot;margin:8px 0 0&quot;&gt;For the first 100 creators. Your renewal price never goes up.&lt;/p&gt;
+      &lt;ul class=&quot;vidrev-check&quot;&gt;
+        &lt;li&gt;300 approved replies a month&lt;/li&gt;&lt;li&gt;Revenue per video and per keyword&lt;/li&gt;&lt;li&gt;GoHighLevel, Stripe and webhook integrations&lt;/li&gt;&lt;li&gt;Tracked links on your own domain&lt;/li&gt;&lt;li&gt;Weekly money email&lt;/li&gt;
+      &lt;/ul&gt;
+      &lt;div style=&quot;font-size:14px;font-weight:700&quot;&gt;Founding seats left&lt;/div&gt;
+      &lt;div class=&quot;vidrev-seats&quot;&gt;&lt;span style=&quot;width:0%&quot;&gt;&lt;/span&gt;&lt;/div&gt;
+      &lt;div class=&quot;vidrev-muted&quot; style=&quot;font-size:13px;margin-bottom:18px&quot;&gt;100 of 100 left&lt;/div&gt;
+      &lt;a class=&quot;vidrev-btn&quot; href=&quot;#vidrev-checkout&quot; style=&quot;width:100%;justify-content:center&quot;&gt;Claim a founding seat&lt;/a&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/section&gt;
+&lt;/div&gt;</pre></details><textarea id="kit-12" hidden>&lt;div class=&quot;vidrev-page&quot;&gt;
+&lt;section class=&quot;vidrev-sec vidrev-dots&quot; id=&quot;vidrev-pricing&quot;&gt;
+  &lt;div class=&quot;vidrev-wrap&quot;&gt;
+    &lt;div class=&quot;vidrev-center&quot; style=&quot;margin-bottom:36px&quot;&gt;&lt;p class=&quot;vidrev-eyebrow&quot;&gt;Founding 100&lt;/p&gt;&lt;h2 class=&quot;vidrev-h2&quot;&gt;Plug the leak. One price, locked for life.&lt;/h2&gt;&lt;/div&gt;
+    &lt;div class=&quot;vidrev-price&quot;&gt;
+      &lt;div class=&quot;vidrev-bignum&quot;&gt;$97&lt;span style=&quot;font-size:22px;font-weight:700;color:var(--vidrev-muted)&quot;&gt; / year&lt;/span&gt;&lt;/div&gt;
+      &lt;p class=&quot;vidrev-muted&quot; style=&quot;margin:8px 0 0&quot;&gt;For the first 100 creators. Your renewal price never goes up.&lt;/p&gt;
+      &lt;ul class=&quot;vidrev-check&quot;&gt;
+        &lt;li&gt;300 approved replies a month&lt;/li&gt;&lt;li&gt;Revenue per video and per keyword&lt;/li&gt;&lt;li&gt;GoHighLevel, Stripe and webhook integrations&lt;/li&gt;&lt;li&gt;Tracked links on your own domain&lt;/li&gt;&lt;li&gt;Weekly money email&lt;/li&gt;
+      &lt;/ul&gt;
+      &lt;div style=&quot;font-size:14px;font-weight:700&quot;&gt;Founding seats left&lt;/div&gt;
+      &lt;div class=&quot;vidrev-seats&quot;&gt;&lt;span style=&quot;width:0%&quot;&gt;&lt;/span&gt;&lt;/div&gt;
+      &lt;div class=&quot;vidrev-muted&quot; style=&quot;font-size:13px;margin-bottom:18px&quot;&gt;100 of 100 left&lt;/div&gt;
+      &lt;a class=&quot;vidrev-btn&quot; href=&quot;#vidrev-checkout&quot; style=&quot;width:100%;justify-content:center&quot;&gt;Claim a founding seat&lt;/a&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/section&gt;
+&lt;/div&gt;</textarea></article><article class="kit-card"><div class="kit-head"><h2>12. FAQ: asked before connecting (ReplyTide)</h2><button class="kit-copy" data-target="kit-13">Copy</button></div><details><summary>Show code (1,452 characters)</summary><pre>&lt;div class=&quot;vidrev-page&quot;&gt;
+&lt;section class=&quot;vidrev-sec&quot; id=&quot;vidrev-faq&quot;&gt;
+  &lt;div class=&quot;vidrev-wrap&quot; style=&quot;max-width:860px&quot;&gt;
+    &lt;div class=&quot;vidrev-center&quot; style=&quot;margin-bottom:24px&quot;&gt;&lt;p class=&quot;vidrev-eyebrow&quot;&gt;Asked before connecting&lt;/p&gt;&lt;h2 class=&quot;vidrev-h2&quot;&gt;Questions&lt;/h2&gt;&lt;/div&gt;
+    &lt;div class=&quot;vidrev-faq&quot;&gt;
+      &lt;details&gt;&lt;summary&gt;Does vidrev post anything without me?&lt;/summary&gt;&lt;p&gt;No. Every reply waits for your approval. You can edit or skip it.&lt;/p&gt;&lt;/details&gt;
+      &lt;details&gt;&lt;summary&gt;Do I need GoHighLevel?&lt;/summary&gt;&lt;p&gt;No. GoHighLevel connects in one click; any other CRM or form tool works through webhooks.&lt;/p&gt;&lt;/details&gt;
+      &lt;details&gt;&lt;summary&gt;How do you know which video made the sale?&lt;/summary&gt;&lt;p&gt;Every reply link carries a tracking id. When that person opts in and buys, the sale is matched back to the video and keyword.&lt;/p&gt;&lt;/details&gt;
+      &lt;details&gt;&lt;summary&gt;Is my YouTube account safe?&lt;/summary&gt;&lt;p&gt;vidrev uses the official YouTube API and stays inside its daily limits. Replies go out at a human pace.&lt;/p&gt;&lt;/details&gt;
+      &lt;details&gt;&lt;summary&gt;Why no free trial?&lt;/summary&gt;&lt;p&gt;The first 100 creators get the lowest price we will ever offer, locked for life. Want to see the value first? Run the free money check on your own channel.&lt;/p&gt;&lt;/details&gt;
+      &lt;details&gt;&lt;summary&gt;What happens to my data if I leave?&lt;/summary&gt;&lt;p&gt;YouTube data is deleted within 30 days. Your leads always stay in your own CRM.&lt;/p&gt;&lt;/details&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/section&gt;
+&lt;/div&gt;</pre></details><textarea id="kit-13" hidden>&lt;div class=&quot;vidrev-page&quot;&gt;
+&lt;section class=&quot;vidrev-sec&quot; id=&quot;vidrev-faq&quot;&gt;
+  &lt;div class=&quot;vidrev-wrap&quot; style=&quot;max-width:860px&quot;&gt;
+    &lt;div class=&quot;vidrev-center&quot; style=&quot;margin-bottom:24px&quot;&gt;&lt;p class=&quot;vidrev-eyebrow&quot;&gt;Asked before connecting&lt;/p&gt;&lt;h2 class=&quot;vidrev-h2&quot;&gt;Questions&lt;/h2&gt;&lt;/div&gt;
+    &lt;div class=&quot;vidrev-faq&quot;&gt;
+      &lt;details&gt;&lt;summary&gt;Does vidrev post anything without me?&lt;/summary&gt;&lt;p&gt;No. Every reply waits for your approval. You can edit or skip it.&lt;/p&gt;&lt;/details&gt;
+      &lt;details&gt;&lt;summary&gt;Do I need GoHighLevel?&lt;/summary&gt;&lt;p&gt;No. GoHighLevel connects in one click; any other CRM or form tool works through webhooks.&lt;/p&gt;&lt;/details&gt;
+      &lt;details&gt;&lt;summary&gt;How do you know which video made the sale?&lt;/summary&gt;&lt;p&gt;Every reply link carries a tracking id. When that person opts in and buys, the sale is matched back to the video and keyword.&lt;/p&gt;&lt;/details&gt;
+      &lt;details&gt;&lt;summary&gt;Is my YouTube account safe?&lt;/summary&gt;&lt;p&gt;vidrev uses the official YouTube API and stays inside its daily limits. Replies go out at a human pace.&lt;/p&gt;&lt;/details&gt;
+      &lt;details&gt;&lt;summary&gt;Why no free trial?&lt;/summary&gt;&lt;p&gt;The first 100 creators get the lowest price we will ever offer, locked for life. Want to see the value first? Run the free money check on your own channel.&lt;/p&gt;&lt;/details&gt;
+      &lt;details&gt;&lt;summary&gt;What happens to my data if I leave?&lt;/summary&gt;&lt;p&gt;YouTube data is deleted within 30 days. Your leads always stay in your own CRM.&lt;/p&gt;&lt;/details&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/section&gt;
+&lt;/div&gt;</textarea></article><article class="kit-card"><div class="kit-head"><h2>13. Final CTA and footer</h2><button class="kit-copy" data-target="kit-14">Copy</button></div><details><summary>Show code (641 characters)</summary><pre>&lt;div class=&quot;vidrev-page&quot;&gt;
+&lt;section class=&quot;vidrev-sec vidrev-dark vidrev-center&quot; id=&quot;vidrev-final&quot;&gt;
+  &lt;div class=&quot;vidrev-wrap&quot;&gt;
+    &lt;h2 class=&quot;vidrev-h2&quot;&gt;Every day you wait, the leak keeps running.&lt;/h2&gt;
+    &lt;p class=&quot;vidrev-lead&quot;&gt;30 seconds. Your channel. Your number. Then decide.&lt;/p&gt;
+    &lt;div style=&quot;margin-top:28px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap&quot;&gt;
+      &lt;a class=&quot;vidrev-btn&quot; href=&quot;#vidrev-audit&quot;&gt;See where I lose money on YouTube&lt;/a&gt;
+      &lt;a class=&quot;vidrev-btn vidrev-btn-ghost&quot; style=&quot;color:#fff;border-color:rgba(255,255,255,.3)&quot; href=&quot;#vidrev-pricing&quot;&gt;Founding 100&lt;/a&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/section&gt;
+&lt;/div&gt;</pre></details><textarea id="kit-14" hidden>&lt;div class=&quot;vidrev-page&quot;&gt;
+&lt;section class=&quot;vidrev-sec vidrev-dark vidrev-center&quot; id=&quot;vidrev-final&quot;&gt;
+  &lt;div class=&quot;vidrev-wrap&quot;&gt;
+    &lt;h2 class=&quot;vidrev-h2&quot;&gt;Every day you wait, the leak keeps running.&lt;/h2&gt;
+    &lt;p class=&quot;vidrev-lead&quot;&gt;30 seconds. Your channel. Your number. Then decide.&lt;/p&gt;
+    &lt;div style=&quot;margin-top:28px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap&quot;&gt;
+      &lt;a class=&quot;vidrev-btn&quot; href=&quot;#vidrev-audit&quot;&gt;See where I lose money on YouTube&lt;/a&gt;
+      &lt;a class=&quot;vidrev-btn vidrev-btn-ghost&quot; style=&quot;color:#fff;border-color:rgba(255,255,255,.3)&quot; href=&quot;#vidrev-pricing&quot;&gt;Founding 100&lt;/a&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/section&gt;
+&lt;/div&gt;</textarea></article><article class="kit-card"><div class="kit-head"><h2>Footer</h2><button class="kit-copy" data-target="kit-15">Copy</button></div><details><summary>Show code (657 characters)</summary><pre>&lt;div class=&quot;vidrev-page&quot;&gt;
+&lt;footer class=&quot;vidrev-foot&quot;&gt;
+  &lt;div class=&quot;vidrev-wrap vidrev-foot-grid&quot;&gt;
+    &lt;div&gt;&lt;a class=&quot;vidrev-logo&quot; href=&quot;#&quot;&gt;vid&lt;span&gt;rev&lt;/span&gt;&lt;/a&gt;&lt;p class=&quot;vidrev-muted&quot; style=&quot;margin:8px 0 0&quot;&gt;Revenue attribution for YouTube organic traffic.&lt;/p&gt;&lt;/div&gt;
+    &lt;div&gt;&lt;b&gt;Product&lt;/b&gt;&lt;a href=&quot;#vidrev-how&quot;&gt;How it works&lt;/a&gt;&lt;a href=&quot;#vidrev-features&quot;&gt;Features&lt;/a&gt;&lt;a href=&quot;#vidrev-pricing&quot;&gt;Pricing&lt;/a&gt;&lt;/div&gt;
+    &lt;div&gt;&lt;b&gt;Free tools&lt;/b&gt;&lt;a href=&quot;#vidrev-audit&quot;&gt;See where I lose money&lt;/a&gt;&lt;a href=&quot;https://app.vidrev.app/audit/sample&quot;&gt;Sample report&lt;/a&gt;&lt;/div&gt;
+    &lt;div&gt;&lt;b&gt;Legal&lt;/b&gt;&lt;a href=&quot;#&quot;&gt;Privacy&lt;/a&gt;&lt;a href=&quot;#&quot;&gt;Terms&lt;/a&gt;&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/footer&gt;
+&lt;/div&gt;</pre></details><textarea id="kit-15" hidden>&lt;div class=&quot;vidrev-page&quot;&gt;
+&lt;footer class=&quot;vidrev-foot&quot;&gt;
+  &lt;div class=&quot;vidrev-wrap vidrev-foot-grid&quot;&gt;
+    &lt;div&gt;&lt;a class=&quot;vidrev-logo&quot; href=&quot;#&quot;&gt;vid&lt;span&gt;rev&lt;/span&gt;&lt;/a&gt;&lt;p class=&quot;vidrev-muted&quot; style=&quot;margin:8px 0 0&quot;&gt;Revenue attribution for YouTube organic traffic.&lt;/p&gt;&lt;/div&gt;
+    &lt;div&gt;&lt;b&gt;Product&lt;/b&gt;&lt;a href=&quot;#vidrev-how&quot;&gt;How it works&lt;/a&gt;&lt;a href=&quot;#vidrev-features&quot;&gt;Features&lt;/a&gt;&lt;a href=&quot;#vidrev-pricing&quot;&gt;Pricing&lt;/a&gt;&lt;/div&gt;
+    &lt;div&gt;&lt;b&gt;Free tools&lt;/b&gt;&lt;a href=&quot;#vidrev-audit&quot;&gt;See where I lose money&lt;/a&gt;&lt;a href=&quot;https://app.vidrev.app/audit/sample&quot;&gt;Sample report&lt;/a&gt;&lt;/div&gt;
+    &lt;div&gt;&lt;b&gt;Legal&lt;/b&gt;&lt;a href=&quot;#&quot;&gt;Privacy&lt;/a&gt;&lt;a href=&quot;#&quot;&gt;Terms&lt;/a&gt;&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/footer&gt;
+&lt;/div&gt;</textarea></article>
+</main>
+<script>
+document.querySelectorAll(".kit-copy").forEach(function (b) {
+  b.addEventListener("click", function () {
+    var text = document.getElementById(b.dataset.target).value;
+    navigator.clipboard.writeText(text).then(function () {
+      b.textContent = "Copied"; b.classList.add("kit-done");
+      setTimeout(function () { b.textContent = "Copy"; b.classList.remove("kit-done"); }, 1800);
+    });
+  });
+});
+</script></body></html>

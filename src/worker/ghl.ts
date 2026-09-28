@@ -49,7 +49,10 @@ export async function setupGhl(deps: GhlWorkerDeps, integrationId: string): Prom
     const location =
       config.locationName && config.locationWebsite !== undefined
         ? { name: config.locationName, website: config.locationWebsite }
-        : await api.getLocation(config.locationId).catch(() => ({ name: null, website: null }));
+        : await api.getLocation(config.locationId).catch((error: unknown) => {
+            log("warn", "ghl sub-account lookup failed, name and website left empty", { integrationId, ...errorFields(error) });
+            return { name: null, website: null };
+          });
     const locationName = config.locationName ?? location.name;
     const locationWebsite = location.website;
     name = locationName;

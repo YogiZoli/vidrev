@@ -62,7 +62,11 @@ async function inspectLink(deps: AuditDeps, url: string): Promise<{ outcome: Lin
   const finalHost = hostOf(page.finalUrl) ?? hostOf(url);
   let detections = detectStack({ finalUrl: page.finalUrl, body: page.body, cnames: [] });
   if (finalHost && !detections.some((d) => d.id === "ghl") && isOwnDomain(finalHost)) {
-    const cnames = await deps.resolveCname(finalHost).catch(() => [] as string[]);
+    const cnames = await deps.resolveCname(finalHost).catch((error: unknown) => {
+      const code = (error as { code?: string }).code;
+      if (code !== "ENODATA" && code !== "ENOTFOUND") log("warn", "audit CNAME lookup failed", { host: finalHost, ...errorFields(error) });
+      return [] as string[];
+    });
     if (cnames.length > 0) detections = detectStack({ finalUrl: page.finalUrl, body: page.body, cnames });
   }
   const hubLinks: string[] = [];

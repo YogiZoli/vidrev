@@ -3,6 +3,7 @@ import { isValidEmail } from "@/lib/email";
 import { currentSession, isAdminEmail } from "@/server/auth/current";
 import { type AdminAction, runAdminAction } from "@/server/admin";
 import { isSameOrigin, redirectTo } from "@/server/http";
+import { log } from "@/lib/log";
 import { sendLoginLink } from "@/server/notify";
 
 export const dynamic = "force-dynamic";
@@ -30,13 +31,17 @@ function parseAction(form: FormData): AdminAction | null {
 export async function POST(request: Request): Promise<Response> {
   if (!isSameOrigin(request)) return new Response("Forbidden", { status: 403 });
   const session = await currentSession();
-  if (!session || !isAdminEmail(session.user.email)) return new Response("Forbidden", { status: 403 });
+  if (!session || !isAdminEmail(session.user.email)) {
+    log("warn", "owner admin action refused", { reason: session ? "not an admin" : "signed out", userId: session?.user.id });
+    return new Response("Forbidden", { status: 403 });
+  }
 
   const action = parseAction(await request.formData());
   if (!action) return redirectTo(`/admin?msg=${encodeURIComponent("Invalid request.")}`);
 
   const db = getDb();
   const result = await runAdminAction(db, session.user.email, action);
+  log(result.ok ? "info" : "warn", "owner admin action", { kind: action.kind, ok: result.ok, message: result.message, userId: session.user.id });
   if (result.ok && result.loginLink) await sendLoginLink(db, result.loginLink);
   return redirectTo(`/admin?msg=${encodeURIComponent(result.message)}`);
 }

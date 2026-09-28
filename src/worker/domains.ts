@@ -3,7 +3,7 @@ import type { Db } from "@/db/client";
 import { customDomains, users } from "@/db/schema";
 import { domainCheckPlan } from "@/lib/domains";
 import { cookieDomain } from "@/lib/links";
-import { log } from "@/lib/log";
+import { errorFields, log } from "@/lib/log";
 import {
   type CloudflareConfig,
   CloudflareError,
@@ -74,7 +74,10 @@ export async function checkDomain(deps: DomainDeps, domainId: string): Promise<v
   if (!domain || domain.status === "removed" || domain.status === "failed") return;
 
   const target = deps.cnameTarget?.toLowerCase() ?? null;
-  const cnames = await lookupCname(deps.fetch, domain.hostname).catch((): string[] => []);
+  const cnames = await lookupCname(deps.fetch, domain.hostname).catch((error: unknown): string[] => {
+    log("warn", "domain CNAME lookup failed", { domainId: domain.id, ...errorFields(error) });
+    return [];
+  });
   const dnsOk = target !== null && cnames.includes(target);
   const update: Partial<typeof customDomains.$inferInsert> = {
     dnsOk,
@@ -85,11 +88,19 @@ export async function checkDomain(deps: DomainDeps, domainId: string): Promise<v
   };
   if (!domain.dnsProvider) {
     const registrable = cookieDomain(domain.hostname);
-    const nameservers = registrable ? await lookupNs(deps.fetch, registrable).catch((): string[] => []) : [];
+    const nameservers = registrable
+      ? await lookupNs(deps.fetch, registrable).catch((error: unknown): string[] => {
+          log("warn", "domain NS lookup failed", { domainId: domain.id, ...errorFields(error) });
+          return [];
+        })
+      : [];
     update.nameservers = nameservers;
     update.dnsProvider = detectProvider(nameservers)?.id ?? (nameservers.length > 0 ? "other" : null);
     if (registrable && deps.domainConnect) {
-      const support = await discoverDomainConnect(deps.fetch, registrable, deps.domainConnect).catch(() => null);
+      const support = await discoverDomainConnect(deps.fetch, registrable, deps.domainConnect).catch((error: unknown) => {
+        log("warn", "domain connect discovery failed", { domainId: domain.id, ...errorFields(error) });
+        return null;
+      });
       update.domainConnect = support ? { providerId: support.providerId, urlSyncUX: support.urlSyncUX } : null;
     }
   }

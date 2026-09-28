@@ -5,6 +5,7 @@ import { TEMPLATE_PROBLEM_TEXT, type TemplateProblem } from "@/lib/templates";
 import { type ApprovalError, approveReply, dismissReply, markSentManually, sendJitterSeconds, switchMatch } from "@/server/approval";
 import { currentSession } from "@/server/auth/current";
 import { isSameOrigin } from "@/server/http";
+import { logRefused, recordAction } from "@/server/events";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -32,24 +33,31 @@ export async function POST(request: Request): Promise<Response> {
   const accountId = session.account.id;
   const db = getDb();
 
-  switch (input.action) {
+  const who = { userId: session.user.id, accountId };
+  const action = String(input.action ?? "");
+  const refused = (reason: ApprovalError | "unknown_action", status = 409) => {
+    logRefused(`reply.${action}`, reason, { accountId, replyId });
+    return Response.json({ error: reason === "unknown_action" ? "Unknown action" : errorText(reason) }, { status });
+  };
+  const ok = async (details: Record<string, unknown> = {}) => {
+    await recordAction(db, who, `reply.${action}`, { replyId, ...details });
+    return Response.json({ ok: true });
+  };
+
+  switch (action) {
     case "approve": {
       const result = await approveReply(db, { accountId, replyId, body: String(input.body ?? "") });
-      if (!result.ok) return Response.json({ error: errorText(result.error) }, { status: 409 });
+      if (!result.ok) return refused(result.error);
       await enqueue(QUEUES.replySend, { replyId }, { singletonKey: replyId, startAfter: sendJitterSeconds() });
-      return Response.json({ ok: true });
+      return ok();
     }
     case "dismiss":
-      return (await dismissReply(db, accountId, replyId)) ? Response.json({ ok: true }) : Response.json({ error: errorText("not_found") }, { status: 409 });
+      return (await dismissReply(db, accountId, replyId)) ? ok() : refused("not_found");
     case "manual":
-      return (await markSentManually(db, accountId, replyId, input.body))
-        ? Response.json({ ok: true })
-        : Response.json({ error: errorText("not_found") }, { status: 409 });
+      return (await markSentManually(db, accountId, replyId, input.body)) ? ok() : refused("not_found");
     case "switch":
-      return (await switchMatch(db, accountId, replyId, String(input.campaignId ?? "")))
-        ? Response.json({ ok: true })
-        : Response.json({ error: errorText("not_found") }, { status: 409 });
+      return (await switchMatch(db, accountId, replyId, String(input.campaignId ?? ""))) ? ok({ campaignId: input.campaignId }) : refused("not_found");
     default:
-      return Response.json({ error: "Unknown action" }, { status: 400 });
+      return refused("unknown_action", 400);
   }
 }

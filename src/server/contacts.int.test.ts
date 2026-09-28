@@ -71,7 +71,9 @@ async function comment(s: Setup, author: string | null, video: string, minutesAg
     })
     .returning();
   await createDraft(draftDeps(), row!.id);
-  const [reply] = await db().select().from(replies).where(eq(replies.commentId, row!.id));
+  // Pin the reply to the test clock; the column default is the real clock,
+  // which drifts out of the report period as the calendar moves on.
+  const [reply] = await db().update(replies).set({ createdAt: at }).where(eq(replies.commentId, row!.id)).returning();
   return reply!;
 }
 

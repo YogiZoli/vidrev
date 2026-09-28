@@ -23,6 +23,7 @@ export const QUEUES = {
   reportRefresh: "report.refresh",
   reportHourly: "report.hourly",
   auditRun: "audit.run",
+  auditLead: "audit.lead",
 } as const;
 
 export interface SendEmailJob {
@@ -95,6 +96,7 @@ export interface JobPayloads {
   [QUEUES.stripeSync]: GhlIntegrationJob;
   [QUEUES.reportRefresh]: AccountJob;
   [QUEUES.auditRun]: AuditJob;
+  [QUEUES.auditLead]: AuditJob;
 }
 
 // Email jobs carry magic links, so they are removed soon after completion.
@@ -127,4 +129,6 @@ export const QUEUE_OPTIONS = {
   // Audit my channel (Phase 9): quota is charged as the run goes, so a run is
   // never retried; a stuck row is failed by the engine tick.
   [QUEUES.auditRun]: { retryLimit: 0, expireInSeconds: 600 },
+  // Audit lead into the owner's GoHighLevel: retried, one per requested report.
+  [QUEUES.auditLead]: { retryLimit: 6, retryDelay: 60, retryBackoff: true },
 } as const;

@@ -16,6 +16,7 @@ import { runRetention } from "./retention";
 import { sendReply } from "./sending";
 import { checkRss, type EngineDeps, engineTick, pollChannel, renewWebsub } from "./polling";
 import { deliver, deliverDue, type WebhookDeps } from "./webhooks";
+import { pushAuditLead } from "@/server/audit/owner-crm";
 import { deleteExpiredInstalls } from "@/server/ghl/install";
 import { addContactNote, type GhlWorkerDeps, handleGhlEvent, queueGhlWork, setupGhl, syncGhl } from "./ghl";
 import { queueReportRefreshes, refreshAccountReports, type ReportDeps } from "./reports";
@@ -226,6 +227,13 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
   });
   // Audit my channel (Phase 9): one run per request, own API key and quota.
   await boss.work<AuditJob>(QUEUES.auditRun, async ([job]) => runAudit(auditDeps(), job!.data.auditId));
+  // Audit leads into the owner's own GoHighLevel Sub-account.
+  await boss.work<AuditJob>(QUEUES.auditLead, async ([job]) => {
+    const { OWNER_GHL_API_KEY, OWNER_GHL_LOCATION_ID } = env();
+    const crm = OWNER_GHL_API_KEY && OWNER_GHL_LOCATION_ID ? { apiKey: OWNER_GHL_API_KEY, locationId: OWNER_GHL_LOCATION_ID } : null;
+    const outcome = await pushAuditLead({ db: getDb(), fetch, crm }, job!.data.auditId);
+    log("info", "audit lead", { auditId: job!.data.auditId, outcome });
+  });
   // Outbound webhooks (Phase 6): immediate delivery; the tick covers retries.
   await boss.work<DeliveryJob>(QUEUES.webhookDeliver, async ([job]) => {
     const hooks = webhookDeps(boss);

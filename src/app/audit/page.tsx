@@ -24,10 +24,10 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
 
   return (
     <PublicCard width="md">
-      <Eyebrow>Free audit</Eyebrow>
-      <h1 className="m-0 text-[28px] font-bold leading-tight tracking-[-0.016em]">Audit my channel</h1>
+      <Eyebrow>Free, 30 seconds</Eyebrow>
+      <h1 className="m-0 text-[28px] font-bold leading-tight tracking-[-0.016em]">See where I lose money on YouTube</h1>
       <p className="m-0 text-base text-ink-2">
-        See what your comments are worth. We read your last 5 videos and tell you, with real numbers, which questions and buying signals went unanswered and whether your links are measured.
+        We read your last 5 videos and count the people who asked how to buy and got no answer. Then you see what they are worth, in your own numbers.
       </p>
       {error ? <Notice tone="error">{error}</Notice> : null}
       <form method="post" action="/api/audit" className="grid gap-3">
@@ -35,7 +35,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
         <Input id="channel" name="channel" required maxLength={300} placeholder="@yourchannel" autoComplete="off" large />
         {turnstile ? <div className="cf-turnstile" data-sitekey={turnstile} /> : null}
         <Button type="submit" size="lg" pulse>
-          Audit my channel
+          Show me where I lose money
         </Button>
       </form>
       {turnstile ? <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" strategy="afterInteractive" /> : null}

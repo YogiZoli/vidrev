@@ -1,3 +1,4 @@
+import { env } from "@/lib/env";
 // Wording of the public audit pages (DECISIONS P9-01, P9-10).
 
 export const FAILURE_TEXT: Record<string, string> = {
@@ -20,4 +21,11 @@ export function maskEmail(email: string): string {
   const [local, domain] = email.split("@");
   if (!local || !domain) return "your email";
   return `${local.slice(0, 1)}***@${domain}`;
+}
+
+// Where the founding CTA of the audit leads (DECISIONS L-12): the GoHighLevel
+// checkout when set, else the brand site; no button when neither exists.
+export function foundingCtaUrl(): string | null {
+  const { FOUNDING_CHECKOUT_URL, BRAND_BASE_URL } = env();
+  return FOUNDING_CHECKOUT_URL ?? BRAND_BASE_URL ?? null;
 }

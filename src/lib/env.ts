@@ -14,6 +14,8 @@ const envSchema = z.object({
   LINK_FALLBACK_BASE_URL: z.string().trim().url().optional(),
   // Where a creator manages or cancels the subscription (GHL customer portal).
   BILLING_PORTAL_URL: z.string().trim().url().optional(),
+  // GoHighLevel checkout of the founding offer; the audit CTA leads here (L-12).
+  FOUNDING_CHECKOUT_URL: z.string().trim().url().optional(),
   ENCRYPTION_KEY: optional,
   AUTH_SECRET: optional,
   PROVISIONING_SECRET: optional,

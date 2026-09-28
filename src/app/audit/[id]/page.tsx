@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AuditResultV2 } from "@/components/audit/AuditResultV2";
 import { Eyebrow } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/input";
 import { Meta, PublicCard, SectionTitle } from "@/components/ui/page";
 import { getDb } from "@/db/client";
-import { PREVIEW_FINDINGS } from "@/lib/audit/score";
-import { failureText, MARKETING_CONSENT_TEXT, maskEmail } from "@/lib/audit/view";
-import { env } from "@/lib/env";
+import { failureText, foundingCtaUrl, MARKETING_CONSENT_TEXT, maskEmail } from "@/lib/audit/view";
 import { getAudit } from "@/server/audit/service";
 import { Notice } from "../../ui";
 import { AutoRefresh } from "./AutoRefresh";
@@ -58,7 +57,7 @@ export default async function AuditResultPage({ params, searchParams }: { params
   if (audit.status === "failed" || !audit.result) {
     return (
       <PublicCard width="md">
-        <h1 className={H1}>Audit my channel</h1>
+        <h1 className={H1}>See where I lose money on YouTube</h1>
         <Notice tone="error">{failureText(audit.failureReason)}</Notice>
         <Button asChild pulse>
           <Link href="/audit">Try another channel</Link>
@@ -68,72 +67,44 @@ export default async function AuditResultPage({ params, searchParams }: { params
   }
 
   const result = audit.result;
-  const preview = result.findings.slice(0, PREVIEW_FINDINGS);
-  const more = result.findings.length - preview.length;
-  const learnMore = env().BRAND_BASE_URL;
   const expired = Boolean(audit.apiDataScrubbedAt) || !audit.examples;
+  const emailSlot = expired ? (
+    <Notice tone="info">
+      The details of this audit were deleted after 30 days (YouTube data rule). <Link href="/audit">Run a new audit</Link>.
+    </Notice>
+  ) : audit.reportSentAt ? (
+    <Meta className="text-[15px]">The full report was sent to {audit.requesterEmail ? maskEmail(audit.requesterEmail) : "you"}.</Meta>
+  ) : (
+    <Card className="grid gap-3">
+      <SectionTitle>Get the full list by email</SectionTitle>
+      <Meta className="text-[15px]">Every comment that needs a reply, every keyword candidate and the full link check.</Meta>
+      <form method="post" action="/api/audit/report" className="grid gap-3">
+        <input type="hidden" name="audit" value={audit.id} />
+        <Label htmlFor="email">Email</Label>
+        <Input id="email" name="email" type="email" required autoComplete="email" large />
+        <label className="flex items-start gap-2 text-sm">
+          <input type="checkbox" name="marketing" className="mt-1 size-4 accent-[var(--primary-600)]" />
+          <span>{MARKETING_CONSENT_TEXT}</span>
+        </label>
+        <Button type="submit" size="lg">
+          Email me the full list
+        </Button>
+      </form>
+      <Meta>The report is sent because you ask for it. Ticking the box is optional and only adds tips.</Meta>
+    </Card>
+  );
 
   return (
     <PublicCard width="md">
-      <Eyebrow>Audit result</Eyebrow>
-      <h1 className={H1}>Audit of {label}</h1>
-      <Meta className="text-[15px]">
-        Based on your last {result.sample.videos} videos and {result.sample.comments} public comments. Pattern matching on real data, nothing estimated.
-      </Meta>
       {query.sent ? (
         <Notice tone="info">
           The full report is on its way to {audit.requesterEmail ? maskEmail(audit.requesterEmail) : "your inbox"}. Check your spam folder if it does not arrive in a few minutes.
         </Notice>
       ) : null}
       {error ? <Notice tone="error">{error}</Notice> : null}
-
-      <Card className="grid gap-3">
-        <SectionTitle>What we found</SectionTitle>
-        {preview.length === 0 ? (
-          <p className="m-0">There was not enough in this sample to flag anything.</p>
-        ) : (
-          <ol className="m-0 grid gap-2.5 pl-5 text-base">
-            {preview.map((finding) => (
-              <li key={finding.id}>{finding.text}</li>
-            ))}
-          </ol>
-        )}
-        <Meta className="text-[15px]">
-          {more > 0
-            ? `${more === 1 ? "1 more finding is" : `${more} more findings are`} in the full report, together with your Comment Conversion Score.`
-            : "Your Comment Conversion Score is in the full report."}
-        </Meta>
-      </Card>
-
-      {expired ? (
-        <Notice tone="info">
-          The details of this audit were deleted after 30 days (YouTube data rule). <Link href="/audit">Run a new audit</Link>.
-        </Notice>
-      ) : audit.reportSentAt ? (
-        <Meta className="text-[15px]">The full report was sent to {audit.requesterEmail ? maskEmail(audit.requesterEmail) : "you"}.</Meta>
-      ) : (
-        <Card variant="focus" className="grid gap-3">
-          <SectionTitle>Get the full report by email</SectionTitle>
-          <Meta className="text-[15px]">The score with its breakdown, every finding, links to the comments that need a reply, keyword candidates and the link check.</Meta>
-          <form method="post" action="/api/audit/report" className="grid gap-3">
-            <input type="hidden" name="audit" value={audit.id} />
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" name="email" type="email" required autoComplete="email" large />
-            <label className="flex items-start gap-2 text-sm">
-              <input type="checkbox" name="marketing" className="mt-1 size-4 accent-[var(--primary-600)]" />
-              <span>{MARKETING_CONSENT_TEXT}</span>
-            </label>
-            <Button type="submit" size="lg" pulse>
-              Email me the full report
-            </Button>
-          </form>
-          <Meta>The report is sent because you ask for it. Ticking the box is optional and only adds tips.</Meta>
-        </Card>
-      )}
-
+      <AuditResultV2 channelLabel={label} result={result} examples={expired ? null : audit.examples} ctaUrl={foundingCtaUrl()} emailSlot={emailSlot} />
       <p className="m-0 flex flex-wrap gap-4 text-[15px]">
-        {learnMore ? <a href={learnMore}>See how it works</a> : null}
-        <Link href="/audit">Audit another channel</Link>
+        <Link href="/audit">Check another channel</Link>
       </p>
     </PublicCard>
   );

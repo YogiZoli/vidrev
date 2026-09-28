@@ -37,7 +37,7 @@ export default async function HomePage() {
           <div className="mt-8 flex flex-wrap gap-3">
             <Button asChild pulse>
               <Link href="/audit">
-                Audit my channel, free <ArrowRight className="size-4" aria-hidden />
+                See where I lose money on YouTube <ArrowRight className="size-4" aria-hidden />
               </Link>
             </Button>
             <Button asChild variant="secondary">

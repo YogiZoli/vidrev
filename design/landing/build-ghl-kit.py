@@ -29,14 +29,15 @@ blocks = []
 for match in re.finditer(r"<!--\s*(.*?)\s*-->\s*(<(header|section|footer)\b.*?</\3>)", page, re.S):
     title, body = match.group(1), match.group(2)
     blocks.append((title, body))
-# The footer has no comment of its own; it follows the final CTA section.
-footer = re.search(r"<footer\b.*?</footer>", page, re.S)
-if footer and not any(b[1].startswith("<footer") for b in blocks):
-    blocks.append(("Footer", footer.group(0)))
-
-items = [("Global CSS: paste once, before every block", f"{fonts}\n<style>\n{css}\n</style>")]
-for title, body in blocks:
+# The CSS travels inside the first block (the navigation), so there is no
+# separate step that can be missed: GoHighLevel's Custom CSS field drops a
+# <style> tag, a Custom Code element keeps it.
+items = []
+for i, (title, body) in enumerate(blocks):
     code = f'<div class="vidrev-page">\n{body}\n</div>'
+    if i == 0:
+        code = f"{fonts}\n<style>\n{css}\n</style>\n{code}"
+        title += " (includes the CSS for the whole page: always the first block)"
     if 'id="vidrev-demo"' in body:
         code += f"\n<script>\n{script}\n</script>"
     items.append((title, code))
@@ -67,7 +68,7 @@ details{{margin-top:10px}} summary{{cursor:pointer;color:#5B6178;font-size:14px}
 pre{{max-height:320px;overflow:auto;background:#0E1330;color:#E4E6EE;padding:12px;border-radius:10px;font-size:12px;white-space:pre-wrap}}
 </style></head><body><main>
 <h1>vidrev landing: GoHighLevel kit</h1>
-<p class="kit-note">Generated from design/landing/index.html. In GoHighLevel: one Custom Code element per block, in this order. Block 0 goes first, once.</p>
+<p class="kit-note">Generated from design/landing/index.html. In GoHighLevel: one Custom Code element per block, in this order. The first block carries the CSS for the whole page, so it must be on the page, at the top.</p>
 {''.join(cards)}
 </main>
 <script>

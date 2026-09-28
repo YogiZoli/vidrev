@@ -43,7 +43,11 @@ export interface CampaignInput {
   aliases: string;
   intent: string;
   destinationUrl: string;
+  // Pasted video links or ids (optional when `videoIds` has picks).
   videos: string;
+  // Videos ticked in the picker (Phase 14). At least one video is required:
+  // new rules are never channel-wide.
+  videoIds?: string[];
 }
 
 export async function createCampaign(db: Db, accountId: string, input: CampaignInput): Promise<Result> {
@@ -51,8 +55,11 @@ export async function createCampaign(db: Db, accountId: string, input: CampaignI
   if (!keyword || keyword.length > 50) return { ok: false, error: "Enter a keyword of up to 50 characters." };
   if (!INTENTS.includes(input.intent as Intent)) return { ok: false, error: "Pick an intent level." };
   if (!validUrl(input.destinationUrl.trim())) return { ok: false, error: "Enter the full address of your opt-in page (https://...)." };
-  const videoIds = input.videos.trim() ? parseVideoIds(input.videos) : null;
-  if (videoIds === null && input.videos.trim()) return { ok: false, error: "Some video links were not recognized." };
+  const pasted = input.videos.trim() ? parseVideoIds(input.videos) : [];
+  if (pasted === null) return { ok: false, error: "Some video links were not recognized." };
+  const picked = (input.videoIds ?? []).filter((id) => /^[A-Za-z0-9_-]{11}$/.test(id));
+  const videoIds = [...new Set([...picked, ...pasted])].slice(0, 200);
+  if (videoIds.length === 0) return { ok: false, error: "Pick at least one video." };
   const [channel] = await db
     .select({ id: channels.id })
     .from(channels)

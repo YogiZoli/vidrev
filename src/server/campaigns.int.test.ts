@@ -50,12 +50,12 @@ describe.skipIf(!hasDb)("campaigns (integration)", () => {
       ok: false,
       error: "Pick a keyword from the list.",
     });
-    expect(await createCampaign(db, account.id, { ...input, keyword: "price", intent: "cold", channelId: channel.id, allVideos: true })).toEqual({ ok: true });
+    expect(await createCampaign(db, account.id, { ...input, keyword: "buy", intent: "cold", channelId: channel.id, allVideos: true })).toEqual({ ok: true });
     expect(await createCampaign(db, account.id, { ...input, aliases: "gudie, guidd", channelId: channel.id, allVideos: true })).toEqual({ ok: true });
     const rows = await db.select().from(campaigns).where(eq(campaigns.accountId, account.id));
-    const price = rows.find((r) => r.keyword === "PRICE")!;
+    const price = rows.find((r) => r.keyword === "BUY")!;
     expect(price).toMatchObject({ intent: "hot", videoIds: null });
-    expect(price.aliases).toContain("PRCIE");
+    expect(price.aliases).toContain("BUYS");
     expect(rows.find((r) => r.keyword === "GUIDE")?.aliases).toEqual(["GUDIE", "GUIDD"]);
   });
 

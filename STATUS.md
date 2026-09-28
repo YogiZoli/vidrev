@@ -21,6 +21,8 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 - Fixed a second date-bound test (#65, weekly summary on Mondays).
 - Audit v2 "See where I lose money on YouTube" is live (#69): `/audit`, `/audit/<id>`, `/audit/sample`. Owner to set `FOUNDING_CHECKOUT_URL` (GoHighLevel checkout) on `web`; until then the CTA goes to `BRAND_BASE_URL`. Comment text is still never stored, so the waiting comments show the video title and a YouTube link, not the text.
 - Landing v1 approved by the owner (2026-09-28): `design/landing/index.html`, 13 sections, copy per L-13 (#73, #74). Audit v2 layout: calculator above the fold, standout comparison (#72).
+- Landing live on vidrev.app (GoHighLevel funnel, copy kit #76 to #82). Audit leads go to the owner's GoHighLevel Sub-account vidrev (#83): contact upsert with audit fields, tags vidrev-lead-audit, temp-warm, vidrev-consent-marketing (consent only). `OWNER_GHL_API_KEY` and `OWNER_GHL_LOCATION_ID` set on `worker`. Open issue closed: "delivery of audit opt-ins to the owner's CRM".
+- App restructure (onboarding wizard, Video > Keyword > Target URL, Settings) runs in a separate session with its own prompt.
 - Next: owner builds the GoHighLevel checkout for Founding 100 and sends the link (`FOUNDING_CHECKOUT_URL`); then move the landing into GoHighLevel on `vidrev.app` as Custom Code sections; then campaign drafts (L-03).
 - Next: owner brainstorm on the landing page and funnel, then a phase plan (not started).
 

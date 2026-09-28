@@ -12,6 +12,9 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 - Live: `app.vidrev.app` (app, health ok), `go.vidrev.app` (links). `vidrev.app` has no DNS record: the brand site (landing, Privacy, Terms, checkout) is planned in GoHighLevel (D-28) and was never built. `/privacy` and `/terms` do not exist anywhere yet, which blocks Google verification.
 - The app front door `app.vidrev.app/` is a sign-in page with an audit button, not a landing page. Audit my channel is a standalone page by design (P9); on the future landing it becomes one section (like "See it on your own channel") that posts to `app.vidrev.app/audit`.
 - Not built for a working v1: brand landing and funnel, checkout to provisioning run end to end, Resend sending domain (magic links and reports), live end-to-end run on the owner's channel, first real audit.
+- Audit fails live ("Something went wrong while reading the channel"): YouTube answers `API_KEY_INVALID` for `YT_API_KEY_AUDIT` on Railway. Owner creates a new key in GCP project `vidrev-audit` and sets it on both services. No code change needed (env values are trimmed).
+- Email: `EMAIL_FROM` is not set, so mail goes from the Resend test sender, which only reaches the Resend account owner. Owner verifies `vidrev.app` in Resend (DNS on Cloudflare) and sets `EMAIL_FROM` on both services.
+- Privacy and Terms postponed by the owner until the LLC exists; brainstorm and app fixes first.
 - Next: owner brainstorm on the landing page and funnel, then a phase plan (not started).
 
 ## Phases

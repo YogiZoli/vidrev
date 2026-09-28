@@ -20,6 +20,8 @@ export interface GhlConfig {
   // Contacts with this tag are buyers (revenue not reported), DECISIONS Q-06.
   buyerTag: string;
   locationName: string | null;
+  // The Sub-account's website, read once at setup (absent on older grants).
+  locationWebsite?: string | null;
 }
 
 export const DEFAULT_BUYER_TAG = "c2c_buyer";

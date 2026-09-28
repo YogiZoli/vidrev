@@ -54,7 +54,7 @@ function fakeFetch(state: Fake) {
       if (state.tokenMode === "revoked") return Response.json({ error: "invalid_grant" }, { status: 400 });
       return Response.json({ access_token: `access-${state.tokenCalls}`, refresh_token: `refresh-${state.tokenCalls}`, expires_in: 86_399 });
     }
-    if (path === "/locations/L-1" && method === "GET") return Response.json({ location: { name: "Acme Coaching" } });
+    if (path === "/locations/L-1" && method === "GET") return Response.json({ location: { name: "Acme Coaching", website: "https://acme.com" } });
     if (path === "/locations/L-1/customFields" && method === "GET") return Response.json({ customFields: state.fields });
     if (path === "/locations/L-1/customFields" && method === "POST") {
       state.createdFields += 1;
@@ -189,7 +189,7 @@ describe.skipIf(!hasDb)("GoHighLevel connector (integration)", () => {
     expect(r.fake.createdFields).toBe(1);
     const [row] = await db().select().from(integrations).where(eq(integrations.id, r.integrationId));
     expect(row).toMatchObject({ label: "GoHighLevel: Acme Coaching", syncState: { setup: "done" } });
-    expect(readGhlConfig(row!.configEnc!, key)).toMatchObject({ customFieldId: "F1", locationName: "Acme Coaching" });
+    expect(readGhlConfig(row!.configEnc!, key)).toMatchObject({ customFieldId: "F1", locationName: "Acme Coaching", locationWebsite: "https://acme.com" });
 
     const other = await rig();
     other.fake.fields.push({ id: "MINE", name: "C2C_TID", fieldKey: "contact.c2c_tid" });

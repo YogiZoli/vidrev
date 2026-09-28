@@ -46,7 +46,12 @@ export async function setupGhl(deps: GhlWorkerDeps, integrationId: string): Prom
   const now = deps.now?.() ?? new Date();
   let name: string | null = null;
   await withGhlApi(deps, integrationId, async (api, config) => {
-    const locationName = config.locationName ?? (await api.getLocationName(config.locationId).catch(() => null));
+    const location =
+      config.locationName && config.locationWebsite !== undefined
+        ? { name: config.locationName, website: config.locationWebsite }
+        : await api.getLocation(config.locationId).catch(() => ({ name: null, website: null }));
+    const locationName = config.locationName ?? location.name;
+    const locationWebsite = location.website;
     name = locationName;
     let customFieldId = config.customFieldId;
     if (!customFieldId) {
@@ -54,7 +59,7 @@ export async function setupGhl(deps: GhlWorkerDeps, integrationId: string): Prom
       const existing = fields.find((f) => f.fieldKey === "contact.c2c_tid" || f.name?.trim().toLowerCase() === "c2c_tid");
       customFieldId = (existing ?? (await api.createContactField(config.locationId, "c2c_tid"))).id;
     }
-    await updateGhlConfig(deps, integrationId, { customFieldId, locationName });
+    await updateGhlConfig(deps, integrationId, { customFieldId, locationName, locationWebsite });
   });
   await deps.db
     .update(integrations)

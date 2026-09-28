@@ -6,7 +6,7 @@ import { currentSession } from "@/server/auth/current";
 
 // Public pages (/login, /audit, /connect/crm): logo plus one outline button;
 // each page centres its own content.
-export async function PublicShell({ children }: { children: ReactNode }) {
+export async function PublicShell({ children, action }: { children: ReactNode; action?: ReactNode }) {
   const signedIn = Boolean(await currentSession());
   return (
     <div className="min-h-screen">
@@ -14,9 +14,11 @@ export async function PublicShell({ children }: { children: ReactNode }) {
         <Link href="/" className="no-underline">
           <Brand size={28} />
         </Link>
-        <Button asChild variant="outline" size="sm">
-          <Link href={signedIn ? "/app" : "/login"}>{signedIn ? "Open your dashboard" : "Sign in"}</Link>
-        </Button>
+        {action ?? (
+          <Button asChild variant="outline" size="sm">
+            <Link href={signedIn ? "/app" : "/login"}>{signedIn ? "Open your dashboard" : "Sign in"}</Link>
+          </Button>
+        )}
       </header>
       {children}
     </div>

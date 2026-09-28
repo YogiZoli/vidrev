@@ -85,6 +85,13 @@ describe("api client", () => {
     return { calls, api: createGhlApi(fetchImpl, "tok") };
   }
 
+  it("reads the Sub-account name and website", async () => {
+    const { api } = recorder(() => Response.json({ location: { name: "Acme Coaching", website: " https://acme.com " } }));
+    expect(await api.getLocation("L1")).toEqual({ name: "Acme Coaching", website: "https://acme.com" });
+    const { api: bare } = recorder(() => Response.json({ location: { name: "Acme Coaching" } }));
+    expect(await bare.getLocation("L1")).toEqual({ name: "Acme Coaching", website: null });
+  });
+
   it("sends the bearer token and the version header", async () => {
     const { calls, api } = recorder(() => Response.json({ location: { name: "Acme Coaching" } }));
     expect(await api.getLocationName("L1")).toBe("Acme Coaching");

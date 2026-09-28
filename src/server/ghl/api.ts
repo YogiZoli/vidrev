@@ -85,11 +85,18 @@ export function createGhlApi(fetchImpl: FetchLike, accessToken: string) {
     return (text ? JSON.parse(text) : {}) as T;
   }
 
+  // Name and website of the Sub-account; the website prefills the target URL in onboarding.
+  async function getLocation(locationId: string): Promise<{ name: string | null; website: string | null }> {
+    const json = await call<{ location?: { name?: string; website?: string } }>(`/locations/${locationId}`);
+    return { name: json.location?.name ?? null, website: json.location?.website?.trim() || null };
+  }
+
   return {
     async getLocationName(locationId: string): Promise<string | null> {
-      const json = await call<{ location?: { name?: string } }>(`/locations/${locationId}`);
-      return json.location?.name ?? null;
+      return (await getLocation(locationId)).name;
     },
+
+    getLocation,
 
     async listContactFields(locationId: string): Promise<GhlCustomField[]> {
       const json = await call<{ customFields?: GhlCustomField[] }>(`/locations/${locationId}/customFields`, { query: { model: "contact" } });

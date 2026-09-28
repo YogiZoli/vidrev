@@ -16,7 +16,7 @@ pre{max-height:320px;overflow:auto;background:#0E1330;color:#E4E6EE;padding:12px
 </style></head><body><main>
 <h1>vidrev landing: GoHighLevel kit</h1>
 <p class="kit-note">Generated from design/landing/index.html. In GoHighLevel: one Custom Code element per block, in this order. Block 0 is plain CSS for Page Settings, Custom CSS. Every other block goes into its own Custom Code element, in order.</p>
-<article class="kit-card"><div class="kit-head"><h2>Custom CSS: paste into Page Settings &gt; Custom CSS (plain CSS, once)</h2><button class="kit-copy" data-target="kit-0">Copy</button></div><details><summary>Show code (7,063 characters)</summary><pre>@import url(&#x27;https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&amp;display=swap&#x27;);
+<article class="kit-card"><div class="kit-head"><h2>Custom CSS: paste into Page Settings &gt; Custom CSS (plain CSS, once)</h2><button class="kit-copy" data-target="kit-0">Copy</button></div><details><summary>Show code (7,373 characters)</summary><pre>@import url(&#x27;https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&amp;display=swap&#x27;);
 
 /* vidrev landing, prototype for DECISIONS L-01 to L-12. Every class and id
    starts with vidrev- so each section can be pasted into a GoHighLevel
@@ -38,6 +38,10 @@ pre{max-height:320px;overflow:auto;background:#0E1330;color:#E4E6EE;padding:12px
 .vidrev-center{text-align:center}.vidrev-center .vidrev-lead{margin-left:auto;margin-right:auto}
 .vidrev-btn{display:inline-flex;align-items:center;gap:10px;background:var(--vidrev-p);color:#fff;font-weight:800;font-size:18px;padding:16px 26px;border-radius:12px;text-decoration:none;border:0;cursor:pointer;box-shadow:0 8px 24px rgba(217,30,80,.28)}
 .vidrev-btn:hover{background:var(--vidrev-p5)}
+/* GoHighLevel sets its own link colours; keep ours inside the page. */
+.vidrev-page a.vidrev-btn,.vidrev-page button.vidrev-btn{color:#fff !important}
+.vidrev-page a.vidrev-btn.vidrev-btn-ghost{color:var(--vidrev-ink) !important}
+.vidrev-page .vidrev-dark a.vidrev-btn.vidrev-btn-ghost{color:#fff !important}
 .vidrev-btn-ghost{background:transparent;color:var(--vidrev-ink);box-shadow:none;border:1.5px solid var(--vidrev-line)}
 .vidrev-card{background:#fff;border:1px solid var(--vidrev-line);border-radius:18px;padding:28px}
 .vidrev-grid2{display:grid;gap:24px;grid-template-columns:1fr 1fr}
@@ -124,6 +128,10 @@ pre{max-height:320px;overflow:auto;background:#0E1330;color:#E4E6EE;padding:12px
 .vidrev-center{text-align:center}.vidrev-center .vidrev-lead{margin-left:auto;margin-right:auto}
 .vidrev-btn{display:inline-flex;align-items:center;gap:10px;background:var(--vidrev-p);color:#fff;font-weight:800;font-size:18px;padding:16px 26px;border-radius:12px;text-decoration:none;border:0;cursor:pointer;box-shadow:0 8px 24px rgba(217,30,80,.28)}
 .vidrev-btn:hover{background:var(--vidrev-p5)}
+/* GoHighLevel sets its own link colours; keep ours inside the page. */
+.vidrev-page a.vidrev-btn,.vidrev-page button.vidrev-btn{color:#fff !important}
+.vidrev-page a.vidrev-btn.vidrev-btn-ghost{color:var(--vidrev-ink) !important}
+.vidrev-page .vidrev-dark a.vidrev-btn.vidrev-btn-ghost{color:#fff !important}
 .vidrev-btn-ghost{background:transparent;color:var(--vidrev-ink);box-shadow:none;border:1.5px solid var(--vidrev-line)}
 .vidrev-card{background:#fff;border:1px solid var(--vidrev-line);border-radius:18px;padding:28px}
 .vidrev-grid2{display:grid;gap:24px;grid-template-columns:1fr 1fr}

@@ -8,11 +8,11 @@ import { SETTINGS_GROUPS } from "./settings-nav";
 export function SettingsSideNav() {
   const path = usePathname();
   return (
-    <nav aria-label="Settings" className="grid content-start gap-4 px-4 pt-6 md:px-0 md:pt-8">
+    <nav aria-label="Settings" className="flex flex-wrap content-start gap-x-6 gap-y-3 px-4 pt-6 lg:grid lg:gap-4 lg:px-0 lg:pt-8">
       {SETTINGS_GROUPS.map((g) => (
         <div key={g.label} className="grid gap-0.5">
           <span className="px-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">{g.label}</span>
-          <div className="flex flex-wrap gap-1 md:grid md:gap-0.5">
+          <div className="flex flex-wrap gap-1 lg:grid lg:gap-0.5">
             {g.links.map((l) => (
               <Link
                 key={l.href}

@@ -145,7 +145,14 @@ export async function ghlDestinations(
         return await run();
       } catch (error) {
         if (error instanceof GhlApiError && (error.status === 401 || error.status === 403)) {
-          log("warn", "ghl destinations: scope missing, reconnect needed", { accountId, what, status: error.status });
+          // The redirect list answers 401 to app tokens even with
+          // funnels/redirect.readonly granted (like /funnels/domain): it is
+          // only a hint for the domain check, so this is not a problem.
+          if (what === "redirects") {
+            log("info", "ghl redirect list not available to the app, domain check continues without it", { accountId, status: error.status });
+            return "failed";
+          }
+          log("warn", "ghl destinations: scope missing, reconnect needed", { accountId, what, status: error.status, body: error.body.slice(0, 200) });
           return "missing";
         }
         log("warn", "ghl destinations: one source failed", { accountId, what, ...errorFields(error) });

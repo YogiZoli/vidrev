@@ -31,6 +31,7 @@ import { fetchPage } from "@/server/audit/fetch-page";
 import { API_DATA_TTL_MS } from "@/server/audit/service";
 import { type AuditDeps, failStuckAudits, runAudit, scrubAudits } from "./audit";
 import { backfillContacts } from "@/server/contacts-backfill";
+import { findOwnHostDestinations } from "@/server/own-hosts";
 
 // Every outbound call from the worker has a time limit (src/lib/http.ts).
 const httpFetch = timedFetch();
@@ -274,6 +275,7 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
   // Contacts for rows older than the Contact model (DECISIONS section 13.10):
   // once at start, so a deploy does not wait for the hourly pass.
   void runSteps("worker start", alerter, [
+    ["own host destinations", () => findOwnHostDestinations(getDb())],
     [
       "contacts backfill",
       async () => {

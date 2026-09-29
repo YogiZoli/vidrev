@@ -6,6 +6,7 @@ import { currentSession } from "@/server/auth/current";
 import { isSameOrigin, redirectTo } from "@/server/http";
 import { logRefused, recordAction } from "@/server/events";
 import { completeOnboardingIfReady, onboardingState, parseTargetUrl } from "@/server/onboarding";
+import { isOwnHost, OWN_HOST_ERROR, ownHosts } from "@/server/own-hosts";
 import { connectStripe } from "@/server/stripe/connect";
 
 export const dynamic = "force-dynamic";
@@ -55,6 +56,10 @@ export async function POST(request: Request): Promise<Response> {
       if (!url) {
         logRefused("onboarding.target", "invalid url", { accountId });
         return redirectTo(`${PAGE}?error=${encodeURIComponent("Enter the full address of your opt-in page, for example https://example.com/guide.")}`);
+      }
+      if (isOwnHost(url, await ownHosts(db, accountId))) {
+        logRefused("onboarding.target", "own host", { accountId, host: new URL(url).host });
+        return redirectTo(`${PAGE}?error=${encodeURIComponent(OWN_HOST_ERROR)}`);
       }
       await db.update(accounts).set({ defaultTargetUrl: url }).where(eq(accounts.id, accountId));
       await recordAction(db, who, "onboarding.target_url", { host: new URL(url).host });

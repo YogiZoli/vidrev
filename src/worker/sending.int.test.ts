@@ -2,7 +2,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { accounts, campaigns, channels, comments, replies } from "@/db/schema";
+import { accounts, campaigns, channels, comments, quotaLedger, replies } from "@/db/schema";
 import { encryptSecret } from "@/lib/crypto";
 import { runMigrations } from "@/scripts/migrate";
 import { createAccountWithUser } from "@/server/accounts";
@@ -121,6 +121,16 @@ describe.skipIf(!hasDb)("approval and sending (integration)", () => {
     // A duplicate job does not post twice.
     await sendReply(deps, reply.id);
     expect(posts).toHaveLength(1);
+  });
+
+  it("books the 50 units once when two jobs race for the same reply", async () => {
+    const { account, reply } = await draft();
+    await approveReply(getDb(), { accountId: account.id, replyId: reply.id, body: "Here: {link}" }, now);
+    const { deps, posts } = engine();
+    await Promise.all([sendReply(deps, reply.id), sendReply(deps, reply.id)]);
+    expect(posts).toHaveLength(1);
+    const booked = await getDb().select().from(quotaLedger).where(eq(quotaLedger.accountId, account.id));
+    expect(booked.filter((row) => row.method === "comments.insert")).toHaveLength(1);
   });
 
   it("queues for the next Pacific day when the quota is used up, then sends first after the reset", async () => {

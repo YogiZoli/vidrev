@@ -48,7 +48,7 @@ export default async function AppPage({ searchParams }: { searchParams: Promise<
       ) : null}
       {params.welcome ? (
         <Notice tone="info">
-          Setup done. Next: <Link href="/app/campaigns">create your first campaign</Link> (video, keyword, target URL).
+          Setup done. Next: <Link href="/app/campaigns">create your first automation</Link> (videos, trigger keyword, where they go).
         </Notice>
       ) : null}
       {params.connected ? <Notice tone="info">Google access granted. Finishing the connection.</Notice> : null}
@@ -72,7 +72,7 @@ export default async function AppPage({ searchParams }: { searchParams: Promise<
           <Eyebrow>Get started</Eyebrow>
           <h1 className="m-0 text-[30px] font-bold leading-tight tracking-[-0.018em]">No channel connected yet.</h1>
           <ol className="m-0 grid list-none grid-cols-[repeat(auto-fit,minmax(min(100%,200px),1fr))] gap-3 p-0">
-            {["Connect your channel", "Add a keyword", "Approve replies"].map((step, i) => (
+            {["Connect your channel", "Create an automation", "Approve replies"].map((step, i) => (
               <li key={step} className={`grid gap-1 rounded-lg border bg-surface p-3.5 ${i === 0 ? "border-primary" : "border-border"}`}>
                 <span className={`font-mono text-[13px] ${i === 0 ? "text-primary-700" : "text-muted-foreground"}`}>0{i + 1}</span>
                 <strong className={`text-[15px] ${i === 0 ? "" : "text-label"}`}>{step}</strong>

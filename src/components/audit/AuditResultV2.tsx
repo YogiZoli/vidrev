@@ -163,7 +163,7 @@ export function AuditResultV2({
           <Card className="grid content-start gap-3">
             {result.keywords[0] ? (
               <>
-                <SectionTitle>Your first keyword rule</SectionTitle>
+                <SectionTitle>Your first automation</SectionTitle>
                 <p className="m-0">
                   <Keyword>{result.keywords[0].word}</Keyword> appears in{" "}
                   <b>{result.keywords[0].comments} comments</b>. Say

@@ -87,7 +87,7 @@ export async function createCampaign(db: Db, accountId: string, input: CampaignI
   if (clash) {
     return {
       ok: false,
-      error: `${keyword} is already watched on ${clash.videoIds === null || videoIds === null ? "these videos" : "some of these videos"}${clash.active ? "" : " by a paused rule"}. Resume or delete that rule instead.`,
+      error: `${keyword} is already watched on ${clash.videoIds === null || videoIds === null ? "these videos" : "some of these videos"}${clash.active ? "" : " by a paused automation"}. Resume or delete that automation instead.`,
     };
   }
   await db.insert(campaigns).values({

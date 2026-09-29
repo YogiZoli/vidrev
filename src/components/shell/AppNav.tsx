@@ -10,13 +10,13 @@ import { SETTINGS_GROUPS } from "./settings-nav";
 // Home carries the approval queue, so its count is the queue count.
 const TOP = [
   { href: "/app", label: "Home", exact: true, count: true },
-  { href: "/app/campaigns", label: "Campaigns" },
+  { href: "/app/campaigns", label: "Automations", live: true },
   { href: "/app/reports", label: "Reports" },
 ];
 
 const BOTTOM = [
   { href: "/app", label: "Home", icon: Home, exact: true, count: true },
-  { href: "/app/campaigns", label: "Campaigns", icon: Megaphone },
+  { href: "/app/campaigns", label: "Automations", icon: Megaphone, live: true },
   { href: "/app/reports", label: "Reports", icon: BarChart3 },
   { href: "/app/settings", label: "Settings", icon: Settings },
 ];
@@ -25,6 +25,17 @@ const TAB = "inline-flex min-h-11 flex-none items-center whitespace-nowrap borde
 
 function isActive(path: string, href: string, exact?: boolean) {
   return exact ? path === href : path === href || path.startsWith(`${href}/`);
+}
+
+// Green, softly pinging dot: at least one automation is live.
+function LiveDot({ on, className }: { on: boolean; className?: string }) {
+  if (!on) return null;
+  return (
+    <span className={cn("relative ml-1.5 inline-flex size-2", className)} role="img" aria-label="live">
+      <span aria-hidden className="absolute inline-flex size-full animate-ping-slow rounded-full bg-success opacity-60" />
+      <span aria-hidden className="relative inline-flex size-2 rounded-full bg-success" />
+    </span>
+  );
 }
 
 function CountPill({ n }: { n: number }) {
@@ -92,9 +103,9 @@ function SettingsMenu({ path }: { path: string }) {
 }
 
 // Underline tabs from md up (Owner admin joins when the user is the owner).
-export function TopTabs({ queueCount, isAdmin }: { queueCount: number; isAdmin: boolean }) {
+export function TopTabs({ queueCount, isAdmin, liveCount = 0 }: { queueCount: number; isAdmin: boolean; liveCount?: number }) {
   const path = usePathname();
-  const items: { href: string; label: string; exact?: boolean; count?: boolean }[] = TOP;
+  const items: { href: string; label: string; exact?: boolean; count?: boolean; live?: boolean }[] = TOP;
   const adminActive = isActive(path, "/admin");
   return (
     <nav aria-label="Main" className="-mx-1 hidden gap-1 md:flex">
@@ -109,6 +120,7 @@ export function TopTabs({ queueCount, isAdmin }: { queueCount: number; isAdmin: 
           >
             {t.label}
             {t.count ? <CountPill n={queueCount} /> : null}
+            {t.live ? <LiveDot on={liveCount > 0} /> : null}
           </Link>
         );
       })}
@@ -127,7 +139,7 @@ export function TopTabs({ queueCount, isAdmin }: { queueCount: number; isAdmin: 
 }
 
 // Four-item bottom tab bar on phones.
-export function BottomTabs({ queueCount }: { queueCount: number }) {
+export function BottomTabs({ queueCount, liveCount = 0 }: { queueCount: number; liveCount?: number }) {
   const path = usePathname();
   return (
     <nav
@@ -151,6 +163,7 @@ export function BottomTabs({ queueCount }: { queueCount: number }) {
             <span aria-hidden className={cn("h-[3px] w-[22px] rounded-full transition-colors", active ? "bg-primary" : "bg-transparent")} />
             <span className="relative">
               <Icon className="size-5" aria-hidden />
+              {"live" in b && b.live && liveCount > 0 ? <LiveDot on className="absolute -right-2.5 -top-0.5 ml-0" /> : null}
               {b.count && queueCount > 0 ? (
                 <span className="absolute -right-3 -top-1.5 h-4 min-w-4 rounded-full bg-primary px-1 text-center text-[10px] font-bold leading-4 text-primary-foreground">
                   {queueCount}

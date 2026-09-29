@@ -25,7 +25,7 @@ export const REPLY_REASONS: Record<string, string> = {
   monthly_cap: "monthly plan limit reached",
   daily_quota: "YouTube's daily limit",
   comment_gone: "the comment was deleted",
-  campaign_deleted: "the campaign was deleted",
+  campaign_deleted: "the automation was deleted",
   channel_revoked: "channel access was revoked",
   channel_not_connected: "channel not connected",
   commentsDisabled: "comments are turned off on this video",

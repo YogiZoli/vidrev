@@ -66,6 +66,14 @@ export interface GhlCustomField {
 
 type Query = Record<string, string | number | undefined>;
 
+export interface GhlFunnel {
+  _id: string;
+  name?: string;
+  type?: string;
+  url?: string;
+  steps?: { id?: string; name?: string; url?: string; type?: string }[];
+}
+
 export function createGhlApi(fetchImpl: FetchLike, accessToken: string) {
   async function call<T>(path: string, options: { method?: "GET" | "POST"; query?: Query; body?: unknown } = {}): Promise<T> {
     const url = new URL(`${GHL_API}${path}`);
@@ -97,6 +105,28 @@ export function createGhlApi(fetchImpl: FetchLike, accessToken: string) {
     },
 
     getLocation,
+
+    // Funnels and websites with their steps (paths only; GoHighLevel does not
+    // expose the domain name through the API). Needs funnels/funnel.readonly.
+    async listFunnels(locationId: string): Promise<GhlFunnel[]> {
+      const json = await call<{ funnels?: GhlFunnel[] }>("/funnels/funnel/list", { query: { locationId, limit: 100 } });
+      return json.funnels ?? [];
+    },
+
+    // Needs surveys.readonly.
+    async listSurveys(locationId: string): Promise<{ id: string; name: string }[]> {
+      const json = await call<{ surveys?: { id?: string; _id?: string; name?: string }[] }>("/surveys/", { query: { locationId, limit: 100 } });
+      return (json.surveys ?? []).map((s) => ({ id: String(s.id ?? s._id ?? ""), name: s.name ?? "Survey" })).filter((s) => s.id);
+    },
+
+    // Needs calendars.readonly.
+    async listCalendars(locationId: string): Promise<{ id: string; name: string }[]> {
+      const json = await call<{ calendars?: { id?: string; name?: string; isActive?: boolean }[] }>("/calendars/", { query: { locationId } });
+      return (json.calendars ?? [])
+        .filter((c) => c.isActive !== false)
+        .map((c) => ({ id: String(c.id ?? ""), name: c.name ?? "Calendar" }))
+        .filter((c) => c.id);
+    },
 
     async listContactFields(locationId: string): Promise<GhlCustomField[]> {
       const json = await call<{ customFields?: GhlCustomField[] }>(`/locations/${locationId}/customFields`, { query: { model: "contact" } });

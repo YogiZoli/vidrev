@@ -23,6 +23,11 @@ export const DEFAULT_GHL_SCOPES = [
   "locations.readonly",
   "locations/customFields.readonly",
   "locations/customFields.write",
+  // "Where do they go?" on Automations: pages, surveys and booking calendars.
+  "funnels/funnel.readonly",
+  "funnels/page.readonly",
+  "surveys.readonly",
+  "calendars.readonly",
 ];
 
 export interface GhlClient {

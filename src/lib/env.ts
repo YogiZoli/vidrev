@@ -18,6 +18,8 @@ const envSchema = z.object({
   FOUNDING_CHECKOUT_URL: z.string().trim().url().optional(),
   // Owner's GoHighLevel affiliate link, offered in onboarding to creators without GoHighLevel.
   GHL_AFFILIATE_URL: z.string().trim().url().optional(),
+  // "1" adds the page, survey and calendar scopes once the Marketplace app has them.
+  GHL_DESTINATION_SCOPES: optional,
   ENCRYPTION_KEY: optional,
   AUTH_SECRET: optional,
   PROVISIONING_SECRET: optional,

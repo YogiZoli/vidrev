@@ -23,12 +23,13 @@ export const DEFAULT_GHL_SCOPES = [
   "locations.readonly",
   "locations/customFields.readonly",
   "locations/customFields.write",
-  // "Where do they go?" on Automations: pages, surveys and booking calendars.
-  "funnels/funnel.readonly",
-  "funnels/page.readonly",
-  "surveys.readonly",
-  "calendars.readonly",
 ];
+
+// Extra scopes for the "Where do they go?" list (pages, surveys, calendars).
+// Requested only when GHL_DESTINATION_SCOPES=1: a scope the Marketplace app does
+// not have makes HighLevel refuse the whole connect ("Invalid scope"), so they
+// are switched on only after the app's scope list is confirmed.
+export const DESTINATION_GHL_SCOPES = ["funnels/funnel.readonly", "funnels/page.readonly", "surveys.readonly", "calendars.readonly"];
 
 export interface GhlClient {
   clientId: string;

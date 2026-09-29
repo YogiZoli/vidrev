@@ -21,7 +21,7 @@ describe("event payloads", () => {
       video_id: "dQw4w9WgXcQ",
       keyword: "GUIDE",
       tid: "tid1",
-      tags: ["c2c", "c2c_kw_guide", "c2c_vid_dQw4w9WgXcQ"],
+      tags: ["vidrev", "vidrev-source-youtube", "vidrev-keyword-guide", "vidrev-temperature-hot-lead", "vidrev-video-dQw4w9WgXcQ"],
     });
     expect(payload).not.toHaveProperty("email");
     expect(payload).not.toHaveProperty("amount_cents");
@@ -39,7 +39,7 @@ describe("event payloads", () => {
       context: { email: "a@b.com", amountCents: 9700, currency: "USD", keyword: "k", buyer: true },
     });
     expect(purchase).toMatchObject({ amount_cents: 9700, currency: "USD" });
-    expect(purchase.tags).toEqual(["c2c", "c2c_kw_k", "c2c_buyer"]);
+    expect(purchase.tags).toEqual(["vidrev", "vidrev-source-youtube", "vidrev-keyword-k", "vidrev-buyer"]);
   });
 
   it("keeps the amount null when the source did not report one", () => {

@@ -6,6 +6,7 @@ import type { OptInInput, PurchaseInput } from "@/lib/inbound";
 import { ATTRIBUTION_WINDOW_DAYS } from "@/lib/attribution";
 import { markReportDirty } from "../attribution";
 import { attachClickToContact, contactForTouch, resolveContact } from "../contacts";
+import { clickHistory } from "./context";
 import type { EmitInput } from "./events";
 
 // Recording of opt-ins and purchases from any source (SPEC sections 9, 10):
@@ -184,6 +185,7 @@ export async function recordOptIn(
       tid: input.tid,
       email: input.email,
       source: options.source,
+      history: await clickHistory(db, accountId, person.contactId, input.occurredAt),
     },
   });
   return { id: row.id, created: true, attributed: Boolean(touch) };
@@ -286,8 +288,9 @@ export async function recordPurchase(
       source: options.source,
       amountCents: input.amountCents,
       currency: input.currency,
-      // Only a buyer we can trace to a comment is a c2c buyer.
+      // Only a buyer we can trace to a comment is a vidrev buyer.
       buyer: Boolean(touch),
+      history: await clickHistory(db, accountId, person?.contactId ?? null, input.occurredAt),
     },
   });
   return { id: inserted.id, created: true, refundUpdated: false };

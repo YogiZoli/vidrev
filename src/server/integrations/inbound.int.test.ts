@@ -149,7 +149,7 @@ describe.skipIf(!hasDb)("inbound hooks (integration)", () => {
       campaign_id: campaign.id,
       video_id: VIDEO,
       source: "webhook",
-      tags: ["c2c", "c2c_kw_guide", "c2c_vid_dQw4w9WgXcQ"],
+      tags: ["vidrev", "vidrev-source-youtube", "vidrev-keyword-guide", "vidrev-temperature-hot-lead", "vidrev-video-dQw4w9WgXcQ"],
     });
   });
 
@@ -177,7 +177,7 @@ describe.skipIf(!hasDb)("inbound hooks (integration)", () => {
     expect(rows.find((r) => r.externalId === "marker_1")).toMatchObject({ kind: "buyer_marker", amountCents: null, currency: null });
   });
 
-  it("enriches the purchase event from the latest touch within 180 days; unmatched buyers get no c2c_buyer tag", async () => {
+  it("enriches the purchase event from the latest touch within 180 days; unmatched buyers get no vidrev-buyer tag", async () => {
     const { account, tid, campaign, link } = await setup();
     const created = await createEndpoint(db(), key, { accountId: account.id, url: "https://hooks.example.com/x" });
     if (!created.ok) throw new Error(created.error);
@@ -198,9 +198,9 @@ describe.skipIf(!hasDb)("inbound hooks (integration)", () => {
       { source: "webhook", emit },
     );
     const [m] = await db().select().from(outboundDeliveries).where(eq(outboundDeliveries.eventId, matched.id));
-    expect(m!.payload).toMatchObject({ event: "purchase", campaign_id: campaign.id, keyword: "guide", amount_cents: 9700, currency: "USD", tags: ["c2c", "c2c_kw_guide", "c2c_vid_dQw4w9WgXcQ", "c2c_buyer"] });
+    expect(m!.payload).toMatchObject({ event: "purchase", campaign_id: campaign.id, keyword: "guide", amount_cents: 9700, currency: "USD", tags: ["vidrev", "vidrev-source-youtube", "vidrev-keyword-guide", "vidrev-temperature-hot-lead", "vidrev-video-dQw4w9WgXcQ", "vidrev-buyer"] });
     const [s] = await db().select().from(outboundDeliveries).where(eq(outboundDeliveries.eventId, stranger.id));
-    expect(s!.payload).toMatchObject({ keyword: null, tags: ["c2c"] });
+    expect(s!.payload).toMatchObject({ keyword: null, tags: ["vidrev"] });
 
     // A touch older than 180 days no longer counts.
     // (Its own click: one tracking id with two emails would be one person, DECISIONS Q-23.)

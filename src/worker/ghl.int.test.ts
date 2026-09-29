@@ -37,10 +37,11 @@ interface Fake {
   txs: GhlTransaction[];
   upserts: { email: string; customFields?: { id: string; value: string }[] }[];
   tags: { contactId: string; tags: string[] }[];
+  removed: { contactId: string; tags: string[] }[];
 }
 
 function newFake(): Fake {
-  return { tokenCalls: 0, tokenMode: "ok", fields: [], createdFields: 0, contacts: [], contactById: {}, opps: [], oppCalls: 0, txs: [], upserts: [], tags: [] };
+  return { tokenCalls: 0, tokenMode: "ok", fields: [], createdFields: 0, contacts: [], contactById: {}, opps: [], oppCalls: 0, txs: [], upserts: [], tags: [], removed: [] };
 }
 
 function fakeFetch(state: Fake) {
@@ -69,7 +70,7 @@ function fakeFetch(state: Fake) {
     }
     const tagMatch = /^\/contacts\/([^/]+)\/tags$/.exec(path);
     if (tagMatch) {
-      state.tags.push({ contactId: tagMatch[1]!, tags: body.tags });
+      (method === "DELETE" ? state.removed : state.tags).push({ contactId: tagMatch[1]!, tags: body.tags });
       return Response.json({ tags: body.tags });
     }
     const contactMatch = /^\/contacts\/([^/]+)$/.exec(path);
@@ -162,7 +163,7 @@ describe.skipIf(!hasDb)("GoHighLevel connector (integration)", () => {
     const [row] = await db().select().from(integrations).where(eq(integrations.id, first.id));
     expect(row).toMatchObject({ type: "ghl", externalRef: location, status: "active", events: ["opt_in", "purchase"] });
     expect(row!.configEnc).not.toContain("SECRET");
-    expect(readGhlConfig(row!.configEnc!, key)).toMatchObject({ accessToken: "SECRET-ACCESS", buyerTag: "c2c_buyer" });
+    expect(readGhlConfig(row!.configEnc!, key)).toMatchObject({ accessToken: "SECRET-ACCESS", buyerTag: "vidrev-buyer" });
 
     expect(await connectGhl(db(), key, b.account.id, tokens)).toEqual({ ok: false, error: "location_taken" });
     expect(await connectGhl(db(), key, a.account.id, { ...tokens, locationId: `LOC-${randomUUID()}` })).toEqual({ ok: false, error: "already_connected" });
@@ -192,11 +193,23 @@ describe.skipIf(!hasDb)("GoHighLevel connector (integration)", () => {
     expect(readGhlConfig(row!.configEnc!, key)).toMatchObject({ customFieldId: "F1", locationName: "Acme Coaching", locationWebsite: "https://acme.com" });
 
     const other = await rig();
-    other.fake.fields.push({ id: "MINE", name: "C2C_TID", fieldKey: "contact.c2c_tid" });
+    other.fake.fields.push({ id: "MINE", name: "vidrev tracking id", fieldKey: "contact.vidrev_tracking_id" });
     await setupGhl(other.deps, other.integrationId);
     expect(other.fake.createdFields).toBe(0);
     const [reused] = await db().select().from(integrations).where(eq(integrations.id, other.integrationId));
     expect(readGhlConfig(reused!.configEnc!, key).customFieldId).toBe("MINE");
+  });
+
+  it("moves an older integration from the c2c_tid field to the vidrev tracking id field once", async () => {
+    const r = await rig({ setup: true });
+    await updateGhlConfig(r.deps, r.integrationId, { customFieldId: "OLD-C2C" });
+    await db().update(integrations).set({ syncState: { setup: "done" } }).where(eq(integrations.id, r.integrationId));
+    await syncGhl(r.deps, r.integrationId);
+    const [row] = await db().select().from(integrations).where(eq(integrations.id, r.integrationId));
+    expect(readGhlConfig(row!.configEnc!, key).customFieldId).toBe("F1");
+    expect(row!.syncState).toMatchObject({ trackingField: "vidrev" });
+    await syncGhl(r.deps, r.integrationId);
+    expect(r.fake.createdFields).toBe(1);
   });
 
   it("refreshes the rotating token once under parallel use, and asks for a reconnect when refused", async () => {
@@ -295,7 +308,7 @@ describe.skipIf(!hasDb)("GoHighLevel connector (integration)", () => {
   it("a buyer tag or won opportunity adds no second buyer row once a real payment exists", async () => {
     const r = await rig({ setup: true });
     r.fake.txs = [{ _id: "P1", amount: 10, currency: "USD", status: "succeeded", contactEmail: "dup@x.com", createdAt: ago(1000) }];
-    r.fake.contacts = [{ id: "cd", email: "dup@x.com", tags: ["c2c_buyer"], dateAdded: ago(1000) }];
+    r.fake.contacts = [{ id: "cd", email: "dup@x.com", tags: ["vidrev-buyer"], dateAdded: ago(1000) }];
     r.fake.opps = [{ id: "OD", status: "won", contact: { email: "dup@x.com" } }];
     // Payments come last in a run, so a marker may land first; a second run must not add more buyers than emails.
     await syncGhl(r.deps, r.integrationId);
@@ -307,7 +320,7 @@ describe.skipIf(!hasDb)("GoHighLevel connector (integration)", () => {
 
   it("handles marketplace webhook events through the API", async () => {
     const r = await rig({ setup: true });
-    r.fake.contactById = { cx: { id: "cx", email: "tagged@x.com", tags: ["c2c_buyer"], dateAdded: ago(1000) }, cy: { id: "cy", email: "won3@x.com" } };
+    r.fake.contactById = { cx: { id: "cx", email: "tagged@x.com", tags: ["vidrev-buyer"], dateAdded: ago(1000) }, cy: { id: "cy", email: "won3@x.com" } };
     await handleGhlEvent(r.deps, r.integrationId, { type: "ContactTagUpdate", locationId: "L-1", id: "cx" });
     await handleGhlEvent(r.deps, r.integrationId, { type: "OpportunityStatusUpdate", id: "O9", status: "won", contactId: "cy" });
     await handleGhlEvent(r.deps, r.integrationId, { type: "OpportunityStatusUpdate", id: "O10", status: "open", contactId: "cy" });
@@ -329,7 +342,11 @@ describe.skipIf(!hasDb)("GoHighLevel connector (integration)", () => {
     for (const row of rows) await deliver(hooks, row.id);
 
     expect(r.fake.upserts).toEqual([{ email: "lead@x.com", customFields: [{ id: "F1", value: r.tid }] }]);
-    expect(r.fake.tags).toEqual([{ contactId: "C-1", tags: ["c2c", "c2c_kw_guide", `c2c_vid_${VIDEO}`] }]);
+    expect(r.fake.tags).toEqual([
+      { contactId: "C-1", tags: ["vidrev", "vidrev-source-youtube", "vidrev-keyword-guide", "vidrev-temperature-warm-lead", `vidrev-video-${VIDEO}`] },
+    ]);
+    // One temperature per person: the other two are removed.
+    expect(r.fake.removed).toEqual([{ contactId: "C-1", tags: ["vidrev-temperature-cold-lead", "vidrev-temperature-hot-lead"] }]);
     const done = await db().select().from(outboundDeliveries).where(eq(outboundDeliveries.accountId, r.accountId));
     expect(done.find((d) => d.eventId === attributed.id)).toMatchObject({ status: "delivered", lastError: null });
     expect(done.find((d) => d.eventId === stranger.id)).toMatchObject({ status: "delivered", lastError: "not_attributed" });

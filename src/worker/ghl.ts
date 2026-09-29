@@ -4,6 +4,7 @@ import { readTid } from "@/lib/inbound";
 import { errorFields, log } from "@/lib/log";
 import { normalizeCurrency, toMinorUnits } from "@/lib/money";
 import { normalizeEmail } from "@/lib/email";
+import { TEMPERATURES, temperatureTag } from "@/lib/tags";
 import { type EmitInput, emitEventSafely, kickWith } from "@/server/integrations/events";
 import { recordOptIn, recordPurchase } from "@/server/integrations/inbound";
 import { GhlApiError, type GhlApi, type GhlContact, type GhlOpportunity, type GhlTransaction } from "@/server/ghl/api";
@@ -40,7 +41,18 @@ function asDate(value: string | undefined, fallback: Date): Date {
   return parsed && !Number.isNaN(parsed.getTime()) ? parsed : fallback;
 }
 
-// Once after connecting: the c2c_tid contact field (created, or found if the
+// The contact field that carries the tracking id: found by its key or name,
+// else created. Older integrations pointed at the c2c_tid field; the sync
+// moves them over once (syncState.trackingField).
+export const TRACKING_FIELD_NAME = "vidrev tracking id";
+
+async function ensureTrackingField(api: GhlApi, locationId: string): Promise<string> {
+  const fields = await api.listContactFields(locationId);
+  const existing = fields.find((f) => f.fieldKey === "contact.vidrev_tracking_id" || f.name?.trim().toLowerCase() === TRACKING_FIELD_NAME);
+  return (existing ?? (await api.createContactField(locationId, TRACKING_FIELD_NAME))).id;
+}
+
+// Once after connecting: the tracking id contact field (created, or found if the
 // creator already made one), the location name; then the first sync.
 export async function setupGhl(deps: GhlWorkerDeps, integrationId: string): Promise<void> {
   const now = deps.now?.() ?? new Date();
@@ -56,18 +68,13 @@ export async function setupGhl(deps: GhlWorkerDeps, integrationId: string): Prom
     const locationName = config.locationName ?? location.name;
     const locationWebsite = location.website;
     name = locationName;
-    let customFieldId = config.customFieldId;
-    if (!customFieldId) {
-      const fields = await api.listContactFields(config.locationId);
-      const existing = fields.find((f) => f.fieldKey === "contact.c2c_tid" || f.name?.trim().toLowerCase() === "c2c_tid");
-      customFieldId = (existing ?? (await api.createContactField(config.locationId, "c2c_tid"))).id;
-    }
+    const customFieldId = await ensureTrackingField(api, config.locationId);
     await updateGhlConfig(deps, integrationId, { customFieldId, locationName, locationWebsite });
   });
   await deps.db
     .update(integrations)
     .set({
-      syncState: sql`${integrations.syncState} || '{"setup":"done"}'::jsonb`,
+      syncState: sql`${integrations.syncState} || '{"setup":"done","trackingField":"vidrev"}'::jsonb`,
       label: name ? `GoHighLevel: ${name}` : "GoHighLevel",
       lastError: null,
       nextSyncAt: now,
@@ -244,7 +251,7 @@ async function syncTransactions(deps: GhlWorkerDeps, api: GhlApi, accountId: str
   }
 }
 
-// Reads new contacts (opt-ins with a c2c_tid, buyer tags), won opportunities
+// Reads new contacts (opt-ins with a tracking id, buyer tags), won opportunities
 // (hourly) and payments (every run, plus a 90 day pass daily for refunds).
 export async function syncGhl(deps: GhlWorkerDeps, integrationId: string): Promise<void> {
   const row = await integrationAccount(deps, integrationId);
@@ -265,6 +272,14 @@ export async function syncGhl(deps: GhlWorkerDeps, integrationId: string): Promi
           log("warn", "ghl sync step failed", { integrationId, step: name, ...errorFields(error) });
         }
       };
+      if (state.trackingField !== "vidrev") {
+        await step("tracking field", async () => {
+          const customFieldId = await ensureTrackingField(api, config.locationId);
+          await updateGhlConfig(deps, integrationId, { customFieldId });
+          config = { ...config, customFieldId };
+          state.trackingField = "vidrev";
+        });
+      }
       await step("contacts", async () => {
         state.contactsCursor = await syncContacts(deps, api, row.accountId, config, state, now);
       });
@@ -337,7 +352,7 @@ export async function addContactNote(deps: GhlWorkerDeps, integrationId: string,
 }
 
 // Outbox target (see webhooks.ts): a subscriber or buyer that came from a
-// comment gets the contact upserted, the c2c_tid field set and the tags added.
+// comment gets the contact upserted, the tracking id field set and the tags added.
 export async function deliverToGhl(deps: GhlWorkerDeps, integrationId: string, payload: Record<string, unknown>): Promise<{ skipped: string | null }> {
   const email = typeof payload.email === "string" ? payload.email : null;
   const tags = Array.isArray(payload.tags) ? payload.tags.filter((t): t is string => typeof t === "string") : [];
@@ -350,6 +365,9 @@ export async function deliverToGhl(deps: GhlWorkerDeps, integrationId: string, p
       customFields: tid && config.customFieldId ? [{ id: config.customFieldId, value: tid }] : undefined,
     });
     await api.addTags(contactId, tags);
+    // One temperature per person: a lead that got hotter loses the cooler tag.
+    const cooler = TEMPERATURES.map(temperatureTag).filter((tag) => !tags.includes(tag));
+    if (cooler.length < TEMPERATURES.length) await api.removeTags(contactId, cooler);
   });
   return { skipped: null };
 }

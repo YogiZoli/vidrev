@@ -1,5 +1,5 @@
 import { hmacSha256Hex, safeEqual } from "./crypto";
-import { c2cTags } from "./tags";
+import { type TagTouch, vidrevTags } from "./tags";
 
 // Outbound webhooks (SPEC section 11, DECISIONS D-03). Pure helpers: payload,
 // signature and retry schedule. Delivery lives in src/worker/webhooks.ts.
@@ -30,6 +30,9 @@ export interface EventContext {
   amountCents?: number | null;
   currency?: string | null;
   buyer?: boolean;
+  // opt_in and purchase: the person's other tracked-link clicks in the last
+  // 30 days (first-party data only, DECISIONS A-12).
+  history?: TagTouch[];
 }
 
 // Deliberately no comment text, commenter names or ids: YouTube API data does
@@ -67,7 +70,7 @@ export function buildEventPayload(input: {
     payload.currency = c.currency ?? null;
   }
   // Ready to apply in any CRM, Zapier, Make or n8n.
-  payload.tags = c2cTags({ keyword: c.keyword, videoId: c.videoId, buyer: input.event === "purchase" ? c.buyer : false });
+  payload.tags = vidrevTags({ keyword: c.keyword, intent: c.intent, videoId: c.videoId, history: c.history, buyer: input.event === "purchase" ? c.buyer : false });
   return payload;
 }
 

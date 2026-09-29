@@ -97,7 +97,7 @@ export default async function GoHighLevelSettingsPage({ searchParams }: { search
               <input type="hidden" name="action" value="ghl_buyer_tag" />
               <input type="hidden" name="id" value={ghl.id} />
               <Field label="Buyer tag" hint="A contact with this tag counts as a buyer (revenue not reported). Real payments and won opportunities are read automatically.">
-                <Input name="buyerTag" defaultValue={ghlConfig?.buyerTag ?? ""} placeholder="c2c_buyer" className="font-mono" />
+                <Input name="buyerTag" defaultValue={ghlConfig?.buyerTag ?? ""} placeholder="vidrev-buyer" className="font-mono" />
               </Field>
               <div>
                 <Button type="submit" variant="outline">

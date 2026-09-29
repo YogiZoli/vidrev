@@ -15,7 +15,7 @@ export interface GhlConfig {
   locationId: string;
   companyId: string | null;
   userId: string | null;
-  // The contact custom field that carries the tracking id (c2c_tid).
+  // The contact custom field that carries the tracking id (vidrev tracking id).
   customFieldId: string | null;
   // Contacts with this tag are buyers (revenue not reported), DECISIONS Q-06.
   buyerTag: string;
@@ -24,10 +24,13 @@ export interface GhlConfig {
   locationWebsite?: string | null;
 }
 
-export const DEFAULT_BUYER_TAG = "c2c_buyer";
+export const DEFAULT_BUYER_TAG = "vidrev-buyer";
+// The buyer tag default before the vidrev naming (DECISIONS A-11).
+const LEGACY_BUYER_TAG = "c2c_buyer";
 
 export function readGhlConfig(configEnc: string, key: string): GhlConfig {
-  return JSON.parse(decryptSecret(configEnc, key)) as GhlConfig;
+  const config = JSON.parse(decryptSecret(configEnc, key)) as GhlConfig;
+  return config.buyerTag === LEGACY_BUYER_TAG ? { ...config, buyerTag: DEFAULT_BUYER_TAG } : config;
 }
 
 export function sealGhlConfig(config: GhlConfig, key: string): string {

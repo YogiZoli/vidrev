@@ -181,3 +181,45 @@ export function WaitingCards({ cards }: { cards: CardData[] }) {
     </div>
   );
 }
+
+// Skipped replies: one click puts a reply back into To Approve.
+export function SkippedCards({ cards }: { cards: CardData[] }) {
+  const [items, setItems] = useState(cards);
+  const [error, setError] = useState<string | null>(null);
+  if (items.length === 0) return null;
+  return (
+    <div className="grid gap-3">
+      {error ? (
+        <p role="alert" className="m-0 rounded-md border border-danger-border bg-danger-surface p-2.5 text-sm text-danger-text">
+          {error}
+        </p>
+      ) : null}
+      {items.map((card) => (
+        <Card key={card.id} className="grid gap-2 p-4">
+          <p className="m-0 flex flex-wrap items-center gap-2 text-[15px] text-muted-foreground">
+            <Keyword temperature={card.intent}>{card.keyword}</Keyword>
+            <span>{card.videoTitle ?? "Video"}</span>
+          </p>
+          <p className="m-0 text-[15px] text-label">{card.commentText}</p>
+          <span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                setError(null);
+                const problem = await post("restore", card.id);
+                if (problem) return setError(problem);
+                setItems((list) => list.filter((c) => c.id !== card.id));
+                // The reply returns to the top of the queue: reload shows it there.
+                location.reload();
+              }}
+            >
+              Restore to To Approve
+            </Button>
+          </span>
+        </Card>
+      ))}
+    </div>
+  );
+}

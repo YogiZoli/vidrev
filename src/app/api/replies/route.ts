@@ -2,7 +2,7 @@ import { getDb } from "@/db/client";
 import { enqueue } from "@/jobs/enqueue";
 import { QUEUES } from "@/jobs/queues";
 import { TEMPLATE_PROBLEM_TEXT, type TemplateProblem } from "@/lib/templates";
-import { type ApprovalError, approveReply, dismissReply, markSentManually, sendJitterSeconds, switchMatch } from "@/server/approval";
+import { type ApprovalError, approveReply, dismissReply, markSentManually, restoreReply, sendJitterSeconds, switchMatch } from "@/server/approval";
 import { currentSession } from "@/server/auth/current";
 import { isSameOrigin } from "@/server/http";
 import { logRefused, recordAction } from "@/server/events";
@@ -53,6 +53,8 @@ export async function POST(request: Request): Promise<Response> {
     }
     case "dismiss":
       return (await dismissReply(db, accountId, replyId)) ? ok() : refused("not_found");
+    case "restore":
+      return (await restoreReply(db, accountId, replyId)) ? ok() : refused("not_found");
     case "manual":
       return (await markSentManually(db, accountId, replyId, input.body)) ? ok() : refused("not_found");
     case "switch":

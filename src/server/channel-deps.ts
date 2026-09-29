@@ -1,6 +1,8 @@
 import { getDb } from "@/db/client";
 import { env } from "@/lib/env";
 import { timedFetch } from "@/lib/http";
+import { appHost, fallbackHost } from "@/lib/link-host";
+import { fetchPage, type PageFetcher } from "@/server/audit/fetch-page";
 import type { GhlDeps } from "@/server/ghl/tokens";
 import type { ChannelDeps } from "@/worker/channels";
 
@@ -19,7 +21,7 @@ export function webChannelDeps(): (ChannelDeps & { quotaLimit: number }) | null 
 }
 
 // GoHighLevel reads from the web service (the "Where do they go?" list).
-export function webGhlDeps(): GhlDeps | null {
+export function webGhlDeps(): (GhlDeps & { fetchPage: PageFetcher; ownHosts: string[] }) | null {
   const { ENCRYPTION_KEY, GHL_CLIENT_ID, GHL_CLIENT_SECRET } = env();
   if (!ENCRYPTION_KEY) return null;
   return {
@@ -27,5 +29,9 @@ export function webGhlDeps(): GhlDeps | null {
     fetch: timedFetch(8_000),
     encryptionKey: ENCRYPTION_KEY,
     client: GHL_CLIENT_ID && GHL_CLIENT_SECRET ? { clientId: GHL_CLIENT_ID, clientSecret: GHL_CLIENT_SECRET } : null,
+    // The funnel domain check fetches public pages through the SSRF guard.
+    fetchPage,
+    // Our own hosts serve no landing pages; never offer them as the funnel domain.
+    ownHosts: [appHost(), fallbackHost()].filter((h): h is string => Boolean(h)),
   };
 }

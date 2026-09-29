@@ -87,9 +87,9 @@ describe("api client", () => {
 
   it("reads the Sub-account name and website", async () => {
     const { api } = recorder(() => Response.json({ location: { name: "Acme Coaching", website: " https://acme.com " } }));
-    expect(await api.getLocation("L1")).toEqual({ name: "Acme Coaching", website: "https://acme.com" });
+    expect(await api.getLocation("L1")).toEqual({ name: "Acme Coaching", website: "https://acme.com", domain: null });
     const { api: bare } = recorder(() => Response.json({ location: { name: "Acme Coaching" } }));
-    expect(await bare.getLocation("L1")).toEqual({ name: "Acme Coaching", website: null });
+    expect(await bare.getLocation("L1")).toEqual({ name: "Acme Coaching", website: null, domain: null });
   });
 
   it("sends the bearer token and the version header", async () => {

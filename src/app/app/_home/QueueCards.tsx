@@ -127,7 +127,7 @@ export function PendingCards({ cards, usage }: { cards: CardData[]; usage?: { to
       <p className="m-0 flex flex-wrap items-center gap-2 text-[15px] text-muted-foreground">
         <Badge tone="primary">{items.length} waiting</Badge>
         <span>{card.videoTitle ?? "Video"}</span>
-        <Keyword>{card.keyword}</Keyword>
+        <Keyword temperature={card.intent}>{card.keyword}</Keyword>
         <TemperatureChip temperature={card.intent} />
       </p>
       <blockquote className="m-0 rounded-md border-l-[3px] border-border-strong bg-background px-3 py-2 text-base">{card.commentText ?? "(comment no longer stored)"}</blockquote>
@@ -172,7 +172,7 @@ export function WaitingCards({ cards }: { cards: CardData[] }) {
       {items.map((card) => (
         <Card key={card.id} className="grid gap-2 p-4">
           <p className="m-0 text-[15px]">
-            <Keyword>{card.keyword}</Keyword> <span className="text-muted-foreground">{card.eta ?? "sending"}</span>
+            <Keyword temperature={card.intent}>{card.keyword}</Keyword> <span className="text-muted-foreground">{card.eta ?? "sending"}</span>
           </p>
           <p className="m-0 text-[15px] text-label">{card.body.replace("{link}", card.link)}</p>
           {card.status === "queued" ? <ManualFallback card={card} onDone={() => setItems((list) => list.filter((c) => c.id !== card.id))} /> : null}

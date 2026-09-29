@@ -33,9 +33,10 @@ function joinUrl(base: string, path: string): string {
   return `${base.replace(/\/+$/, "")}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
-// Step 3 "Where do they go?": the creator's GoHighLevel pages, surveys and
-// calendars, the kind that fits the chosen keyword first. A page address is
-// the Sub-account's domain plus the page path (editable). Advanced: any URL.
+// Step 3 "Where do they go?": picked from the creator's GoHighLevel pages,
+// surveys and calendars; nothing to type. The funnel domain is found
+// automatically; only when it could not be confirmed is it offered under a
+// closed Advanced row. Nothing picked: the default page from setup.
 export function DestinationPicker({
   items,
   baseUrl,
@@ -54,10 +55,7 @@ export function DestinationPicker({
   const [domain, setDomain] = useState(baseUrl ?? "");
   const urlOf = (item: DestinationOption) => item.url ?? (item.path && domain ? joinUrl(domain, item.path) : "");
   const initial = items.findIndex((item) => (item.url ?? (item.path && baseUrl ? joinUrl(baseUrl, item.path) : "")) === defaultUrl);
-  const [picked, setPicked] = useState<number | null>(items.length ? (initial >= 0 ? initial : null) : null);
-  // Nothing in the list matches the default from setup: it stays the address
-  // (shown below) until the creator picks something else.
-  const [manual, setManual] = useState(initial >= 0 ? "" : defaultUrl);
+  const [picked, setPicked] = useState<number | null>(initial >= 0 ? initial : null);
 
   // Follow the keyword chosen in step 2 (same form).
   useEffect(() => {
@@ -80,34 +78,32 @@ export function DestinationPicker({
   );
 
   const chosen = picked !== null ? items[picked] : undefined;
-  const finalUrl = manual.trim() || (chosen ? urlOf(chosen) : "");
-  const needsDomain = Boolean(chosen?.path) && !manual.trim();
+  const finalUrl = chosen ? urlOf(chosen) : defaultUrl;
+  const showDomain = Boolean(chosen?.path) && !domainVerified;
 
   return (
     <div ref={ref} className="grid gap-3">
       <input type="hidden" name="destinationUrl" value={finalUrl} />
       {status === "reconnect" ? (
         <p className="m-0 rounded-md bg-warm-surface p-3 text-[14px] text-warm-text">
-          To list your GoHighLevel pages, surveys and calendars, reconnect GoHighLevel once: Settings, GoHighLevel, Disconnect, then Connect GoHighLevel.
-          Until then, enter the address under Advanced.
+          To choose from your GoHighLevel pages, surveys and calendars, reconnect GoHighLevel once: Settings, GoHighLevel, Disconnect, then Connect
+          GoHighLevel.
         </p>
       ) : null}
       {status === "error" ? (
-        <p className="m-0 rounded-md bg-warm-surface p-3 text-[14px] text-warm-text">GoHighLevel did not answer just now. Reload in a minute, or enter the address under Advanced.</p>
+        <p className="m-0 rounded-md bg-warm-surface p-3 text-[14px] text-warm-text">GoHighLevel did not answer just now. Reload the page in a minute.</p>
       ) : null}
 
       {items.length ? (
         <label className="grid gap-1.5">
           <span className="text-[14px] font-semibold">Send them to</span>
           <select
+            name="destinationPick"
             value={picked ?? ""}
-            onChange={(e) => {
-              setPicked(e.target.value === "" ? null : Number(e.target.value));
-              setManual("");
-            }}
-            className="h-11 rounded-md border border-border-strong bg-surface px-3 text-[15px]"
+            onChange={(e) => setPicked(e.target.value === "" ? null : Number(e.target.value))}
+            className="h-12 rounded-md border border-border-strong bg-surface px-3 text-[15px]"
           >
-            <option value="">Choose a page, survey or calendar</option>
+            <option value="">{defaultUrl ? "Your default page from setup" : "Choose a page, survey or calendar"}</option>
             {groups.map((group) => (
               <optgroup key={group.kind} label={GROUP_LABEL[group.kind]}>
                 {group.entries.map(({ item, index }) => (
@@ -121,45 +117,24 @@ export function DestinationPicker({
         </label>
       ) : null}
 
-      {needsDomain ? (
-        <label className="grid gap-1.5">
-          <span className="text-[14px] font-semibold">Your page domain</span>
-          <Input value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="https://yourdomain.com" className="font-mono" />
-          <span className="text-[13px] text-muted-foreground">
-            {domainVerified && domain === baseUrl
-              ? "Found automatically: your funnel pages load on this domain."
-              : "We could not confirm this domain automatically. Open the link below once to check, or enter the domain your funnel runs on."}
-          </span>
-        </label>
-      ) : null}
-
       {finalUrl ? (
-        <p className="m-0 text-[14px]">
-          Viewers go to:{" "}
+        <p className="m-0 text-[13px] text-muted-foreground">
+          Opens:{" "}
           <a href={finalUrl} target="_blank" rel="noopener noreferrer" className="font-mono [overflow-wrap:anywhere]">
-            {finalUrl}
-          </a>{" "}
-          <span className="text-muted-foreground">(open it once to check)</span>
+            {finalUrl.replace(/^https?:\/\//, "")}
+          </a>
         </p>
       ) : null}
 
-      <details className="rounded-md bg-background p-3 text-[15px]" open={items.length === 0}>
-        <summary className="cursor-pointer font-semibold">Advanced: another address</summary>
-        <div className="mt-2 grid gap-2">
-          <Input
-            type="url"
-            value={manual}
-            onChange={(e) => setManual(e.target.value)}
-            placeholder="https://yourdomain.com/guide"
-            aria-label="Another address"
-            className="font-mono"
-          />
-          <p className="m-0 text-[13px] text-muted-foreground">
-            Outside GoHighLevel we count the clicks, but not what happens on the page, unless that tool sends opt-ins to your inbound endpoint or the sale
-            runs through your connected Stripe. Your own link domain for the reply links: <a href="/app/settings/domain">Settings, Linked domain</a>.
-          </p>
-        </div>
-      </details>
+      {showDomain ? (
+        <details className="rounded-md bg-background p-3 text-[15px]">
+          <summary className="cursor-pointer font-semibold">Advanced: page domain</summary>
+          <div className="mt-2 grid gap-1.5">
+            <Input value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="https://yourdomain.com" aria-label="Page domain" className="font-mono" />
+            <span className="text-[13px] text-muted-foreground">We could not confirm on which domain this funnel runs. Change it only if the link above does not open.</span>
+          </div>
+        </details>
+      ) : null}
     </div>
   );
 }

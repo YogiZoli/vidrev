@@ -514,3 +514,15 @@ Method and signatures come from the 03 research (`c2c-market-research/fingerprin
 | RR-05 | Every creator and owner action is kept in `audit_log`; refusals are logged with the reason; personal fields (emails, comment text) never go into job logs. |
 | RR-06 | Every integration test file runs on its own fresh database (vitest projects "unit" and "integration"), so parallel global sweeps cannot make CI fail at random. |
 | RR-07 | One rule per keyword and video: a second rule for the same keyword on an overlapping video scope is refused. |
+
+## 21. Automations and C2C (owner, 2026-09-29)
+
+| # | Decision |
+| --- | --- |
+| A-01 | Names: Automations (tab), New automation, Which videos?, Which trigger keyword?, Where do they go? (Send them to), Go live, Live automations, To Approve (was Home). |
+| A-02 | One Automations page: New automation above, Live automations below; a green pinging dot on the tab while anything is live. Split into New and Live (n) tabs only when the live list gets long. |
+| A-03 | Where do they go? is chosen from the GoHighLevel list only (funnel and website pages, surveys, booking calendars); no manual address for now, because outside GoHighLevel only clicks can be measured. The backend still accepts any URL; a Settings entry can come back when a paying customer needs it. |
+| A-04 | The funnel domain is found by verification (a candidate host must serve the page), never guessed; HighLevel does not expose funnel domain names to apps. |
+| A-05 | Forms are not offered: funnels already collect the email and track better. |
+| A-06 | Safety copy under Go live states provable promises only (nothing posted automatically, every reply approved, only new comments, within YouTube limits); no "100% spam safe". |
+| A-07 | vidrev replaces C2C. C2C gets no new features; its users move when vidrev's Marketplace app is public. What to port: docs/C2C-COMPARISON.md. |

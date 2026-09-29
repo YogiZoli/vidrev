@@ -57,8 +57,8 @@ export default async function InboundSettingsPage({ searchParams }: { searchPara
           Send the token as <Mono>Authorization: Bearer &lt;token&gt;</Mono>, as <Mono>X-Hook-Token</Mono>, or, if your tool cannot set headers, as{" "}
           <Mono>?token=</Mono> at the end of the URL. JSON and form posts both work.
           <br />
-          Subscriber fields: <Mono>email</Mono> (required), <Mono>c2c_tid</Mono> (the hidden field on your form), <Mono>name</Mono>, <Mono>consent_marketing</Mono>. Buyer
-          fields: <Mono>email</Mono> or <Mono>c2c_tid</Mono>, <Mono>external_id</Mono> (order id, required), <Mono>amount</Mono> and <Mono>currency</Mono>,{" "}
+          Subscriber fields: <Mono>email</Mono> (required), <Mono>vidrev_tid</Mono> (the hidden field on your form), <Mono>name</Mono>, <Mono>consent_marketing</Mono>. Buyer
+          fields: <Mono>email</Mono> or <Mono>vidrev_tid</Mono>, <Mono>external_id</Mono> (order id, required), <Mono>amount</Mono> and <Mono>currency</Mono>,{" "}
           <Mono>subscription_id</Mono>, <Mono>refunded_amount</Mono>. Sending the same order again is safe.
         </Meta>
         <form method="post" action="/api/integrations">

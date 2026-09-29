@@ -95,7 +95,7 @@ async function clickThrough(replyId: string) {
     now,
   );
   if (result.kind !== "redirect") throw new Error("no redirect");
-  return new URL(result.location).searchParams.get("c2c_tid")!;
+  return new URL(result.location).searchParams.get("vidrev_tid")!;
 }
 
 function optIn(email: string, tid: string | null, extra: { externalId?: string; name?: string } = {}) {
@@ -224,7 +224,7 @@ describe.skipIf(!hasDb)("contacts (integration)", () => {
       now,
     );
     if (result.kind !== "redirect") throw new Error("no redirect");
-    const tid = new URL(result.location).searchParams.get("c2c_tid")!;
+    const tid = new URL(result.location).searchParams.get("vidrev_tid")!;
     const [before] = await db().select().from(clicks).where(eq(clicks.tid, tid));
     expect(before!.contactId).toBeNull();
 

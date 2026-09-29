@@ -59,7 +59,7 @@ describe.skipIf(!hasDb)("inbound hooks (integration)", () => {
 
   it("creates one token per account, keeps it, rotates it and only finds live tokens", async () => {
     const { account, token } = await setup();
-    expect(token).toMatch(/^c2c_hk_/);
+    expect(token).toMatch(/^vidrev_hk_/);
     expect(await ensureHookToken(db(), key, account.id)).toBe(token);
     expect(await accountForToken(db(), token)).toEqual({ accountId: account.id, active: true });
     const next = await rotateHookToken(db(), key, account.id);
@@ -73,7 +73,7 @@ describe.skipIf(!hasDb)("inbound hooks (integration)", () => {
     const { token } = await setup();
     const body = { email: `a-${randomUUID()}@example.com` };
     expect((await post("optin", null, body)).status).toBe(401);
-    expect((await post("optin", "c2c_hk_wrong", body)).status).toBe(401);
+    expect((await post("optin", "vidrev_hk_wrong", body)).status).toBe(401);
     for (const via of ["bearer", "header", "query"] as const) {
       expect((await post("optin", token, { email: `${via}-${randomUUID()}@example.com` }, { via })).status).toBe(200);
     }
@@ -93,7 +93,7 @@ describe.skipIf(!hasDb)("inbound hooks (integration)", () => {
   it("records an attributed opt-in once, from JSON or a form post", async () => {
     const { account, campaign, click, tid, token } = await setup();
     const email = `Lead-${randomUUID()}@Example.com`;
-    const first = await post("optin", token, { email, name: "Lea", c2c_tid: tid, marketing_consent: true });
+    const first = await post("optin", token, { email, name: "Lea", vidrev_tid: tid, marketing_consent: true });
     expect(await first.json()).toEqual({ ok: true, created: true, attributed: true });
     const second = await post("optin", token, { email: email.toLowerCase(), tid }, { form: true });
     expect(await second.json()).toEqual({ ok: true, created: false, attributed: true });

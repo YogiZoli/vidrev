@@ -51,7 +51,7 @@ async function account() {
 }
 
 async function endpoint(accountId: string, events: string[] = []) {
-  const result = await createEndpoint(getDb(), KEY, { accountId, url: "https://hooks.example.com/c2c", events });
+  const result = await createEndpoint(getDb(), KEY, { accountId, url: "https://hooks.example.com/vidrev", events });
   if (!result.ok) throw new Error(result.error);
   return result.id;
 }
@@ -80,7 +80,7 @@ describe.skipIf(!hasDb)("outbound webhooks (integration)", () => {
     expect(row!.configEnc).toMatch(/^v1:/);
     expect(row!.configEnc).not.toContain("hooks.example.com");
     const revealed = await revealEndpoint(getDb(), KEY, a.id, id);
-    expect(revealed?.url).toBe("https://hooks.example.com/c2c");
+    expect(revealed?.url).toBe("https://hooks.example.com/vidrev");
     expect(revealed?.secret).toMatch(/^whsec_/);
     for (let i = 0; i < 4; i += 1) await endpoint(a.id);
     expect(await createEndpoint(getDb(), KEY, { accountId: a.id, url: "https://hooks.example.com/six" })).toMatchObject({ ok: false });

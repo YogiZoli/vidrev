@@ -42,11 +42,11 @@ function date(fields: Fields, now: Date, ...names: string[]): Date {
   return now;
 }
 
-// The click id may arrive as tid, c2c_tid or, from tools that only keep UTM
+// The click id may arrive as tid, vidrev_tid or, from tools that only keep UTM
 // parameters, utm_content (CC-07 layer 1). A value that does not look like one
 // of ours is dropped rather than rejected.
 export function readTid(fields: Fields): string | null {
-  for (const name of ["tid", "c2c_tid", "utm_content"]) {
+  for (const name of ["tid", "vidrev_tid", "utm_content"]) {
     const value = text(fields, name);
     if (value && TID.test(value)) return value;
   }

@@ -554,7 +554,7 @@ export const links = pgTable(
 );
 
 // One row per click, first-party data (DECISIONS section 8). The tid is the
-// click id carried to the opt-in page as c2c_tid. Campaign, video and keyword
+// click id carried to the opt-in page as vidrev_tid. Campaign, video and keyword
 // are copied from the link so reports survive campaign deletion.
 export const clicks = pgTable(
   "clicks",

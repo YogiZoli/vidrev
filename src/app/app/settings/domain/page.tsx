@@ -176,10 +176,10 @@ export default async function DomainPage({ searchParams }: { searchParams: Promi
       <Card className="grid gap-3">
         <SectionTitle>On your opt-in page</SectionTitle>
         <Meta className="text-[15px]">
-          Every link click adds <code className="font-mono text-[13px]">c2c_tid</code> and UTM parameters (utm_content is the same id) to your opt-in page address. Most form
-          tools store UTM values on their own. To be sure, add a hidden field named <code className="font-mono text-[13px]">c2c_tid</code> to your form and this line to the page:
+          Every link click adds <code className="font-mono text-[13px]">vidrev_tid</code> and UTM parameters (utm_content is the same id) to your opt-in page address. Most form
+          tools store UTM values on their own. To be sure, add a hidden field named <code className="font-mono text-[13px]">vidrev_tid</code> to your form and this line to the page:
         </Meta>
-        <pre className="m-0 overflow-x-auto whitespace-pre-wrap rounded-md bg-muted p-3 font-mono text-[13px]">{`<script src="${appBaseUrl()}/c2c.js" async></script>`}</pre>
+        <pre className="m-0 overflow-x-auto whitespace-pre-wrap rounded-md bg-muted p-3 font-mono text-[13px]">{`<script src="${appBaseUrl()}/vidrev.js" async></script>`}</pre>
         <Meta className="text-[15px]">It fills the field, also when the visitor comes back days later.</Meta>
       </Card>
     </Page>

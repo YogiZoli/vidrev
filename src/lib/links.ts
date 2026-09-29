@@ -19,7 +19,7 @@ export function randomId(length: number, bytes: (n: number) => Buffer = randomBy
 
 // 7 characters: about 1.7e12 slugs, short enough for a YouTube reply.
 export const SLUG_LENGTH = 7;
-// Click id carried as c2c_tid: 10 characters.
+// Click id carried as vidrev_tid: 10 characters.
 export const TID_LENGTH = 10;
 
 export const newSlug = () => randomId(SLUG_LENGTH);
@@ -38,8 +38,8 @@ export function linkUrl(host: string, slug: string): string {
 export function destinationWithTid(destination: string, input: { tid: string | null; keyword: string }): string {
   const url = new URL(destination);
   if (input.tid) {
-    url.searchParams.set("c2c_tid", input.tid);
-    url.searchParams.set("utm_source", "c2c");
+    url.searchParams.set("vidrev_tid", input.tid);
+    url.searchParams.set("utm_source", "vidrev");
     url.searchParams.set("utm_medium", "comment");
     url.searchParams.set("utm_campaign", input.keyword);
     url.searchParams.set("utm_content", input.tid);
@@ -87,7 +87,7 @@ export function cookieDomain(host: string): string | null {
   return lastTwo;
 }
 
-export const TID_COOKIE = "c2c_tid";
+export const TID_COOKIE = "vidrev_tid";
 export const TID_COOKIE_DAYS = 180;
 
 export function tidCookie(tid: string, host: string): string {

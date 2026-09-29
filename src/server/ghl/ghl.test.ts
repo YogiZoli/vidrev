@@ -102,18 +102,18 @@ describe("api client", () => {
   });
 
   it("creates the contact field as TEXT on the contact model and unwraps the answer", async () => {
-    const { calls, api } = recorder(() => Response.json({ customField: { id: "F1", name: "c2c_tid", fieldKey: "contact.c2c_tid" } }));
-    expect((await api.createContactField("L1", "c2c_tid")).id).toBe("F1");
-    expect(JSON.parse(String(calls[0]!.init!.body))).toEqual({ name: "c2c_tid", dataType: "TEXT", model: "contact" });
+    const { calls, api } = recorder(() => Response.json({ customField: { id: "F1", name: "vidrev tracking id", fieldKey: "contact.vidrev_tracking_id" } }));
+    expect((await api.createContactField("L1", "vidrev tracking id")).id).toBe("F1");
+    expect(JSON.parse(String(calls[0]!.init!.body))).toEqual({ name: "vidrev tracking id", dataType: "TEXT", model: "contact" });
   });
 
   it("upserts a contact with the tracking field and adds tags separately", async () => {
-    const { calls, api } = recorder((path) => (path.endsWith("/upsert") ? Response.json({ contact: { id: "C1" } }) : Response.json({ tags: ["c2c"] })));
+    const { calls, api } = recorder((path) => (path.endsWith("/upsert") ? Response.json({ contact: { id: "C1" } }) : Response.json({ tags: ["vidrev"] })));
     expect(await api.upsertContact("L1", { email: "a@b.com", customFields: [{ id: "F1", value: "k3x9Tq2mPz" }] })).toBe("C1");
-    await api.addTags("C1", ["c2c", "c2c_kw_guide"]);
+    await api.addTags("C1", ["vidrev", "vidrev-keyword-guide"]);
     expect(JSON.parse(String(calls[0]!.init!.body))).toEqual({ locationId: "L1", email: "a@b.com", customFields: [{ id: "F1", value: "k3x9Tq2mPz" }] });
     expect(calls[1]!.url.pathname).toBe("/contacts/C1/tags");
-    expect(JSON.parse(String(calls[1]!.init!.body))).toEqual({ tags: ["c2c", "c2c_kw_guide"] });
+    expect(JSON.parse(String(calls[1]!.init!.body))).toEqual({ tags: ["vidrev", "vidrev-keyword-guide"] });
   });
 
   it("queries won opportunities and payments the documented way", async () => {

@@ -30,7 +30,7 @@ describe("mapCharge", () => {
       charge({
         customer: { id: "cus_1", email: "  Ann@Example.com ", name: "Ann", metadata: {} },
         invoice: { id: "in_1", subscription: "sub_1" },
-        metadata: { c2c_tid: "AbCdEfGhIj" },
+        metadata: { vidrev_tid: "AbCdEfGhIj" },
         amount_refunded: 2000,
       }),
     );
@@ -56,13 +56,13 @@ describe("mapCharge", () => {
   });
 
   it("reads the subscription from both API shapes and the tid from the customer metadata", () => {
-    const basil = mapCharge(charge({ invoice: { id: "in_2", parent: { subscription_details: { subscription: "sub_9" } } }, customer: { id: "cus_4", metadata: { c2c_tid: "ZyXwVuTsRq" } } }));
+    const basil = mapCharge(charge({ invoice: { id: "in_2", parent: { subscription_details: { subscription: "sub_9" } } }, customer: { id: "cus_4", metadata: { vidrev_tid: "ZyXwVuTsRq" } } }));
     expect(basil).toMatchObject({ subscriptionId: "sub_9", tid: "ZyXwVuTsRq" });
     expect(mapCharge(charge({ invoice: "in_only_an_id" }))!.subscriptionId).toBeNull();
   });
 
   it("drops a tracking id that is not one of ours", () => {
-    expect(mapCharge(charge({ metadata: { c2c_tid: "not-a-tid!" } }))!.tid).toBeNull();
+    expect(mapCharge(charge({ metadata: { vidrev_tid: "not-a-tid!" } }))!.tid).toBeNull();
   });
 
   it("caps refunds at the amount and uses the captured amount", () => {

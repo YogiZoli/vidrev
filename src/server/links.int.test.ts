@@ -140,7 +140,7 @@ describe.skipIf(!hasDb)("tracked links (integration)", () => {
     expect(row!.replyId).toBe(reply.id);
   });
 
-  it("redirects with c2c_tid and UTM, logs the click with its mapping and sets the cookie on the creator domain", async () => {
+  it("redirects with vidrev_tid and UTM, logs the click with its mapping and sets the cookie on the creator domain", async () => {
     const { account, guide, reply } = await setup();
     const host = `go.${randomUUID().slice(0, 8)}.com`;
     await getDb().insert(customDomains).values({ accountId: account.id, hostname: host, status: "active" });
@@ -151,9 +151,9 @@ describe.skipIf(!hasDb)("tracked links (integration)", () => {
     const target = new URL(result.location);
     expect(target.origin + target.pathname).toBe("https://coach.com/optin");
     expect(target.searchParams.get("ref")).toBe("yt");
-    const tid = target.searchParams.get("c2c_tid")!;
+    const tid = target.searchParams.get("vidrev_tid")!;
     expect(target.searchParams.get("utm_content")).toBe(tid);
-    expect(result.setCookie).toContain(`c2c_tid=${tid}`);
+    expect(result.setCookie).toContain(`vidrev_tid=${tid}`);
     expect(result.setCookie).toContain(`Domain=${host.slice(3)}`);
     // The route turns this into the link_clicked webhook event.
     expect(result.clicked).toMatchObject({
@@ -184,11 +184,11 @@ describe.skipIf(!hasDb)("tracked links (integration)", () => {
 
     const bot = await click(slug, FALLBACK, "Googlebot/2.1");
     expect(bot).toMatchObject({ kind: "redirect", setCookie: null, clicked: null });
-    if (bot.kind === "redirect") expect(bot.location).not.toContain("c2c_tid");
+    if (bot.kind === "redirect") expect(bot.location).not.toContain("vidrev_tid");
 
     const human = await click(slug);
     expect(human).toMatchObject({ kind: "redirect", setCookie: null });
-    if (human.kind === "redirect") expect(human.location).toContain("c2c_tid=");
+    if (human.kind === "redirect") expect(human.location).toContain("vidrev_tid=");
 
     await getDb().update(accounts).set({ status: "suspended" }).where(eq(accounts.id, account.id));
     const before = (await getDb().select().from(clicks).where(eq(clicks.accountId, account.id))).length;
@@ -223,7 +223,7 @@ describe.skipIf(!hasDb)("tracked links (integration)", () => {
     for (const url of [link!.url, staticLink!.url]) {
       const result = await click(slugOf(url));
       expect(result.kind).toBe("redirect");
-      if (result.kind === "redirect") expect(result.location.startsWith("https://coach.com/optin?ref=yt&c2c_tid=")).toBe(true);
+      if (result.kind === "redirect") expect(result.location.startsWith("https://coach.com/optin?ref=yt&vidrev_tid=")).toBe(true);
     }
   });
 });

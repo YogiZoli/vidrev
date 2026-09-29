@@ -14,7 +14,7 @@ import type { EmitInput } from "./events";
 
 export type Emit = (input: EmitInput) => Promise<void>;
 
-export const HOOK_TOKEN_PREFIX = "c2c_hk_";
+export const HOOK_TOKEN_PREFIX = "vidrev_hk_";
 
 export function newHookToken(): string {
   return `${HOOK_TOKEN_PREFIX}${randomToken(24)}`;

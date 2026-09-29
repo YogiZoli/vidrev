@@ -13,7 +13,7 @@ import { errorFields, log } from "@/lib/log";
 import { type Alerter, createAlerter } from "./alerts";
 import { type ChannelDeps, disconnectChannel, expireStuckConnects, syncChannel } from "./channels";
 import { EmailSendError, senderAddress, sendWithResend } from "./email";
-import { createDraft } from "./drafts";
+import { createDraft, requeueUndraftedComments } from "./drafts";
 import { checkDomain, type DomainDeps, queueDomainChecks, removeDomainHostname } from "./domains";
 import { runJob, runSteps } from "./jobs";
 import { runRetention } from "./retention";
@@ -268,6 +268,7 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
   await work<AccountJob>(QUEUES.reportRefresh, (job) => refreshAccountReports(reportDeps(boss), job.data.accountId));
   await schedule(QUEUES.reportHourly, "7 * * * *", () => [
     ["contacts backfill", () => backfillContacts(getDb())],
+    ["undrafted comments", () => requeueUndraftedComments({ db: getDb(), enqueue: sendVia(boss) })],
     ["mark reports dirty", () => markAllReportsDirty(getDb())],
   ]);
   // Contacts for rows older than the Contact model (DECISIONS section 13.10):

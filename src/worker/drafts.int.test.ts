@@ -5,7 +5,7 @@ import { closeDb, getDb } from "@/db/client";
 import { accounts, campaigns, channels, comments, replies, templates } from "@/db/schema";
 import { runMigrations } from "@/scripts/migrate";
 import { createAccountWithUser } from "@/server/accounts";
-import { createDraft, type DraftDeps } from "./drafts";
+import { createDraft, type DraftDeps, requeueUndraftedComments, UNDRAFTED_AFTER_MS } from "./drafts";
 
 const hasDb = Boolean(process.env.DATABASE_URL);
 const now = new Date("2026-09-25T12:00:00Z");
@@ -104,6 +104,27 @@ describe.skipIf(!hasDb)("drafts (integration)", () => {
     const { d } = deps({ apiKey: "k", fail: true });
     await createDraft(d, comment.id);
     expect(await replyFor(comment.id)).toMatchObject({ language: "es", draftSource: "template", body: "Aquí está: {link}" });
+  });
+
+  it("queues a stored comment again when its draft job was lost", async () => {
+    const { comment } = await setup("guide please");
+    await getDb().update(comments).set({ fetchedAt: now }).where(eq(comments.id, comment.id));
+    const at = (ms: number) => ({ ...deps().d, now: () => new Date(now.getTime() + ms) });
+    const mine = (sent: { data: unknown }[]) => sent.filter((s) => (s.data as { commentId: string }).commentId === comment.id);
+
+    const early: { queue: string; data: unknown }[] = [];
+    await requeueUndraftedComments({ ...at(60_000), enqueue: async (queue, data) => void early.push({ queue, data }) });
+    expect(mine(early)).toHaveLength(0);
+
+    const late: { queue: string; data: unknown }[] = [];
+    await requeueUndraftedComments({ ...at(UNDRAFTED_AFTER_MS + 60_000), enqueue: async (queue, data) => void late.push({ queue, data }) });
+    expect(late).toContainEqual({ queue: "reply.draft", data: { commentId: comment.id } });
+
+    // Once drafted, it is left alone.
+    await createDraft(deps().d, comment.id);
+    const after: { queue: string; data: unknown }[] = [];
+    await requeueUndraftedComments({ ...at(UNDRAFTED_AFTER_MS + 120_000), enqueue: async (queue, data) => void after.push({ queue, data }) });
+    expect(mine(after)).toHaveLength(0);
   });
 
   it("marks the draft skipped when the monthly cap is used up", async () => {

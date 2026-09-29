@@ -24,13 +24,13 @@ Open **Integrations**, find the Stripe card, paste the key, press **Connect Stri
 
 - Payments of the last two years are read once, quietly: they show up in your reports, but no webhook and no GoHighLevel tag is triggered for old sales.
 - Then new payments are read every 5 minutes. Refunds are picked up automatically.
-- A payment is matched to a comment by the buyer's email (or the Stripe customer, or a `c2c_tid` in the payment or customer metadata). If the same buyer already opted in through your tracked link, the payment lands on the same person, never on a duplicate.
+- A payment is matched to a comment by the buyer's email (or the Stripe customer, or a `vidrev_tid` in the payment or customer metadata). If the same buyer already opted in through your tracked link, the payment lands on the same person, never on a duplicate.
 - If the same sale also reaches vidrev from GoHighLevel or a webhook, it is counted once, and Stripe is the source of record.
 - Subscriptions: renewals follow the first payment for as long as the subscription runs.
 
 ## 4. Optional: tell Stripe the tracking id
 
-If your checkout is built with Stripe Checkout or a payment link, put the tracking id in the metadata as `c2c_tid` (the value of the `c2c_tid` URL parameter). It makes the match exact even when the buyer uses a different email at checkout. Without it, the email match still works.
+If your checkout is built with Stripe Checkout or a payment link, put the tracking id in the metadata as `vidrev_tid` (the value of the `vidrev_tid` URL parameter). It makes the match exact even when the buyer uses a different email at checkout. Without it, the email match still works.
 
 ## 5. Disconnect
 

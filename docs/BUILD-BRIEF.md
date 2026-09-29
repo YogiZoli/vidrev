@@ -43,11 +43,11 @@ Phase 2 - Scaffold and deploy: app skeleton, Postgres, migrations, health check,
 Phase 3 - Accounts: magic-link login, provisioning webhook, plans table and seeds, YouTube OAuth connect with encrypted tokens (give me exact steps to create the new GCP project and OAuth client). Stop.
 Phase 4 - Comment engine: channel-level polling with activity tiers, PubSubHubbub upload detection, keyword rules, AI drafts with the user's own key, templates per language, approval queue, reply scheduling with the daily quota budget, transparent queue, manual fallback, quota ledger. Stop.
 Phase 5 - Tracked links on the USER'S OWN domain (mission critical): CNAME onboarding with DNS check, automatic TLS via Cloudflare for SaaS (Custom Hostnames), fallback domain, click ids, campaign/video/keyword mapping. Stop.
-Phase 6 - Integrations: outbound HMAC webhooks and tag scheme (c2c, c2c_kw_<keyword>, c2c_vid_<videoId>, c2c_buyer); GoHighLevel via OAuth: write contacts and tags, read won opportunities and buyer tags; universal inbound opt-in and purchase webhooks. Stop.
+Phase 6 - Integrations: outbound HMAC webhooks and tag scheme (vidrev, vidrev-source-youtube, vidrev-keyword-<keyword>, vidrev-temperature-<t>-lead, vidrev-video-<videoId>, vidrev-buyer); GoHighLevel via OAuth: write contacts and tags, read won opportunities and buyer tags; universal inbound opt-in and purchase webhooks. Stop.
 Phase 7 - Attribution and reporting: opt-in and purchase matching (email + tracking id, last touch within 180 days, refunds), dashboard per video and keyword, headline sentence. Stop.
 Phase 8 - Stripe revenue ingestion (read-only via Stripe Connect OAuth). Stop.
 Phase 9 - Audit my channel: public page, API key from its own separate GCP project, 24h cache, IP rate limit, real numbers only, email opt-in for the full report, stack detection by following description links. Stop.
-Phase 10 - GHL Marketplace connector: free Marketplace app for one-click connection (location OAuth), creates the c2c_tid field and tags, optional workflow trigger and action. Stop.
+Phase 10 - GHL Marketplace connector: free Marketplace app for one-click connection (location OAuth), creates the vidrev tracking id field and tags, optional workflow trigger and action. Stop.
 Phase 12 - Compliance and launch readiness: Privacy Policy and Terms drafts for BRAND_BASE_URL (YouTube API Services disclosure, Google Privacy Policy link, Limited Use statement, revocation steps), 30-day retention job, Google OAuth verification checklist and demo video script, quota extension request draft sized to real usage. Stop.
 
 ## Working style

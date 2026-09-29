@@ -24,7 +24,7 @@ Test the two install paths once on the owner's own sub-account before submitting
 - **Short description** (max 160 characters): Tag contacts from video comment keywords and read buyers back into HighLevel, so you see which video made the sale. (about 125 characters)
 - **Detailed description**:
   vidrev turns keyword comments under your videos into subscribers, buyers and revenue, per video and per keyword. When a viewer comments a keyword, you approve a reply that carries a tracked link on your own domain. The link leads to your own opt-in page. This app connects your sub-account so that:
-  - every contact who came through a comment is tagged `c2c`, `c2c_kw_<keyword>`, `c2c_vid_<videoId>` and gets the tracking id in a contact field;
+  - every contact who came through a comment is tagged `vidrev`, `vidrev-source-youtube`, `vidrev-keyword-<keyword>`, `vidrev-temperature-<cold|warm|hot>-lead`, `vidrev-video-<videoId>`, `vidrev-buyer` and gets the tracking id in a contact field;
   - buyers, won opportunities and payments are read back, so revenue is attributed to the right video;
   - an optional workflow action returns the video and keyword behind a contact.
   Nothing is posted or sent from your sub-account. The app never reads messages or conversations. The connector is free; the vidrev account is billed separately.
@@ -48,7 +48,7 @@ These are the scopes the app requests (`DEFAULT_GHL_SCOPES`). Each answer is wha
 | `payments/transactions.readonly` | Read successful payments and refunds to attribute revenue to a video. |
 | `locations.readonly` | Show the sub-account name on the connection. |
 | `locations/customFields.readonly` | Find an existing tracking field before creating one. |
-| `locations/customFields.write` | Create the single `c2c_tid` contact field that holds the tracking id. |
+| `locations/customFields.write` | Create the single `vidrev tracking id` contact field that holds the tracking id. |
 
 Not requested on purpose: conversations, messages, calendars, campaigns, workflows write, users, snapshots. If the reviewer asks for fewer, `payments/transactions.readonly` and `opportunities.readonly` are the ones that can be dropped (a creator without payments in HighLevel does not need them), at the cost of the buyer read-back.
 

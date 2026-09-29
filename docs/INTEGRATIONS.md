@@ -31,7 +31,7 @@ Body:
   "tid": "k3x9Tq2mPz",
   "email": "lea@example.com",
   "source": "webhook",
-  "tags": ["c2c", "c2c_kw_guide", "c2c_vid_dQw4w9WgXcQ"]
+  "tags": ["vidrev", "vidrev-source-youtube", "vidrev-keyword-guide", "vidrev-temperature-cold-lead", "vidrev-video-dQw4w9WgXcQ"]
 }
 ```
 
@@ -67,7 +67,7 @@ Answer with any `2xx` within 10 seconds. Anything else (or no answer) is retried
 
 ### Tags
 
-For CRMs with tags: `c2c` (from a comment), `c2c_kw_<keyword>` (letters and digits, no accents), `c2c_vid_<videoId>` and `c2c_buyer` (the person bought). Every event carries the matching list in `tags`. Some CRMs lowercase tags, so match people by `tid` or email, not by the video id inside a tag.
+For CRMs with tags: `vidrev`, `vidrev-source-youtube`, `vidrev-keyword-<keyword>`, `vidrev-temperature-<cold|warm|hot>-lead`, `vidrev-video-<videoId>`, `vidrev-buyer` (keywords and videos from every tracked link the person clicked in the last 30 days; only the hottest temperature). Every event carries the matching list in `tags`. Some CRMs lowercase tags, so match people by `tid` or email, not by the video id inside a tag.
 
 ## 2. Tell us about subscribers and buyers (inbound hooks)
 
@@ -83,7 +83,7 @@ Authenticate with the token: `Authorization: Bearer <token>`, or the header `X-H
 | Field | Notes |
 | --- | --- |
 | `email` | Required. |
-| `c2c_tid` | The tracking id from your opt-in page (`tid` and `utm_content` also work). Without it we cannot attribute the subscriber to a video. |
+| `vidrev_tid` | The tracking id from your opt-in page (`tid` and `utm_content` also work). Without it we cannot attribute the subscriber to a video. |
 | `name` | Optional (`first_name` and `last_name` also work). |
 | `consent_marketing` | Optional true or false. Left unknown when not sent. |
 | `external_id` | Optional id of the submission. Sending the same one again is ignored. |
@@ -92,7 +92,7 @@ Authenticate with the token: `Authorization: Bearer <token>`, or the header `X-H
 ```bash
 curl -X POST "$APP/api/hooks/optin" \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -d '{"email":"lea@example.com","c2c_tid":"k3x9Tq2mPz","name":"Lea"}'
+  -d '{"email":"lea@example.com","vidrev_tid":"k3x9Tq2mPz","name":"Lea"}'
 ```
 
 Answer: `{"ok":true,"created":true,"attributed":true}`. A tracking id that is unknown, or belongs to another account, gives `attributed: false`.
@@ -101,7 +101,7 @@ Answer: `{"ok":true,"created":true,"attributed":true}`. A tracking id that is un
 
 | Field | Notes |
 | --- | --- |
-| `email` or `c2c_tid` | At least one. |
+| `email` or `vidrev_tid` | At least one. |
 | `external_id` | Required: the order or payment id. It makes retries safe and lets a later refund find the sale. |
 | `amount` and `currency` | For example `97.00` and `USD`. Or `amount_cents`. Plain numbers only. Leave both out for a buyer without a reported amount. |
 | `subscription_id` | For recurring payments. |
@@ -120,4 +120,4 @@ Stripe has its own connector: paste a read-only restricted key on the Integratio
 
 ### GoHighLevel without the connector
 
-In a workflow, add a **Custom Webhook** action: method `POST`, URL as above, header `Authorization: Bearer <token>`, body fields `email` = `{{contact.email}}`, `c2c_tid` = your custom field's merge tag. Trigger it on form submitted (subscriber) or on payment received (buyer, with `external_id` = the order or transaction id).
+In a workflow, add a **Custom Webhook** action: method `POST`, URL as above, header `Authorization: Bearer <token>`, body fields `email` = `{{contact.email}}`, `vidrev_tid` = your custom field's merge tag. Trigger it on form submitted (subscriber) or on payment received (buyer, with `external_id` = the order or transaction id).

@@ -64,7 +64,7 @@ To draft a reply, the comment text and your approved templates are sent to an AI
 ## 8. Cookies
 
 - app.vidrev.app uses one session cookie to keep you signed in.
-- When a viewer clicks a tracked link on your own domain, we set a first-party cookie `c2c_tid` (a random click id, 180 days) on your domain, so your opt-in page can attribute a later sign-up. It contains no personal data. The optional `c2c.js` script reads it on your own pages.
+- When a viewer clicks a tracked link on your own domain, we set a first-party cookie `vidrev_tid` (a random click id, 180 days) on your domain, so your opt-in page can attribute a later sign-up. It contains no personal data. The optional `vidrev.js` script reads it on your own pages.
 
 ## 9. Who processes data for us
 

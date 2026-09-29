@@ -105,7 +105,7 @@ describe.skipIf(!hasDb)("audit lead into the owner's GoHighLevel (integration)",
       ]),
     );
     expect(tags!.url).toMatch(/\/contacts\/c-1\/tags$/);
-    expect(tags!.body.tags).toEqual(["vidrev-lead-audit", "temp-warm", "vidrev-consent-marketing"]);
+    expect(tags!.body.tags).toEqual(["vidrev-lead-audit", "vidrev-temperature-warm-lead", "vidrev-consent-marketing"]);
 
     const noConsent = await audit({
       requesterEmail: "quiet@example.com",
@@ -114,7 +114,7 @@ describe.skipIf(!hasDb)("audit lead into the owner's GoHighLevel (integration)",
     });
     const again = fakeGhl();
     await pushAuditLead({ db: db(), fetch: again.fetch, crm }, noConsent.id);
-    expect(again.calls[1]!.body.tags).toEqual(["vidrev-lead-audit", "temp-warm"]);
+    expect(again.calls[1]!.body.tags).toEqual(["vidrev-lead-audit", "vidrev-temperature-warm-lead"]);
   });
 
   it("skips without a configured CRM or without a requester", async () => {

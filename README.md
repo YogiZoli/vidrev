@@ -2,7 +2,7 @@
 
 Internal codename for a new SaaS: **"See which video makes money from your comments."**
 
-A viewer comments a keyword under a video. The app drafts a reply with AI, the creator approves it, and the app posts it from the creator's account with a tracked link on the creator's own domain. The link leads to the creator's own opt-in page, which stores a tracking id (`c2c_tid`) in a hidden field. Purchases are matched back by email and tracking id to the video and keyword.
+A viewer comments a keyword under a video. The app drafts a reply with AI, the creator approves it, and the app posts it from the creator's account with a tracked link on the creator's own domain. The link leads to the creator's own opt-in page, which stores a tracking id (`vidrev_tid`) in a hidden field. Purchases are matched back by email and tracking id to the video and keyword.
 
 UI vocabulary: Comment, Subscriber, Buyer, Revenue.
 

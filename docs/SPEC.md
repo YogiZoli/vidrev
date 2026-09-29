@@ -4,7 +4,7 @@ Source: Drive doc "05 C2C SaaS SPEC (technical specification)", draft v1, 2026-0
 
 Merge notes (2026-09-29, Phase 14): mandatory onboarding, the Video, Keyword, Target URL flow, the keyword catalog with lead temperature and the new navigation are described in section 3a and DECISIONS section 19.
 
-Merge notes (2026-09-25, Phase 3): owner answers to the Phase 1 review (DECISIONS sections 5 and 6) are merged below; where this file and DECISIONS.md differ, DECISIONS.md wins. Earlier merge notes: env var `LINK_BASE_URL` is renamed `LINK_FALLBACK_BASE_URL` (CC-01); the tracking parameter is `c2c_tid` (CC-02); references to the legacy C2C app as a pattern are dropped (CC-04, D-30).
+Merge notes (2026-09-25, Phase 3): owner answers to the Phase 1 review (DECISIONS sections 5 and 6) are merged below; where this file and DECISIONS.md differ, DECISIONS.md wins. Earlier merge notes: env var `LINK_BASE_URL` is renamed `LINK_FALLBACK_BASE_URL` (CC-01); the tracking parameter is `vidrev_tid` (CC-02); references to the legacy C2C app as a pattern are dropped (CC-04, D-30).
 
 ## 1. Principles
 
@@ -55,7 +55,7 @@ flowchart LR
   WK <--> DB
   WK <-->|OAuth youtube.force-ssl| YT
   YT -->|PubSubHubbub push: new uploads| WEB
-  WEB -->|redirect + c2c_tid| CRM
+  WEB -->|redirect + vidrev_tid| CRM
   CRM -->|opt-in: GHL read or inbound webhook| WEB
   WK -->|read purchases| ST
   WK -->|contacts, tags, won opportunities| GHL
@@ -186,8 +186,8 @@ Accounts, users, sessions, magic_link_tokens, plans, provisioning_events, channe
 
 - Hosts: the user's own custom hostname by default (D-33), `LINK_FALLBACK_BASE_URL` for users without a domain.
 - Format: `{link host}/{slug}`; slug is unique per campaign and video.
-- On click: create a `tid` (short random id), log the click (bot filter by user agent and known crawlers), redirect 302 to `destination_url` with `c2c_tid={tid}` and `utm_source=c2c`, `utm_medium=comment`, `utm_campaign=<keyword>`, `utm_content=<tid>` appended (preserving existing query parameters).
-- Three capture layers (CC-07): (1) UTM parameters, stored automatically by most form tools and CRMs; (2) the hidden `c2c_tid` field; (3) on the creator's own subdomain the redirect sets a first-party cookie on the registrable domain, and an optional script on the opt-in page fills the hidden field from it, so a visitor who returns later is still attributed. No match without a tracking id or email; never estimated.
+- On click: create a `tid` (short random id), log the click (bot filter by user agent and known crawlers), redirect 302 to `destination_url` with `vidrev_tid={tid}` and `utm_source=vidrev`, `utm_medium=comment`, `utm_campaign=<keyword>`, `utm_content=<tid>` appended (preserving existing query parameters).
+- Three capture layers (CC-07): (1) UTM parameters, stored automatically by most form tools and CRMs; (2) the hidden `vidrev_tid` field; (3) on the creator's own subdomain the redirect sets a first-party cookie on the registrable domain, and an optional script on the opt-in page fills the hidden field from it, so a visitor who returns later is still attributed. No match without a tracking id or email; never estimated.
 - Tracked links keep redirecting after a cancellation; only measurement stops (R-35).
 - Custom domain onboarding (core MVP, mission critical): the user adds a CNAME (e.g. go.userdomain.com) to the link service; the app verifies DNS and provisions automatic TLS via Cloudflare for SaaS (Custom Hostnames).
 
@@ -195,7 +195,7 @@ Accounts, users, sessions, magic_link_tokens, plans, provisioning_events, channe
 
 | Method | How |
 | --- | --- |
-| GHL (native connector) | User adds a hidden field `c2c_tid` to their GHL form. The worker reads new contacts with that field (GHL API or GHL webhook) and creates `subscribers` rows |
+| GHL (native connector) | User adds a hidden field `vidrev_tid` to their GHL form. The worker reads new contacts with that field (GHL API or GHL webhook) and creates `subscribers` rows |
 | Universal inbound webhook | `POST /api/hooks/optin` with `tid`, `email`, optional `name`; per-account secret. Works with any form tool via its webhook, Zapier, Make or n8n |
 | Hosted fallback | Minimal hosted opt-in page plus resource email via Resend, for users without any system (D-08) |
 
@@ -204,17 +204,17 @@ Each opt-in emits outbound `opt_in` and applies tags where the connector support
 ## 10. Purchases and attribution
 
 - Sources: GHL (won opportunity or buyer tag, with value), Stripe (read-only via Stripe Connect OAuth: `checkout.session.completed`, `invoice.paid`, `charge.refunded`), universal inbound webhook `POST /api/hooks/purchase`.
-- Matching: normalized email to subscriber. If the purchase carries a `c2c_tid`, prefer it.
+- Matching: normalized email to subscriber. If the purchase carries a `vidrev_tid`, prefer it.
 - Attribution rule (default, configurable per account): **last touch** before the purchase within a 180-day window (B-08). Refunds reduce revenue.
 - Metrics: buyers = unique purchasing emails; revenue = sum of net amounts.
-- Phase 7 (DECISIONS section 12, P7-01 to P7-04): duplicates across sources link to one canonical purchase (same buyer, currency and amount within 72 hours); the purchase's own `c2c_tid` first, else the latest attributed opt-in of the email, within 180 days; renewals follow the first payment of the subscription for life (Q-07); the whole account is recomputed by the worker after new data.
+- Phase 7 (DECISIONS section 12, P7-01 to P7-04): duplicates across sources link to one canonical purchase (same buyer, currency and amount within 72 hours); the purchase's own `vidrev_tid` first, else the latest attributed opt-in of the email, within 180 days; renewals follow the first payment of the subscription for life (Q-07); the whole account is recomputed by the worker after new data.
 
 ## 11. Outbound webhooks
 
 - Events: `comment_matched`, `reply_posted`, `link_clicked`, `opt_in`, `purchase`.
 - Payload: `{ "event", "id", "occurred_at", "account_id", "channel_id", "video_id", "campaign", "keyword", "tid", "email" (opt_in/purchase only), "amount_cents", "currency" }`.
 - Header `X-Signature` = HMAC-SHA256 of the raw body with the integration secret; `X-Event-Id` for idempotency. Retries with exponential backoff for 24 hours.
-- Tag scheme for CRMs with tags: `c2c`, `c2c_kw_<keyword>`, `c2c_vid_<videoId>`, `c2c_buyer`.
+- Tag scheme for CRMs with tags (DECISIONS A-11): `vidrev`, `vidrev-source-youtube`, `vidrev-keyword-<keyword>`, `vidrev-temperature-<cold|warm|hot>-lead`, `vidrev-video-<videoId>`, `vidrev-buyer`.
 
 ## 12. Reporting
 
@@ -235,8 +235,8 @@ Each opt-in emits outbound `opt_in` and applies tags where the connector support
 
 ## 14. GHL Marketplace connector
 
-- A free GHL Marketplace app (location-level OAuth, D-22). Created as Private in Phase 6 (cap: 5 agencies), switched to Public with "Start Public review" in Phase 10 (Q-17 b). Billing stays in the owner's GHL checkout. On install: store tokens in `integrations`, map the location to an account (existing or invite), create the `c2c_tid` custom field and tags.
-- Capabilities: write contacts and tags; read contacts with `c2c_tid`; read won opportunities and buyer tags; optional workflow trigger ("C2C subscriber created") and action ("Add note: C2C source").
+- A free GHL Marketplace app (location-level OAuth, D-22). Created as Private in Phase 6 (cap: 5 agencies), switched to Public with "Start Public review" in Phase 10 (Q-17 b). Billing stays in the owner's GHL checkout. On install: store tokens in `integrations`, map the location to an account (existing or invite), create the `vidrev_tid` custom field and tags.
+- Capabilities: write contacts and tags; read contacts with `vidrev_tid`; read won opportunities and buyer tags; optional workflow trigger ("vidrev subscriber created") and action ("Add note: vidrev source").
 - The connector does not handle billing.
 
 ## 15. Security and compliance

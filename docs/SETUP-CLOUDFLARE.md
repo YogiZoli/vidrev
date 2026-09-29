@@ -58,7 +58,7 @@ It sets `BRAND_BASE_URL`, `LINK_FALLBACK_BASE_URL=https://go.vidrev.app`, `CUSTO
 ## 7. Test
 
 1. `https://go.vidrev.app/abcdefg` shows "This link does not exist." (the route works; a 5xx or Railway page means steps 4 or 5 are off).
-2. On `/app/campaigns` each keyword now shows a `https://go.vidrev.app/...` link. Open it: you land on your opt-in page with `c2c_tid=` and `utm_*` in the address.
+2. On `/app/campaigns` each keyword now shows a `https://go.vidrev.app/...` link. Open it: you land on your opt-in page with `vidrev_tid=` and `utm_*` in the address.
 3. Own domain: on `/app/domain` add a subdomain of any other domain you own (not vidrev.app), add the one CNAME it shows. Within minutes the page says **Live** and you get an email; new replies then use that domain.
 
 ## Later (not needed for Phase 5)

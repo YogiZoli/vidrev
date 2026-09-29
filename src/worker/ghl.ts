@@ -280,6 +280,12 @@ export async function syncGhl(deps: GhlWorkerDeps, integrationId: string): Promi
           state.trackingField = "vidrev";
         });
       }
+      // readGhlConfig reads the old buyer tag default as vidrev-buyer; store it
+      // that way once, so no c2c name stays in the saved settings (A-11).
+      if (state.names !== "vidrev") {
+        await updateGhlConfig(deps, integrationId, { buyerTag: config.buyerTag });
+        state.names = "vidrev";
+      }
       await step("contacts", async () => {
         state.contactsCursor = await syncContacts(deps, api, row.accountId, config, state, now);
       });

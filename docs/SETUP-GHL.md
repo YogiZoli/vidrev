@@ -51,13 +51,13 @@ Paste the Client ID, then the Client Secret (nothing is printed). Then redeploy 
 ## 3. Connect your own sub-account
 
 1. Sign in, open **Integrations**, press **Connect GoHighLevel**, pick the sub-account and allow.
-2. Within a minute the page shows the sub-account name and "connected". The worker created the contact field `c2c_tid` (or reused yours) and ran the first sync.
-3. Add the field to your opt-in form: in the form builder add a **hidden field** mapped to the contact field `c2c_tid` and set its **Query Key** to `c2c_tid`, so the form fills it from the page address. Or add the `<script src=".../c2c.js">` line shown on the Link domain page. Without either, we still read `utm_content` from the contact's attribution.
+2. Within a minute the page shows the sub-account name and "connected". The worker created the contact field `vidrev tracking id` (or reused yours) and ran the first sync.
+3. Add the field to your opt-in form: in the form builder add a **hidden field** mapped to the contact field `vidrev tracking id` and set its **Query Key** to `vidrev_tid`, so the form fills it from the page address. Or add the `<script src=".../vidrev.js">` line shown on the Link domain page. Without either, we still read `utm_content` from the contact's attribution.
 
 ## 4. Check it works
 
-- Click a tracked link, fill the form: a contact appears in HighLevel with the tags `c2c`, `c2c_kw_<keyword>`, `c2c_vid_<videoId>` and the `c2c_tid` field set; **Integrations, Recent deliveries** lists the delivery.
-- Mark a contact as a buyer by adding the buyer tag (default `c2c_buyer`), or win an opportunity, or take a payment: within 5 minutes (seconds with webhooks) the buyer appears in `purchases`. Payments carry amount and currency; tags and won opportunities are buyers with revenue "not reported".
+- Click a tracked link, fill the form: a contact appears in HighLevel with the tags `vidrev`, `vidrev-source-youtube`, `vidrev-keyword-<keyword>`, `vidrev-temperature-<cold|warm|hot>-lead`, `vidrev-video-<videoId>`, `vidrev-buyer` and the `vidrev tracking id` field set; **Integrations, Recent deliveries** lists the delivery.
+- Mark a contact as a buyer by adding the buyer tag (default `vidrev-buyer`), or win an opportunity, or take a payment: within 5 minutes (seconds with webhooks) the buyer appears in `purchases`. Payments carry amount and currency; tags and won opportunities are buyers with revenue "not reported".
 - Remove the app in HighLevel: the uninstall webhook wipes the stored tokens; without it the next sync fails and the creator gets a "Reconnect GoHighLevel" email.
 
 ## 5. Things to confirm on the first live run
@@ -102,4 +102,4 @@ An optional step creators can drop into a HighLevel workflow. It answers with th
 
 What to confirm on the first live run: the note endpoint (`POST /contacts/{id}/notes`, `addNote` in `src/server/ghl/api.ts`, marked "verify live") accepts a body with and without `userId`, and HighLevel sends the header exactly as configured.
 
-There is no custom workflow trigger on purpose (DECISIONS P10-06): use HighLevel's built-in **Contact Tag** trigger with `c2c`, `c2c_kw_<keyword>` or `c2c_vid_<videoId>`.
+There is no custom workflow trigger on purpose (DECISIONS P10-06): use HighLevel's built-in **Contact Tag** trigger with `vidrev`, `vidrev-keyword-<keyword>`, `vidrev-temperature-hot-lead` or `vidrev-video-<videoId>`.

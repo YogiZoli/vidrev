@@ -11,7 +11,7 @@ import { getAudit } from "./service";
 // No comment text or other YouTube data leaves the app: only the channel the
 // visitor typed, the audit link and two numbers of their own result.
 
-export const AUDIT_LEAD_TAGS = ["vidrev-lead-audit", "temp-warm"] as const;
+export const AUDIT_LEAD_TAGS = ["vidrev-lead-audit", "vidrev-temperature-warm-lead"] as const;
 export const CONSENT_TAG = "vidrev-consent-marketing";
 
 export interface OwnerCrm {

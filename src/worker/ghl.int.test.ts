@@ -253,7 +253,7 @@ describe.skipIf(!hasDb)("GoHighLevel connector (integration)", () => {
     const since = ago(3_600_000);
     r.fake.contacts = [
       { id: "c1", email: "Lead@X.com", firstName: "Lea", lastName: "Kim", customFields: [{ id: "F1", value: r.tid }], dateAdded: since },
-      { id: "c2", email: "buyer@x.com", tags: ["Other", "C2C_Buyer"], dateAdded: since },
+      { id: "c2", email: "buyer@x.com", tags: ["Other", "Vidrev-Buyer"], dateAdded: since },
       { id: "c3", email: null, dateAdded: since },
       { id: "c4", email: "old@x.com", customFields: [{ id: "F1", value: r.tid }], dateAdded: ago(30 * 86_400_000) },
     ];

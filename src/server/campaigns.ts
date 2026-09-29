@@ -5,6 +5,7 @@ import { encryptSecret } from "@/lib/crypto";
 import { LANGUAGE_OPTIONS } from "@/lib/language";
 import { catalogKeyword, misspellings } from "@/lib/keyword-catalog";
 import { templateProblems, TEMPLATE_PROBLEM_TEXT } from "@/lib/templates";
+import { isOwnHost, OWN_HOST_ERROR, ownHosts } from "./own-hosts";
 
 // Campaign, template and AI settings management for the signed-in account.
 // Every query is scoped by account id.
@@ -67,6 +68,7 @@ export async function createCampaign(db: Db, accountId: string, input: CampaignI
   const keyword = picked.keyword;
   const intent: Intent = picked.temperature;
   if (!validUrl(input.destinationUrl.trim())) return { ok: false, error: "Enter the full address of your opt-in page (https://...)." };
+  if (isOwnHost(input.destinationUrl.trim(), await ownHosts(db, accountId))) return { ok: false, error: OWN_HOST_ERROR };
   const pasted = input.videos.trim() ? parseVideoIds(input.videos) : [];
   if (pasted === null) return { ok: false, error: "Some video links were not recognized." };
   const ticked = (input.videoIds ?? []).filter((id) => /^[A-Za-z0-9_-]{11}$/.test(id));

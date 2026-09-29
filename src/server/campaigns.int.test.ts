@@ -2,11 +2,12 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { campaigns, channels, videos } from "@/db/schema";
+import { campaigns, channels, customDomains, videos } from "@/db/schema";
 import { encryptSecret } from "@/lib/crypto";
 import { runMigrations } from "@/scripts/migrate";
 import { createAccountWithUser } from "./accounts";
 import { createCampaign, overlaps } from "./campaigns";
+import { findOwnHostDestinations, OWN_HOST_ERROR } from "./own-hosts";
 import { clearVideoCache, pickableVideos } from "./video-picker";
 
 const hasDb = Boolean(process.env.DATABASE_URL);
@@ -58,6 +59,22 @@ describe.skipIf(!hasDb)("campaigns (integration)", () => {
     expect(price).toMatchObject({ intent: "hot", videoIds: null });
     expect(price.aliases).toContain("BUYS");
     expect(rows.find((r) => r.keyword === "GUIDE")?.aliases).toEqual(["GUDIE", "GUIDD"]);
+  });
+
+  it("refuses a destination on our own app, link or tracked-link host, and finds old ones", async () => {
+    const { db, account, channel } = await setup();
+    process.env.APP_BASE_URL = "https://app.vidrev.test";
+    process.env.LINK_FALLBACK_BASE_URL = "https://go.vidrev.test";
+    const own = `links-${randomUUID().slice(0, 8)}.creator.test`;
+    await db.insert(customDomains).values({ accountId: account.id, hostname: own });
+    for (const url of ["https://app.vidrev.test/optin", "https://GO.vidrev.test/x", `https://${own}/guide`]) {
+      expect(await createCampaign(db, account.id, { ...input, channelId: channel.id, allVideos: true, destinationUrl: url })).toEqual({ ok: false, error: OWN_HOST_ERROR });
+    }
+    expect(await createCampaign(db, account.id, { ...input, channelId: channel.id, allVideos: true, destinationUrl: "https://vidrev.test/optin" })).toEqual({ ok: true });
+
+    const before = await findOwnHostDestinations(db);
+    await db.update(campaigns).set({ destinationUrl: "https://app.vidrev.test/optin" }).where(eq(campaigns.accountId, account.id));
+    expect(await findOwnHostDestinations(db)).toBe(before + 1);
   });
 
   it("refuses a second rule for the same keyword on a video it already watches", async () => {

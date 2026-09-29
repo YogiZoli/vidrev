@@ -62,9 +62,8 @@ Phase plan changes (all accepted): compliance pack and quota extension request r
 
 ## Next (proposed order)
 
-1. Small ports from C2C: guard against destinations on our own hosts (apex artifact), restore a skipped reply.
-2. Commenters as GoHighLevel contacts: on hold, owner decides (DECISIONS A-10).
-3. Owner items: paste the changed landing blocks (Hero, Pricing, FAQ) and the checkout block from `design/landing/ghl-kit.html`; replace the temporary affiliate link once the LLC and own GoHighLevel exist (A-08); the LLC, then Privacy, Terms, Google verification and Marketplace Public review (C2C's passed pack is the template).
+1. Commenters as GoHighLevel contacts: on hold, owner decides (DECISIONS A-10).
+2. Owner items: checkout "Works with GoHighLevel" block waits until the checkout exists (Stripe not connected yet); replace the temporary affiliate link once the LLC and own GoHighLevel exist (A-08); the LLC, then Privacy, Terms, Google verification and Marketplace Public review (C2C's passed pack is the template).
 4. Later: GoHighLevel Conversations provider (reply from inside GHL), running inside GHL with SSO, affiliate snapshot marker.
 
 ## Reliability pass 2 (2026-09-29)
@@ -73,7 +72,9 @@ Phase plan changes (all accepted): compliance pack and quota extension request r
 - #111: a stored keyword comment without a draft is queued again (hourly, last 25 hours).
 - #112: a GoHighLevel 401 for a missing scope no longer marks the connection for a reconnect.
 - #113: the 50 reply units are booked only right before the post (no quota spent by duplicate jobs or failed token refreshes).
-- `GHL_AFFILIATE_URL` set on Railway `web` (temporary, A-08); landing and checkout say Works with GoHighLevel (A-09).
+- `GHL_AFFILIATE_URL` set on Railway `web` (temporary, A-08). Landing Hero, Pricing and FAQ say Works with GoHighLevel, pasted by the owner and checked live (A-09); the checkout block waits for the checkout.
+- #115 (C2C port 2): To Approve lists skipped replies with Restore to To Approve, while the comment is stored.
+- #116 (C2C port 1): a destination on the app host, the fallback link host or the creator's tracked-link domain is refused (automations and onboarding target); existing ones are logged once at worker start ("own host destination check").
 
 ## Reliability review 2026-09-29 (done, DECISIONS section 20)
 

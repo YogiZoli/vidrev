@@ -127,7 +127,7 @@ describe.skipIf(!hasDb)("outbound webhooks (integration)", () => {
     expect(verifySignature(call.body, call.headers["x-signature"], secret)).toBe(true);
     expect(call.headers["x-event-id"]).toBe(row.eventId);
     expect(call.headers["x-event-name"]).toBe("purchase");
-    expect(JSON.parse(call.body)).toMatchObject({ event: "purchase", id: row.eventId, email: "b@y.com", amount_cents: 9700, tags: ["c2c", "c2c_kw_guide", "c2c_buyer"] });
+    expect(JSON.parse(call.body)).toMatchObject({ event: "purchase", id: row.eventId, email: "b@y.com", amount_cents: 9700, tags: ["vidrev", "vidrev-source-youtube", "vidrev-keyword-guide", "vidrev-buyer"] });
     expect(row).toMatchObject({ status: "delivered", attempt: 1, responseStatus: 200 });
 
     // A delivered row is never sent again.

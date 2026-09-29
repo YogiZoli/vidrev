@@ -102,7 +102,7 @@ export default async function WebhooksSettingsPage({ searchParams }: { searchPar
           </form>
           <Meta className="text-[15px]">
             Failed deliveries are retried for 24 hours (1 min, 5 min, 15 min, 1 h, 3 h, 6 h, 12 h). Use the <Mono>X-Event-Id</Mono> header to ignore
-            repeats. Tags in every event: <Mono>c2c</Mono>, <Mono>c2c_kw_&lt;keyword&gt;</Mono>, <Mono>c2c_vid_&lt;videoId&gt;</Mono>, <Mono>c2c_buyer</Mono>.
+            repeats. Tags in every event: <Mono>vidrev</Mono>, <Mono>vidrev-source-youtube</Mono>, <Mono>vidrev-keyword-&lt;keyword&gt;</Mono>, <Mono>vidrev-temperature-&lt;cold|warm|hot&gt;-lead</Mono>, <Mono>vidrev-video-&lt;videoId&gt;</Mono>, <Mono>vidrev-buyer</Mono>.
           </Meta>
         </Card>
       ) : null}

@@ -82,7 +82,7 @@ export interface GhlFunnel {
 }
 
 export function createGhlApi(fetchImpl: FetchLike, accessToken: string) {
-  async function call<T>(path: string, options: { method?: "GET" | "POST"; query?: Query; body?: unknown } = {}): Promise<T> {
+  async function call<T>(path: string, options: { method?: "GET" | "POST" | "DELETE"; query?: Query; body?: unknown } = {}): Promise<T> {
     const url = new URL(`${GHL_API}${path}`);
     for (const [key, value] of Object.entries(options.query ?? {})) if (value !== undefined) url.searchParams.set(key, String(value));
     const response = await fetchImpl(url.toString(), {
@@ -185,6 +185,10 @@ export function createGhlApi(fetchImpl: FetchLike, accessToken: string) {
     // Additive: existing tags stay (upsert itself may replace them).
     async addTags(contactId: string, tags: string[]): Promise<void> {
       await call(`/contacts/${contactId}/tags`, { method: "POST", body: { tags } });
+    },
+
+    async removeTags(contactId: string, tags: string[]): Promise<void> {
+      await call(`/contacts/${contactId}/tags`, { method: "DELETE", body: { tags } });
     },
 
     // verify live: `userId` may be optional; the installing user's id is sent when known.

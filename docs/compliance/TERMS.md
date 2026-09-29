@@ -31,7 +31,7 @@ Plans include reply limits (currently 300 replies a month and a safety ceiling o
 
 ### Free channel audit and HighLevel connector
 
-The free channel audit reads public YouTube data and gives an instant preview; its score and findings are informational, not advice, and may be wrong. The HighLevel connector writes contacts, tags and a tracking field only into the sub-account you connect; you are responsible for having a lawful basis to contact those people.
+The free channel audit reads public YouTube data and gives an instant preview; its score and findings are informational, not advice, and may be wrong. The HighLevel connector writes contacts, tags and a tracking field only into the sub-account you connect, and only for people who opted in or bought through your own pages; you are responsible for having a lawful basis to contact those people. vidrev never exports YouTube API data about viewers (comment text, names or YouTube ids) to HighLevel, to webhooks or to you; tags are built from vidrev's own link clicks (Privacy Policy section 9).
 
 ## 6. Plans, billing and cancellation
 

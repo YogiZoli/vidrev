@@ -78,11 +78,17 @@ To draft a reply, the comment text and your approved templates are sent to an AI
 
 ### Data we send to systems you choose
 
-If you add a webhook endpoint or connect GoHighLevel, we send events to it: that a keyword comment was matched, a reply was posted, a link was clicked, a subscriber opted in, a buyer purchased (with the keyword, video id, tracking id and, for subscribers and buyers, the email address and amount you gave us). We never send comment text, commenter names or commenter ids, and we never send YouTube API data to a third party other than the system you connected. In GoHighLevel we add tags (`c2c`, the keyword, the video id, `c2c_buyer`) and a tracking id field to contacts that came from your comments. You can remove an endpoint or disconnect GoHighLevel at any time; we then delete the stored tokens and signing secret and stop sending. Delivery logs are kept for 30 days.
+If you add a webhook endpoint or connect GoHighLevel, we send events to it: that a keyword comment on your video matched one of your keywords (without the comment or its author), that a reply was posted, that a link was clicked, that a subscriber opted in, that a buyer purchased. Events carry your keyword, the id of your own video, our tracking id, our opaque contact id and, for subscribers and buyers, the email address, name and amount that your own opt-in page or checkout collected. Delivery logs are kept for 30 days. You can remove an endpoint or disconnect GoHighLevel at any time; we then delete the stored tokens and signing secret and stop sending.
+
+In GoHighLevel we create or update one contact per email address, only when a person opts in or buys (never for a comment alone), set the "vidrev tracking id" field and add these tags: `vidrev`, `vidrev-source-youtube`, `vidrev-keyword-<keyword>`, `vidrev-temperature-<cold, warm or hot>-lead`, `vidrev-video-<video id>` and `vidrev-buyer`. The keywords, temperature and videos come only from the vidrev links this person clicked in the 30 days before the opt-in or purchase: our own first-party click records, not data read from YouTube.
+
+### What never leaves vidrev
+
+Data we read through the YouTube API Services about viewers is never sent to you, to GoHighLevel, to a webhook or to anyone else: not the comment text, not the commenter's name, not the commenter's YouTube channel id, not the fact that a particular person commented. It is used only inside vidrev to draft the reply you approve and to recognise the same person for at most 30 days (section 4), and it is deleted as section 4 describes. Nothing we send to a system you connect needs to be deleted after 30 days, because none of it is YouTube API data about viewers.
 
 ## 10. Viewers who click links or comment
 
-If you commented on a creator's video or clicked a creator's link, the creator decides why the data is used; we process it on their behalf. Contact the creator, or write to [SUPPORT EMAIL] and we forward your request.
+If you commented on a creator's video or clicked a creator's link, the creator decides why the data is used; we process it on their behalf. A comment alone never puts you in the creator's CRM: that only happens when you give your email on the creator's own page. Contact the creator, or write to [SUPPORT EMAIL] and we forward your request.
 
 ## 11. Your rights
 

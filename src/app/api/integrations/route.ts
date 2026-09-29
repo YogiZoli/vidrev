@@ -69,7 +69,7 @@ export async function POST(request: Request): Promise<Response> {
     case "ghl_disconnect":
       await disconnectGhl(db, accountId, field("id"));
       await done();
-      return redirectTo(`${GHL}?ghl_disconnected=1`);
+      return redirectTo(returnPath(session.account, `${GHL}?ghl_disconnected=1`));
     case "ghl_sync": {
       // The engine tick picks it up within a minute.
       await db

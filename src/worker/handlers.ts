@@ -17,7 +17,7 @@ import { createDraft } from "./drafts";
 import { checkDomain, type DomainDeps, queueDomainChecks, removeDomainHostname } from "./domains";
 import { runJob, runSteps } from "./jobs";
 import { runRetention } from "./retention";
-import { recoverUnconfirmedSends, sendReply } from "./sending";
+import { recoverUnconfirmedSends, requeueOrphanedApproved, sendReply } from "./sending";
 import { checkRss, type EngineDeps, engineTick, pollChannel, renewWebsub } from "./polling";
 import { deliver, deliverDue, type WebhookDeps } from "./webhooks";
 import { pushAuditLead } from "@/server/audit/owner-crm";
@@ -242,6 +242,7 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
     ["polling", () => engineTick(engineDeps(boss))],
     // Recovery of stuck states (reliability review 2026-09-29).
     ["unconfirmed sends", () => recoverUnconfirmedSends(engineDeps(boss))],
+    ["orphaned approved replies", () => requeueOrphanedApproved(engineDeps(boss))],
     ["stuck channel connects", () => expireStuckConnects(channelDeps())],
   ]);
   // Audit my channel (Phase 9): one run per request, own API key and quota.

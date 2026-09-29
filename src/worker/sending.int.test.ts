@@ -8,7 +8,7 @@ import { runMigrations } from "@/scripts/migrate";
 import { createAccountWithUser } from "@/server/accounts";
 import { approveReply, markSentManually } from "@/server/approval";
 import type { EngineDeps } from "./polling";
-import { fairOrder, recoverUnconfirmedSends, releaseQueued, sendReply, UNCONFIRMED_AFTER_MS } from "./sending";
+import { fairOrder, ORPHANED_AFTER_MS, recoverUnconfirmedSends, releaseQueued, requeueOrphanedApproved, sendReply, UNCONFIRMED_AFTER_MS } from "./sending";
 
 const hasDb = Boolean(process.env.DATABASE_URL);
 const key = randomBytes(32).toString("base64");
@@ -235,6 +235,30 @@ describe.skipIf(!hasDb)("approval and sending (integration)", () => {
     await recoverUnconfirmedSends(check.deps);
     expect((await status(reply.id)).status).toBe("approved");
     expect(check.sent).toContainEqual({ queue: "reply.send", data: { replyId: reply.id } });
+  });
+
+  it("queues an approved reply again when its send job was lost", async () => {
+    const { account, reply } = await draft();
+    await approveReply(getDb(), { accountId: account.id, replyId: reply.id, body: "Here: {link}" }, now);
+    // Age the row as if the job never ran.
+    await getDb().update(replies).set({ updatedAt: now }).where(eq(replies.id, reply.id));
+    const mine = (sent: { data: unknown }[]) => sent.filter((s) => (s.data as { replyId: string }).replyId === reply.id);
+
+    const early = engine({ at: new Date(now.getTime() + 60_000) });
+    await requeueOrphanedApproved(early.deps);
+    expect(mine(early.sent)).toHaveLength(0);
+
+    const later = new Date(now.getTime() + ORPHANED_AFTER_MS + 60_000);
+    const late = engine({ at: later });
+    await requeueOrphanedApproved(late.deps);
+    expect(late.sent).toContainEqual({ queue: "reply.send", data: { replyId: reply.id } });
+    // Not queued again on the next tick.
+    const next = engine({ at: new Date(later.getTime() + 60_000) });
+    await requeueOrphanedApproved(next.deps);
+    expect(mine(next.sent)).toHaveLength(0);
+
+    await sendReply(late.deps, reply.id);
+    expect((await status(reply.id)).status).toBe("sent");
   });
 
   it("fails an unconfirmed send with a reason when the channel is gone", async () => {

@@ -11,9 +11,11 @@ import { requireSession } from "@/server/auth/current";
 import { listCampaigns, parseVideoIds } from "@/server/campaigns";
 import { ensureStaticLink } from "@/server/links";
 import { listChannels } from "@/server/channels";
-import { webChannelDeps } from "@/server/channel-deps";
+import { webChannelDeps, webGhlDeps } from "@/server/channel-deps";
+import { ghlDestinations } from "@/server/ghl/destinations";
 import { pickableVideos } from "@/server/video-picker";
 import { Notice } from "../../ui";
+import { DestinationPicker } from "./DestinationPicker";
 import { KeywordPicker } from "./KeywordPicker";
 import { VideoPicker } from "./VideoPicker";
 
@@ -42,6 +44,7 @@ export default async function AutomationsPage({ searchParams }: { searchParams: 
   const db = getDb();
   const channel = (await listChannels(db, account.id)).find((c) => c.status === "connected");
   const campaignRows = await listCampaigns(db, account.id);
+  const destinations = await ghlDestinations(db, account.id, webGhlDeps());
   const videoList = channel ? await pickableVideos(db, channel.id, webChannelDeps()) : { source: "known" as const, videos: [] };
   // Reusable tracked links for video descriptions and pinned comments (R-07):
   // one channel-wide per keyword, and one per video on request.
@@ -103,9 +106,12 @@ export default async function AutomationsPage({ searchParams }: { searchParams: 
               <legend className="mb-2 flex items-center gap-2 p-0 text-base font-bold">
                 <StepNo n={3} /> Where do they go?
               </legend>
-              <Field label="Send them to" hint="The page the reply link opens. Your default from setup; change it for this automation if needed.">
-                <Input name="destinationUrl" type="url" required defaultValue={account.defaultTargetUrl ?? ""} placeholder="https://yourdomain.com/guide" className="font-mono" />
-              </Field>
+              <DestinationPicker
+                items={destinations.items}
+                baseUrl={destinations.baseUrl}
+                status={destinations.status}
+                defaultUrl={account.defaultTargetUrl ?? ""}
+              />
             </fieldset>
 
             <div className="grid justify-items-start gap-2">

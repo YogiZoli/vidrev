@@ -6,7 +6,7 @@ import { accounts, campaigns, channels, comments, quotaLedger, replies } from "@
 import { encryptSecret } from "@/lib/crypto";
 import { runMigrations } from "@/scripts/migrate";
 import { createAccountWithUser } from "@/server/accounts";
-import { approveReply, markSentManually } from "@/server/approval";
+import { approveReply, dismissReply, markSentManually, restoreReply } from "@/server/approval";
 import type { EngineDeps } from "./polling";
 import { fairOrder, ORPHANED_AFTER_MS, recoverUnconfirmedSends, releaseQueued, requeueOrphanedApproved, sendReply, UNCONFIRMED_AFTER_MS } from "./sending";
 
@@ -269,6 +269,22 @@ describe.skipIf(!hasDb)("approval and sending (integration)", () => {
 
     await sendReply(late.deps, reply.id);
     expect((await status(reply.id)).status).toBe("sent");
+  });
+
+  it("restores a skipped reply to the approval queue while its comment is stored", async () => {
+    const { account, reply } = await draft();
+    expect(await restoreReply(getDb(), account.id, reply.id)).toBe(false);
+    expect(await dismissReply(getDb(), account.id, reply.id)).toBe(true);
+    expect(await restoreReply(getDb(), randomUUID(), reply.id)).toBe(false);
+    expect(await restoreReply(getDb(), account.id, reply.id)).toBe(true);
+    expect(await status(reply.id)).toMatchObject({ status: "pending_approval", statusReason: null });
+    expect(await approveReply(getDb(), { accountId: account.id, replyId: reply.id, body: "Here: {link}" }, now)).toEqual({ ok: true });
+
+    // Once the 30 day rule deleted the comment, nothing can be restored.
+    const other = await draft();
+    await dismissReply(getDb(), other.account.id, other.reply.id);
+    await getDb().delete(comments).where(eq(comments.id, other.comment.id));
+    expect(await restoreReply(getDb(), other.account.id, other.reply.id)).toBe(false);
   });
 
   it("fails an unconfirmed send with a reason when the channel is gone", async () => {

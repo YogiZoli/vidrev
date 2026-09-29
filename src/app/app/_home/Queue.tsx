@@ -14,7 +14,7 @@ import { commentUrl } from "@/server/youtube/api";
 import { Keyword } from "@/components/ui/badge";
 import { Meta, SectionTitle } from "@/components/ui/page";
 import { Table, TableWrap, Td } from "@/components/ui/table";
-import { type CardData, PendingCards, WaitingCards } from "./QueueCards";
+import { type CardData, PendingCards, SkippedCards, WaitingCards } from "./QueueCards";
 import { REPLY_REASONS } from "@/lib/status-text";
 
 
@@ -69,6 +69,8 @@ export async function ApprovalQueue() {
 
   const pending = cards.filter((c) => c.status === "pending_approval").reverse();
   const waiting = cards.filter((c) => ["approved", "queued", "sending"].includes(c.status));
+  // Skipped by the creator, restorable while the comment is still stored.
+  const skipped = cards.filter((c) => c.status === "dismissed" && c.commentText !== null).slice(0, 20);
   const done = cards.filter((c) => ["sent", "sent_manually", "failed", "skipped"].includes(c.status)).slice(0, 20);
   const quotaLeft = repliesLeftToday(await dayUsage(db, pacificDate(now)), env().QUOTA_DAILY_LIMIT);
 
@@ -93,6 +95,14 @@ export async function ApprovalQueue() {
             at midnight Pacific time. You can also post any of them yourself now.
           </Meta>
           <WaitingCards cards={waiting} />
+        </section>
+      ) : null}
+
+      {skipped.length ? (
+        <section className="grid gap-3">
+          <SectionTitle>Skipped</SectionTitle>
+          <Meta className="text-[15px]">Skipped by mistake? Put it back into To Approve.</Meta>
+          <SkippedCards cards={skipped} />
         </section>
       ) : null}
 

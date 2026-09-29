@@ -1,6 +1,6 @@
 import { and, eq, inArray } from "drizzle-orm";
 import type { Db } from "@/db/client";
-import { accounts, campaigns, channels, plans, replies, type ReplyStatus } from "@/db/schema";
+import { accounts, campaigns, channels, comments, plans, replies, type ReplyStatus } from "@/db/schema";
 import { checkReplyAllowance } from "@/lib/plans";
 import { type TemplateProblem, templateProblems } from "@/lib/templates";
 import { replyContext } from "./integrations/context";
@@ -62,6 +62,19 @@ async function setStatus(db: Db, accountId: string, replyId: string, from: Reply
 
 export function dismissReply(db: Db, accountId: string, replyId: string) {
   return setStatus(db, accountId, replyId, ["pending_approval", "skipped", "failed", "queued"], { status: "dismissed", queuedForDatePt: null });
+}
+
+// Undo a Skip: the reply goes back to To Approve while its comment is still
+// stored (the 30 day rule deletes it later, and then nothing can be posted).
+export async function restoreReply(db: Db, accountId: string, replyId: string): Promise<boolean> {
+  const [reply] = await db
+    .select({ commentId: replies.commentId })
+    .from(replies)
+    .where(and(eq(replies.id, replyId), eq(replies.accountId, accountId), eq(replies.status, "dismissed")));
+  if (!reply?.commentId) return false;
+  const [comment] = await db.select({ id: comments.id }).from(comments).where(eq(comments.id, reply.commentId));
+  if (!comment) return false;
+  return setStatus(db, accountId, replyId, ["dismissed"], { status: "pending_approval", statusReason: null });
 }
 
 // "Copy reply and open comment" fallback (0 units): the creator posted it by

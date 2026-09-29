@@ -207,7 +207,7 @@ export async function queueView(db: Db, accountId: string) {
     .from(replies)
     .leftJoin(comments, eq(comments.id, replies.commentId))
     .leftJoin(videos, and(eq(videos.channelId, replies.channelId), eq(videos.youtubeVideoId, replies.youtubeVideoId)))
-    .where(and(eq(replies.accountId, accountId), inArray(replies.status, ["pending_approval", "approved", "queued", "sending", "sent", "sent_manually", "failed", "skipped"])))
+    .where(and(eq(replies.accountId, accountId), inArray(replies.status, ["pending_approval", "approved", "queued", "sending", "sent", "sent_manually", "failed", "skipped", "dismissed"])))
     .orderBy(desc(replies.createdAt))
     .limit(200);
   // Information only, never a block (Q-14): earlier replies to the same

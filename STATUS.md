@@ -62,9 +62,16 @@ Phase plan changes (all accepted): compliance pack and quota extension request r
 
 ## Next (proposed order)
 
-1. Commenters as GoHighLevel contacts: on hold, owner decides (DECISIONS A-10).
+1. Owner: send the LLC details; then Privacy and Terms are finalised, built as a GoHighLevel copy kit, published on vidrev.app, and only after that the Google review (A-13, LAUNCH-CHECKLIST section B).
 2. Owner items: checkout "Works with GoHighLevel" block waits until the checkout exists (Stripe not connected yet); replace the temporary affiliate link once the LLC and own GoHighLevel exist (A-08); the LLC, then Privacy, Terms, Google verification and Marketplace Public review (C2C's passed pack is the template).
 4. Later: GoHighLevel Conversations provider (reply from inside GHL), running inside GHL with SSO, affiliate snapshot marker.
+
+## Lead tags and vidrev naming (2026-09-29, DECISIONS A-10 to A-13)
+
+- #118: tags `vidrev`, `vidrev-source-youtube`, `vidrev-keyword-<keyword>`, `vidrev-temperature-<t>-lead` (hottest only), `vidrev-video-<id>`, `vidrev-buyer`; opt-in and purchase add the person's clicked keywords and videos of the last 30 days (first-party clicks only). GoHighLevel field "vidrev tracking id" (older integrations move on their next sync).
+- #119: `vidrev_tid` (URL, cookie, form field, Stripe metadata), `/vidrev.js`, `vidrev_hk_`, `vidrev-webhooks/1`. Opt-in forms need the hidden field `vidrev_tid`; inbound hook tokens made before must be created again.
+- Privacy section 9 and Terms section 5 say explicitly that no YouTube API data about viewers leaves vidrev (A-12).
+- Old c2c tags and the c2c_tid field: to be deleted in the vidrev Sub-account only, after the owner sees the list.
 
 ## Reliability pass 2 (2026-09-29)
 

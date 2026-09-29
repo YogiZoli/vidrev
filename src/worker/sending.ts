@@ -33,10 +33,6 @@ export async function sendReply(deps: EngineDeps, replyId: string): Promise<void
   if (!campaign) return void (await fail("campaign_deleted"));
   if (channel.status !== "connected") return void (await fail("channel_not_connected"));
 
-  if (!(await reserveUnits(deps.db, { method: "comments.insert", accountId: reply.accountId, limit: deps.quotaLimit }, now))) {
-    await queueForTomorrow(deps, reply.id, now);
-    return;
-  }
   // Claim the reply so a duplicate job cannot post it twice.
   const claimed = await deps.db
     .update(replies)
@@ -58,6 +54,13 @@ export async function sendReply(deps: EngineDeps, replyId: string): Promise<void
     if (error instanceof ChannelRevokedError) return void (await fail("channel_revoked"));
     await deps.db.update(replies).set({ status: "approved", updatedAt: now }).where(eq(replies.id, reply.id));
     throw error;
+  }
+
+  // The 50 units are booked only right before the post: a duplicate job or a
+  // failed token refresh spends nothing.
+  if (!(await reserveUnits(deps.db, { method: "comments.insert", accountId: reply.accountId, limit: deps.quotaLimit }, now))) {
+    await queueForTomorrow(deps, reply.id, now);
+    return;
   }
 
   let posted: { id: string };

@@ -17,6 +17,13 @@ export class GhlApiError extends Error {
     super(`GHL ${status} on ${path}`);
     this.name = "GhlApiError";
   }
+
+  // HighLevel answers 401 both for a dead token and for a scope the grant
+  // does not have ("The token is not authorized for this scope."). Only the
+  // first is fixed by a refresh or a reconnect.
+  get scopeDenied(): boolean {
+    return this.status === 401 && /not authorized for this scope/i.test(this.body);
+  }
 }
 
 export interface GhlContact {

@@ -12,7 +12,7 @@ import { campaigns, channels, clicks, integrations, links, outboundDeliveries, p
 import { newTid } from "@/lib/links";
 import { runMigrations } from "@/scripts/migrate";
 import { createAccountWithUser } from "@/server/accounts";
-import type { GhlContact, GhlOpportunity, GhlTransaction } from "@/server/ghl/api";
+import { GhlApiError, type GhlContact, type GhlOpportunity, type GhlTransaction } from "@/server/ghl/api";
 import { connectGhl, disconnectGhl } from "@/server/ghl/connect";
 import { freshConfig, type GhlDeps, GhlReauthError, readGhlConfig, updateGhlConfig, withGhlApi } from "@/server/ghl/tokens";
 import { emitEvent } from "@/server/integrations/events";
@@ -218,6 +218,21 @@ describe.skipIf(!hasDb)("GoHighLevel connector (integration)", () => {
     expect(r.reauth).toEqual([r.accountId]);
     await expect(freshConfig(deps, r.integrationId)).rejects.toBeInstanceOf(GhlReauthError);
     expect(r.reauth).toHaveLength(1);
+  });
+
+  it("a 401 for a missing scope neither refreshes the token nor asks for a reconnect", async () => {
+    const r = await rig({ setup: true });
+    const before = r.fake.tokenCalls;
+    const denied = new GhlApiError(401, JSON.stringify({ statusCode: 401, message: "The token is not authorized for this scope." }), "funnels/redirect/list");
+    await expect(
+      withGhlApi(r.deps, r.integrationId, async () => {
+        throw denied;
+      }),
+    ).rejects.toBe(denied);
+    expect(r.fake.tokenCalls).toBe(before);
+    const [row] = await db().select().from(integrations).where(eq(integrations.id, r.integrationId));
+    expect(row!.status).toBe("active");
+    expect(r.reauth).toEqual([]);
   });
 
   it("syncs contacts, buyer tags, won opportunities and payments, and is idempotent", async () => {

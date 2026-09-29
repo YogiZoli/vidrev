@@ -7,7 +7,7 @@ const SLUG_PATH = /^\/([A-Za-z0-9]{7})\/?$/;
 
 export function proxy(request: NextRequest) {
   const host = linkHostOf(request.headers);
-  if (!host || request.nextUrl.pathname === "/c2c.js") return NextResponse.next();
+  if (!host || request.nextUrl.pathname === "/vidrev.js") return NextResponse.next();
   const url = request.nextUrl.clone();
   const slug = SLUG_PATH.exec(url.pathname)?.[1];
   url.pathname = slug ? `/r/${slug}` : "/r/_";

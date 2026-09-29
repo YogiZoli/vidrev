@@ -74,7 +74,7 @@ export async function deliver(deps: WebhookDeps, deliveryId: string): Promise<vo
         body,
         {
           "content-type": "application/json",
-          "user-agent": "c2c-webhooks/1",
+          "user-agent": "vidrev-webhooks/1",
           "x-signature": signBody(body, config.secret),
           "x-event-id": claimed.eventId,
           "x-event-name": claimed.event,

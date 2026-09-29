@@ -35,11 +35,11 @@ describe("ids", () => {
 });
 
 describe("destinationWithTid", () => {
-  it("appends c2c_tid and UTM and keeps existing parameters", () => {
+  it("appends vidrev_tid and UTM and keeps existing parameters", () => {
     const url = new URL(destinationWithTid("https://e.com/optin?ref=a&utm_source=x", { tid: "T1", keyword: "guide" }));
     expect(url.searchParams.get("ref")).toBe("a");
-    expect(url.searchParams.get("c2c_tid")).toBe("T1");
-    expect(url.searchParams.get("utm_source")).toBe("c2c");
+    expect(url.searchParams.get("vidrev_tid")).toBe("T1");
+    expect(url.searchParams.get("utm_source")).toBe("vidrev");
     expect(url.searchParams.get("utm_medium")).toBe("comment");
     expect(url.searchParams.get("utm_campaign")).toBe("guide");
     expect(url.searchParams.get("utm_content")).toBe("T1");
@@ -81,7 +81,7 @@ describe("cookieDomain and tidCookie", () => {
 
   it("sets a secure first-party cookie on the parent domain", () => {
     const cookie = tidCookie("T1", "go.example.com");
-    expect(cookie).toContain("c2c_tid=T1");
+    expect(cookie).toContain("vidrev_tid=T1");
     expect(cookie).toContain("Domain=example.com");
     expect(cookie).toContain("Secure");
     expect(cookie).toContain("SameSite=Lax");

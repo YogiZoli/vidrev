@@ -13,7 +13,7 @@ import type { EmitInput } from "./events";
 
 export type Emit = (input: EmitInput) => Promise<void>;
 
-export const HOOK_TOKEN_PREFIX = "c2c_hk_";
+export const HOOK_TOKEN_PREFIX = "vidrev_hk_";
 
 export function newHookToken(): string {
   return `${HOOK_TOKEN_PREFIX}${randomToken(24)}`;
@@ -286,7 +286,7 @@ export async function recordPurchase(
       source: options.source,
       amountCents: input.amountCents,
       currency: input.currency,
-      // Only a buyer we can trace to a comment is a c2c buyer.
+      // Only a buyer we can trace to a comment is a vidrev buyer.
       buyer: Boolean(touch),
     },
   });

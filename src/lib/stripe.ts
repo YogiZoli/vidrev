@@ -95,7 +95,7 @@ export function mapCharge(charge: StripeCharge): MappedCharge | null {
   const customer = typeof charge.customer === "object" && charge.customer ? charge.customer : null;
   const invoice = typeof charge.invoice === "object" && charge.invoice ? charge.invoice : null;
   const email = emailOf(customer?.email) ?? emailOf(charge.billing_details?.email) ?? emailOf(charge.receipt_email);
-  const tid = readTid({ tid: charge.metadata?.c2c_tid ?? charge.metadata?.tid ?? customer?.metadata?.c2c_tid ?? customer?.metadata?.tid });
+  const tid = readTid({ tid: charge.metadata?.vidrev_tid ?? charge.metadata?.tid ?? customer?.metadata?.vidrev_tid ?? customer?.metadata?.tid });
   const refunded = Math.max(0, Math.min(charge.amount_refunded ?? 0, amountCents));
   return {
     externalId: charge.id,

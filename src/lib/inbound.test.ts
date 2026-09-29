@@ -4,9 +4,9 @@ import { parseBody, parseOptIn, parsePurchase, readTid } from "./inbound";
 const now = new Date("2026-09-25T12:00:00Z");
 
 describe("tracking id", () => {
-  it("reads tid, c2c_tid and utm_content, in that order", () => {
+  it("reads tid, vidrev_tid and utm_content, in that order", () => {
     expect(readTid({ tid: "k3x9Tq2mPz" })).toBe("k3x9Tq2mPz");
-    expect(readTid({ c2c_tid: "k3x9Tq2mPz" })).toBe("k3x9Tq2mPz");
+    expect(readTid({ vidrev_tid: "k3x9Tq2mPz" })).toBe("k3x9Tq2mPz");
     expect(readTid({ utm_content: "k3x9Tq2mPz" })).toBe("k3x9Tq2mPz");
     expect(readTid({ tid: "AAAAAAAAAA", utm_content: "BBBBBBBBBB" })).toBe("AAAAAAAAAA");
   });
@@ -21,7 +21,7 @@ describe("tracking id", () => {
 
 describe("opt-in payload", () => {
   it("normalizes the email and reads aliases", () => {
-    const result = parseOptIn({ email: "  Ann@Example.COM ", first_name: "Ann", last_name: "Lee", c2c_tid: "k3x9Tq2mPz", marketing_consent: "yes", submission_id: 42 }, now);
+    const result = parseOptIn({ email: "  Ann@Example.COM ", first_name: "Ann", last_name: "Lee", vidrev_tid: "k3x9Tq2mPz", marketing_consent: "yes", submission_id: 42 }, now);
     expect(result).toEqual({
       ok: true,
       value: { email: "ann@example.com", name: "Ann Lee", tid: "k3x9Tq2mPz", externalId: "42", consentMarketing: true, occurredAt: now },

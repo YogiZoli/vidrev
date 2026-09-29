@@ -34,7 +34,7 @@ describe("private addresses", () => {
 
 describe("webhook url check", () => {
   it("accepts a public https endpoint", () => {
-    expect(checkWebhookUrl("https://hooks.example.com/c2c?x=1")).toMatchObject({ ok: true });
+    expect(checkWebhookUrl("https://hooks.example.com/vidrev?x=1")).toMatchObject({ ok: true });
   });
 
   it.each([

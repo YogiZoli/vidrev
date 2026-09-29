@@ -1,6 +1,6 @@
 # STATUS
 
-Last updated: 2026-09-29 (Automations redesign)
+Last updated: 2026-09-29 (end of the long session: Phase 14, reliability review, Automations redesign)
 
 ## End goal
 
@@ -55,7 +55,17 @@ Phase plan changes (all accepted): compliance pack and quota extension request r
 - #101: names Automations, New automation, Which videos?, Which trigger keyword?, Where do they go? (Send them to), Go live, Live automations. Trigger keywords in three rows by lead temperature (COLD, WARM, HOT), selected card pulses; misspellings and your own keyword under Advanced. Green pinging dot on the Automations tab when anything is live. Live cards tinted by temperature; links and "Your reply wording and brand style (optional)" are closed sections.
 - #102: Where do they go? lists the Sub-account's funnel and website pages, surveys and booking calendars (new scopes: funnels/funnel.readonly, funnels/page.readonly, surveys.readonly, calendars.readonly), the kind that fits the keyword first. Page addresses are the Sub-account website domain plus the page path (the API does not give funnel domain names), editable. Advanced: another address.
 - Owner step: reconnect GoHighLevel once (Settings, GoHighLevel, Disconnect, Connect GoHighLevel) so the new scopes are granted.
-- Open for discussion: one Automations page (now) or separate tabs for building and for live automations.
+- #105 to #108: funnels/redirect.readonly requested (the redirect list still answers 401 to app tokens, like /funnels/domain: expected, logged as info); survey limit 50 (limit 100 answered 422 and emptied the list); each source read on its own; verified funnel domain detection ported from C2C (candidates from the Sub-account domain, redirects, website, www, go., get., link., join.; only a host that serves the page is used; live: vidrev.app verified). Guided flow (next step scrolls in and glows), big Go live with the safety promises, IF/THEN cards, list-only destinations (no manual address; setup default when nothing is picked), keyword chips coloured by temperature everywhere, Home renamed To Approve.
+- Railway: `GHL_DESTINATION_SCOPES=1` on web (page, survey, calendar and redirect scopes). The owner reconnected GoHighLevel with them on 2026-09-29.
+- Decided: one Automations page (New automation above, Live automations below). Two tabs (New, Live (n)) only when the live list gets long.
+- C2C compared: docs/C2C-COMPARISON.md (what to take, what not). vidrev replaces C2C; C2C gets no new features.
+
+## Next (proposed order)
+
+1. Small ports from C2C: guard against destinations on our own hosts (apex artifact), restore a skipped reply.
+2. Commenters as GoHighLevel prospect contacts tagged by keyword and lead temperature (lead compounding, L-03).
+3. Owner items: real `GHL_AFFILIATE_URL`; "Works with GoHighLevel" on the landing page and checkout; the LLC, then Privacy, Terms, Google verification and Marketplace Public review (C2C's passed pack is the template).
+4. Later: GoHighLevel Conversations provider (reply from inside GHL), running inside GHL with SSO, affiliate snapshot marker.
 
 ## Reliability review 2026-09-29 (done, DECISIONS section 20)
 

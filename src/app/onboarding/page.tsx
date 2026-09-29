@@ -7,7 +7,7 @@ import { Field, Input } from "@/components/ui/input";
 import { Meta, Page } from "@/components/ui/page";
 import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { integrations } from "@/db/schema";
+import { channels, integrations } from "@/db/schema";
 import { env, requireEnv } from "@/lib/env";
 import { cn } from "@/lib/cn";
 import { requireSession } from "@/server/auth/current";
@@ -28,7 +28,7 @@ const STEPS: { key: OnboardingStep; title: string; why: string }[] = [
   { key: "target", title: "Set your default target URL", why: "Your opt-in page: where the link in each reply points." },
 ];
 
-function Step({ n, title, why, state, children }: { n: number; title: string; why: string; state: "done" | "current" | "later"; children?: ReactNode }) {
+function Step({ n, title, why, state, children, change }: { n: number; title: string; why: string; state: "done" | "current" | "later"; children?: ReactNode; change?: ReactNode }) {
   return (
     <li className={cn("grid gap-3 rounded-lg border bg-surface p-4", state === "current" ? "border-primary" : "border-border")}>
       <div className="flex items-start gap-3">
@@ -48,6 +48,7 @@ function Step({ n, title, why, state, children }: { n: number; title: string; wh
         <span className="sr-only">{state === "done" ? "done" : state === "current" ? "current step" : "later"}</span>
       </div>
       {state === "current" ? <div className="grid gap-3 pl-10">{children}</div> : null}
+      {state === "done" && change ? <div className="grid gap-2 pl-10">{change}</div> : null}
     </li>
   );
 }
@@ -70,6 +71,13 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
     const website = ghl?.configEnc ? readGhlConfig(ghl.configEnc, requireEnv("ENCRYPTION_KEY")).locationWebsite : null;
     suggested = website ? parseTargetUrl(website) : null;
   }
+  // What a done step can undo: the connected channel and the GoHighLevel connection.
+  const connectedChannel = state.done.youtube
+    ? (await db.select({ id: channels.id, title: channels.title }).from(channels).where(and(eq(channels.accountId, account.id), eq(channels.status, "connected"))))[0]
+    : undefined;
+  const ghlConnection = state.done.crm
+    ? (await db.select({ id: integrations.id, label: integrations.label }).from(integrations).where(and(eq(integrations.accountId, account.id), eq(integrations.type, "ghl"), eq(integrations.status, "active"))))[0]
+    : undefined;
   const stateOf = (key: OnboardingStep) => (state.done[key] ? "done" : state.current === key ? "current" : "later");
 
   return (
@@ -89,9 +97,28 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
         <Notice tone="error">{CHANNEL_REASONS[state.channelProblem] ?? "The channel could not be connected. Connect again."}</Notice>
       ) : null}
       {params.ghl_connected ? <Notice tone="info">GoHighLevel connected.</Notice> : null}
+      {params.disconnected ? <Notice tone="info">Channel disconnected. Connect the channel you want to use.</Notice> : null}
+      {params.ghl_disconnected ? <Notice tone="info">GoHighLevel disconnected. Connect the Sub-account you want to use.</Notice> : null}
 
       <ol className="m-0 grid list-none gap-3 p-0">
-        <Step n={1} title={STEPS[0]!.title} why={STEPS[0]!.why} state={stateOf("youtube")}>
+        <Step
+          n={1}
+          title={STEPS[0]!.title}
+          why={STEPS[0]!.why}
+          state={stateOf("youtube")}
+          change={
+            connectedChannel ? (
+              <form method="post" action="/api/channels/disconnect" className="flex flex-wrap items-center gap-3">
+                <input type="hidden" name="channelId" value={connectedChannel.id} />
+                <Meta className="text-[15px]">Connected: {connectedChannel.title ?? "your channel"}.</Meta>
+                <Button type="submit" variant="outline" size="sm">
+                  Disconnect
+                </Button>
+                <Meta className="basis-full">Disconnecting deletes this channel&apos;s YouTube data here; you can connect a channel again right after.</Meta>
+              </form>
+            ) : null
+          }
+        >
           {state.channelConnecting ? null : (
             <div>
               <Button asChild pulse>
@@ -104,7 +131,24 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
           <Meta>We ask Google only for permission to read comments and post the replies you approve.</Meta>
         </Step>
 
-        <Step n={2} title={STEPS[1]!.title} why={STEPS[1]!.why} state={stateOf("crm")}>
+        <Step
+          n={2}
+          title={STEPS[1]!.title}
+          why={STEPS[1]!.why}
+          state={stateOf("crm")}
+          change={
+            ghlConnection ? (
+              <form method="post" action="/api/integrations" className="flex flex-wrap items-center gap-3">
+                <input type="hidden" name="action" value="ghl_disconnect" />
+                <input type="hidden" name="id" value={ghlConnection.id} />
+                <Meta className="text-[15px]">Connected: {ghlConnection.label ?? "GoHighLevel"}.</Meta>
+                <Button type="submit" variant="outline" size="sm">
+                  Disconnect
+                </Button>
+              </form>
+            ) : null
+          }
+        >
           {ghlConfigured() ? (
             <div>
               <Button asChild pulse>

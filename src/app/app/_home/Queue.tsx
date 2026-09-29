@@ -105,7 +105,7 @@ export async function ApprovalQueue() {
                 {done.map((card) => (
                   <tr key={card.id}>
                     <Td>
-                      <Keyword>{card.keyword}</Keyword>
+                      <Keyword temperature={card.intent}>{card.keyword}</Keyword>
                     </Td>
                     <Td>
                       {card.status.replace("_", " ")}

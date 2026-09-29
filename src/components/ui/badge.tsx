@@ -22,8 +22,25 @@ export function Badge({ className, tone, ...props }: HTMLAttributes<HTMLSpanElem
 }
 
 // Keyword chip: mono 13 on a light grey, radius 6.
-export function Keyword({ className, ...props }: HTMLAttributes<HTMLSpanElement>) {
-  return <span className={cn("inline-flex items-center rounded-sm bg-muted px-2 py-0.5 font-mono text-[13px] text-foreground", className)} {...props} />;
+// A trigger keyword chip; with a lead temperature it wears that colour
+// everywhere (queue, recent, automations), so the method stays visible.
+const KEYWORD_TINT = {
+  cold: "bg-cold-surface text-cold-text",
+  warm: "bg-warm-surface text-warm-text",
+  hot: "bg-hot-surface text-hot-text",
+} as const;
+
+export function Keyword({ className, temperature, ...props }: HTMLAttributes<HTMLSpanElement> & { temperature?: keyof typeof KEYWORD_TINT }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-sm px-2 py-0.5 font-mono text-[13px]",
+        temperature ? cn(KEYWORD_TINT[temperature], "font-bold") : "bg-muted text-foreground",
+        className,
+      )}
+      {...props}
+    />
+  );
 }
 
 // Lead temperature chip: Cold blue, Warm amber, Hot red, with a dot.

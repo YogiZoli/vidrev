@@ -16,6 +16,7 @@ import { ghlDestinations } from "@/server/ghl/destinations";
 import { pickableVideos } from "@/server/video-picker";
 import { Notice } from "../../ui";
 import { DestinationPicker } from "./DestinationPicker";
+import { FlowGuide } from "./FlowGuide";
 import { KeywordPicker } from "./KeywordPicker";
 import { VideoPicker } from "./VideoPicker";
 
@@ -78,7 +79,7 @@ export default async function AutomationsPage({ searchParams }: { searchParams: 
           <form method="post" action="/api/campaigns" className="grid gap-7">
             <input type="hidden" name="channelId" value={channel.id} />
 
-            <fieldset className="m-0 grid gap-3 border-0 p-0">
+            <fieldset id="step-videos" className="m-0 grid gap-3 rounded-lg border-0 p-0">
               <legend className="mb-2 flex items-center gap-2 p-0 text-base font-bold">
                 <StepNo n={1} /> Which videos?
               </legend>
@@ -95,14 +96,14 @@ export default async function AutomationsPage({ searchParams }: { searchParams: 
               />
             </fieldset>
 
-            <fieldset className="m-0 grid gap-3 border-0 p-0">
+            <fieldset id="step-keyword" className="m-0 grid gap-3 rounded-lg border-0 p-0">
               <legend className="mb-2 flex items-center gap-2 p-0 text-base font-bold">
                 <StepNo n={2} /> Which trigger keyword?
               </legend>
               <KeywordPicker />
             </fieldset>
 
-            <fieldset className="m-0 grid gap-3 border-0 p-0">
+            <fieldset id="step-destination" className="m-0 grid gap-3 rounded-lg border-0 p-0">
               <legend className="mb-2 flex items-center gap-2 p-0 text-base font-bold">
                 <StepNo n={3} /> Where do they go?
               </legend>
@@ -115,12 +116,17 @@ export default async function AutomationsPage({ searchParams }: { searchParams: 
               />
             </fieldset>
 
-            <div className="grid justify-items-start gap-2">
-              <Button name="action" value="create" pulse>
+            <div id="step-go" className="grid justify-items-stretch gap-3 rounded-lg sm:justify-items-start">
+              <Button name="action" value="create" pulse className="h-16 px-14 text-[22px] font-extrabold tracking-wide sm:min-w-[320px]">
                 Go live
               </Button>
-              <Meta>Only comments posted after you go live get a draft. Each draft waits for your approval.</Meta>
+              <ul className="m-0 grid list-none gap-1 p-0 text-[14px] text-label">
+                <li>Nothing is ever posted automatically: every reply waits for you to read, edit or rewrite, and approve it.</li>
+                <li>Only comments posted after you go live get a draft, so old videos are never flooded.</li>
+                <li>Replies go out one by one, within YouTube&apos;s daily limits: built to stay clear of YouTube&apos;s spam rules.</li>
+              </ul>
             </div>
+            <FlowGuide />
           </form>
         </Card>
       ) : null}
@@ -143,17 +149,24 @@ export default async function AutomationsPage({ searchParams }: { searchParams: 
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="grid min-w-0 gap-2">
               <div className="flex flex-wrap items-center gap-2">
-                <Keyword className="text-[15px]">{campaign.keyword}</Keyword>
                 <TemperatureChip temperature={campaign.intent} />
                 <Badge tone={campaign.active ? "success" : "neutral"}>{campaign.active ? "live" : "paused"}</Badge>
+                <Meta>{campaign.videoIds ? `${campaign.videoIds.length} selected video(s)` : "All videos, including new uploads"}</Meta>
               </div>
-              <strong className="text-lg first-letter:uppercase">{campaign.name}</strong>
-              <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-[14px]">
-                <dt className="text-muted-foreground">Videos</dt>
-                <dd className="m-0">{campaign.videoIds ? `${campaign.videoIds.length} selected` : "All videos, including new uploads"}</dd>
-                <dt className="text-muted-foreground">Send them to</dt>
-                <dd className="m-0 [overflow-wrap:anywhere]">{campaign.destinationUrl}</dd>
-              </dl>
+              <p className="m-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-[17px] leading-snug">
+                <span className="text-[12px] font-extrabold tracking-[0.08em] text-muted-foreground">IF</span>
+                <span>someone comments</span>
+                <Keyword temperature={campaign.intent} className="text-[15px]">{campaign.keyword}</Keyword>
+              </p>
+              <p className="m-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-[17px] leading-snug">
+                <span className="text-[12px] font-extrabold tracking-[0.08em] text-muted-foreground">THEN</span>
+                <span>they get</span>
+                <strong className="first-letter:uppercase">{campaign.name}</strong>
+                <span className="text-muted-foreground">at</span>
+                <a href={campaign.destinationUrl} target="_blank" rel="noopener noreferrer" className="font-mono text-[14px] [overflow-wrap:anywhere]">
+                  {campaign.destinationUrl.replace(/^https?:\/\//, "")}
+                </a>
+              </p>
             </div>
             <div className="flex gap-2">
               <form method="post" action="/api/campaigns">

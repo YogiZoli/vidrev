@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, ChevronDown, Home, Megaphone, Settings } from "lucide-react";
+import { BarChart3, ChevronDown, Inbox, Megaphone, Settings } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -9,13 +9,13 @@ import { SETTINGS_GROUPS } from "./settings-nav";
 
 // Home carries the approval queue, so its count is the queue count.
 const TOP = [
-  { href: "/app", label: "Home", exact: true, count: true },
+  { href: "/app", label: "To Approve", exact: true, count: true },
   { href: "/app/campaigns", label: "Automations", live: true },
   { href: "/app/reports", label: "Reports" },
 ];
 
 const BOTTOM = [
-  { href: "/app", label: "Home", icon: Home, exact: true, count: true },
+  { href: "/app", label: "To Approve", icon: Inbox, exact: true, count: true },
   { href: "/app/campaigns", label: "Automations", icon: Megaphone, live: true },
   { href: "/app/reports", label: "Reports", icon: BarChart3 },
   { href: "/app/settings", label: "Settings", icon: Settings },

@@ -1,6 +1,6 @@
 # STATUS
 
-Last updated: 2026-09-29 (reliability review done: five fix phases and a second full pass)
+Last updated: 2026-09-29 (Automations redesign)
 
 ## End goal
 
@@ -48,6 +48,14 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 | 13 | Restyle to the Shine design (v3): tokens, shells, every page, micro-interactions | **DONE** (2026-09-26), PRs #40 to #58; test fix #59 |
 
 Phase plan changes (all accepted): compliance pack and quota extension request right after Phase 5 (Q-17 a); one GHL Marketplace app created Private in Phase 6 and made Public in Phase 10 (Q-17 b); retention job in Phase 4 (Q-17 c, done); Cloudflare for SaaS spike once the brand domain exists (Q-17 d).
+
+## Automations redesign 2026-09-29 (owner feedback)
+
+- #100: the video list comes from the YouTube API (uploads + stats, 2 units, cached 10 min); the public RSS feed did not load in production. All videos is ticked by default; untick to pick; sort by newest, most viewed, most comments; paste links under Advanced.
+- #101: names Automations, New automation, Which videos?, Which trigger keyword?, Where do they go? (Send them to), Go live, Live automations. Trigger keywords in three rows by lead temperature (COLD, WARM, HOT), selected card pulses; misspellings and your own keyword under Advanced. Green pinging dot on the Automations tab when anything is live. Live cards tinted by temperature; links and "Your reply wording and brand style (optional)" are closed sections.
+- #102: Where do they go? lists the Sub-account's funnel and website pages, surveys and booking calendars (new scopes: funnels/funnel.readonly, funnels/page.readonly, surveys.readonly, calendars.readonly), the kind that fits the keyword first. Page addresses are the Sub-account website domain plus the page path (the API does not give funnel domain names), editable. Advanced: another address.
+- Owner step: reconnect GoHighLevel once (Settings, GoHighLevel, Disconnect, Connect GoHighLevel) so the new scopes are granted.
+- Open for discussion: one Automations page (now) or separate tabs for building and for live automations.
 
 ## Reliability review 2026-09-29 (done, DECISIONS section 20)
 

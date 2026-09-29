@@ -38,6 +38,9 @@ for title, body in blocks:
     if 'id="vidrev-demo"' in body:
         code += f"\n<script>\n{script}\n</script>"
     items.append((title, code))
+# The checkout is a GoHighLevel order form, not part of the landing: its one
+# block (Works with GoHighLevel, R-02) goes into a Custom Code element there.
+items.append(("Checkout page: Works with GoHighLevel (one Custom Code element under the order form)", (HERE / "checkout-ghl-badge.html").read_text(encoding="utf-8").strip()))
 
 cards = []
 for i, (title, code) in enumerate(items):

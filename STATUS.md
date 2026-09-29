@@ -1,6 +1,6 @@
 # STATUS
 
-Last updated: 2026-09-29 (end of the long session: Phase 14, reliability review, Automations redesign)
+Last updated: 2026-09-29 (reliability pass 2, Works with GoHighLevel, affiliate link)
 
 ## End goal
 
@@ -63,9 +63,17 @@ Phase plan changes (all accepted): compliance pack and quota extension request r
 ## Next (proposed order)
 
 1. Small ports from C2C: guard against destinations on our own hosts (apex artifact), restore a skipped reply.
-2. Commenters as GoHighLevel prospect contacts tagged by keyword and lead temperature (lead compounding, L-03).
-3. Owner items: real `GHL_AFFILIATE_URL`; "Works with GoHighLevel" on the landing page and checkout; the LLC, then Privacy, Terms, Google verification and Marketplace Public review (C2C's passed pack is the template).
+2. Commenters as GoHighLevel contacts: on hold, owner decides (DECISIONS A-10).
+3. Owner items: paste the changed landing blocks (Hero, Pricing, FAQ) and the checkout block from `design/landing/ghl-kit.html`; replace the temporary affiliate link once the LLC and own GoHighLevel exist (A-08); the LLC, then Privacy, Terms, Google verification and Marketplace Public review (C2C's passed pack is the template).
 4. Later: GoHighLevel Conversations provider (reply from inside GHL), running inside GHL with SSO, affiliate snapshot marker.
+
+## Reliability pass 2 (2026-09-29)
+
+- #110: an approved reply without a send job is queued again after 15 minutes (engine tick).
+- #111: a stored keyword comment without a draft is queued again (hourly, last 25 hours).
+- #112: a GoHighLevel 401 for a missing scope no longer marks the connection for a reconnect.
+- #113: the 50 reply units are booked only right before the post (no quota spent by duplicate jobs or failed token refreshes).
+- `GHL_AFFILIATE_URL` set on Railway `web` (temporary, A-08); landing and checkout say Works with GoHighLevel (A-09).
 
 ## Reliability review 2026-09-29 (done, DECISIONS section 20)
 

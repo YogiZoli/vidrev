@@ -183,6 +183,12 @@
 @keyframes row-in { from { opacity: 0; transform: translateY(-8px); background: var(--primary-50); } to { opacity: 1; transform: none; background: transparent; } }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, 16px); } to { opacity: 1; transform: translate(-50%, 0); } }
 @keyframes shimmer { from { background-position: -400px 0; } to { background-position: 400px 0; } }
+/* The chosen trigger keyword breathes in its lead temperature colour (--kw). */
+@keyframes kw-halo {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--kw) 55%, transparent); }
+  70%  { box-shadow: 0 0 0 10px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
 
 @layer base {
   html { -webkit-font-smoothing: antialiased; }
@@ -220,6 +226,9 @@
     transform: translateX(-120%);
     animation: sheen 3.6s ease-in-out infinite;
     pointer-events: none;
+  }
+  .kw-selected {
+    animation: kw-halo 2.2s var(--ease-out) infinite;
   }
   .skeleton {
     border-radius: var(--radius-md);

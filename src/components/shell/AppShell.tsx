@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { Brand } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import { getDb } from "@/db/client";
-import { replies } from "@/db/schema";
+import { campaigns, replies } from "@/db/schema";
 import { isAdminEmail } from "@/server/auth/current";
 import { BottomTabs, TopTabs } from "./AppNav";
 
@@ -15,6 +15,11 @@ export async function AppShell({ user, accountId, children }: { user: { email: s
     .from(replies)
     .where(and(eq(replies.accountId, accountId), eq(replies.status, "pending_approval")));
   const queueCount = pending?.n ?? 0;
+  const [live] = await getDb()
+    .select({ n: count() })
+    .from(campaigns)
+    .where(and(eq(campaigns.accountId, accountId), eq(campaigns.active, true)));
+  const liveCount = live?.n ?? 0;
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-20 border-b border-border bg-white/85 backdrop-blur-md">
@@ -31,11 +36,11 @@ export async function AppShell({ user, accountId, children }: { user: { email: s
               </form>
             </div>
           </div>
-          <TopTabs queueCount={queueCount} isAdmin={isAdminEmail(user.email)} />
+          <TopTabs queueCount={queueCount} liveCount={liveCount} isAdmin={isAdminEmail(user.email)} />
         </div>
       </header>
       <div className="flex-1">{children}</div>
-      <BottomTabs queueCount={queueCount} />
+      <BottomTabs queueCount={queueCount} liveCount={liveCount} />
     </div>
   );
 }

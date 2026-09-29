@@ -20,6 +20,13 @@ import { VideoPicker } from "./VideoPicker";
 export const dynamic = "force-dynamic";
 
 
+// Card tint per lead temperature (very light), matching the keyword rows.
+const TINT = {
+  cold: "border-cold-dot/40 bg-cold-surface/70",
+  warm: "border-warm-dot/40 bg-warm-surface/70",
+  hot: "border-hot-dot/40 bg-hot-surface/70",
+} as const;
+
 function StepNo({ n }: { n: number }) {
   return (
     <span aria-hidden className="grid size-7 place-items-center rounded-full bg-primary font-mono text-[13px] font-bold text-primary-foreground">
@@ -29,7 +36,7 @@ function StepNo({ n }: { n: number }) {
 }
 
 
-export default async function CampaignsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+export default async function AutomationsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const { account } = await requireSession();
   const params = await searchParams;
   const db = getDb();
@@ -50,22 +57,27 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
       ? await ensureStaticLink(db, { accountId: account.id, campaignId: params.campaign, youtubeVideoId: videoId, fallbackHost: host })
       : null;
 
+  const liveCount = campaignRows.filter((c) => c.active).length;
+
   return (
-    <Page width="md">
-      <PageHeader title="Campaigns" lead="Pick the video, the keyword and where the link points. A viewer comments the keyword, you approve the reply, the link carries the tracking id." />
+    <Page width="lg">
+      <PageHeader
+        title="Automations"
+        lead="Choose the videos, the trigger keyword and where viewers go. A viewer comments the keyword, you approve the reply, the link carries the tracking id."
+      />
       {params.error ? <Notice tone="error">{params.error}</Notice> : null}
       {params.saved ? <Notice tone="info">Saved.</Notice> : null}
       {!channel ? <Notice tone="error">Connect your channel first.</Notice> : null}
 
       {channel ? (
         <Card variant="hero" className="grid gap-5">
-          <SectionTitle>New campaign</SectionTitle>
-          <form method="post" action="/api/campaigns" className="grid gap-6">
+          <SectionTitle>New automation</SectionTitle>
+          <form method="post" action="/api/campaigns" className="grid gap-7">
             <input type="hidden" name="channelId" value={channel.id} />
 
             <fieldset className="m-0 grid gap-3 border-0 p-0">
               <legend className="mb-2 flex items-center gap-2 p-0 text-base font-bold">
-                <StepNo n={1} /> Video
+                <StepNo n={1} /> Which videos?
               </legend>
               <VideoPicker
                 hasStats={videoList.source === "youtube"}
@@ -82,67 +94,59 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
 
             <fieldset className="m-0 grid gap-3 border-0 p-0">
               <legend className="mb-2 flex items-center gap-2 p-0 text-base font-bold">
-                <StepNo n={2} /> Keyword
+                <StepNo n={2} /> Which trigger keyword?
               </legend>
               <KeywordPicker />
-              <Meta>The lead temperature shows how ready a viewer who comments it is: Cold wants a free resource, Warm wants to learn more, Hot is ready to buy.</Meta>
             </fieldset>
 
             <fieldset className="m-0 grid gap-3 border-0 p-0">
               <legend className="mb-2 flex items-center gap-2 p-0 text-base font-bold">
-                <StepNo n={3} /> Target URL
+                <StepNo n={3} /> Where do they go?
               </legend>
-              <Field label="Where the reply link points" hint="Your default from setup. Change it for this campaign if needed.">
+              <Field label="Send them to" hint="The page the reply link opens. Your default from setup; change it for this automation if needed.">
                 <Input name="destinationUrl" type="url" required defaultValue={account.defaultTargetUrl ?? ""} placeholder="https://yourdomain.com/guide" className="font-mono" />
               </Field>
             </fieldset>
 
             <div className="grid justify-items-start gap-2">
               <Button name="action" value="create" pulse>
-                Start watching
+                Go live
               </Button>
-              <Meta>Only comments posted after you start get a draft. Each draft waits for your approval.</Meta>
+              <Meta>Only comments posted after you go live get a draft. Each draft waits for your approval.</Meta>
             </div>
           </form>
         </Card>
       ) : null}
 
-      {campaignRows.length ? <SectionTitle>Live rules</SectionTitle> : null}
+      {campaignRows.length ? (
+        <div className="flex items-center gap-2.5">
+          <SectionTitle>Live automations</SectionTitle>
+          {liveCount > 0 ? (
+            <span className="relative inline-flex size-2.5" role="img" aria-label={`${liveCount} live`}>
+              <span aria-hidden className="absolute inline-flex size-full animate-ping-slow rounded-full bg-success opacity-60" />
+              <span aria-hidden className="relative inline-flex size-2.5 rounded-full bg-success" />
+            </span>
+          ) : null}
+          <Meta className="text-[14px]">{liveCount} running</Meta>
+        </div>
+      ) : null}
 
       {campaignRows.map((campaign) => (
-        <Card key={campaign.id} className="grid gap-4">
+        <Card key={campaign.id} className={`grid gap-4 border ${TINT[campaign.intent]}`}>
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="grid min-w-0 gap-1.5">
+            <div className="grid min-w-0 gap-2">
               <div className="flex flex-wrap items-center gap-2">
-                <strong className="text-lg first-letter:uppercase">{campaign.name}</strong>
-                <Badge tone={campaign.active ? "success" : "neutral"}>{campaign.active ? "on" : "paused"}</Badge>
+                <Keyword className="text-[15px]">{campaign.keyword}</Keyword>
                 <TemperatureChip temperature={campaign.intent} />
+                <Badge tone={campaign.active ? "success" : "neutral"}>{campaign.active ? "live" : "paused"}</Badge>
               </div>
-              <p className="m-0 text-[15px]">
-                Keyword: <Keyword>{campaign.keyword}</Keyword>
-              </p>
-              <Meta className="[overflow-wrap:anywhere]">
-                {campaign.videoIds ? `${campaign.videoIds.length} video(s)` : "All videos"} · {campaign.destinationUrl}
-              </Meta>
-              {staticLinks.get(campaign.id) ? (
-                <>
-                  <p className="m-0 text-sm">
-                    Link for descriptions and pinned comments: <CopyMono text={staticLinks.get(campaign.id) ?? ""} className="mt-1" />
-                  </p>
-                  {videoLink && params.campaign === campaign.id ? (
-                    <p className="m-0 text-sm">
-                      Link for video {videoId}: <CopyMono text={videoLink.url} className="mt-1" />
-                    </p>
-                  ) : null}
-                  <form method="get" action="/app/campaigns" className="mt-1.5 flex flex-wrap gap-2">
-                    <input type="hidden" name="campaign" value={campaign.id} />
-                    <Input name="video" placeholder="Video link for a per-video link" aria-label="Video link" className="w-full sm:w-[280px]" />
-                    <Button type="submit" variant="outline">
-                      Get link
-                    </Button>
-                  </form>
-                </>
-              ) : null}
+              <strong className="text-lg first-letter:uppercase">{campaign.name}</strong>
+              <dl className="m-0 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-[14px]">
+                <dt className="text-muted-foreground">Videos</dt>
+                <dd className="m-0">{campaign.videoIds ? `${campaign.videoIds.length} selected` : "All videos, including new uploads"}</dd>
+                <dt className="text-muted-foreground">Send them to</dt>
+                <dd className="m-0 [overflow-wrap:anywhere]">{campaign.destinationUrl}</dd>
+              </dl>
             </div>
             <div className="flex gap-2">
               <form method="post" action="/api/campaigns">
@@ -160,39 +164,67 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
             </div>
           </div>
 
-          <div className="grid gap-2 border-t border-border pt-4">
-            <SectionTitle className="text-[15px]">Approved reply templates</SectionTitle>
-            {campaign.templates.length === 0 ? <Meta className="text-[15px]">No templates yet. AI drafts are written in your default language.</Meta> : null}
-            {campaign.templates.map((template) => (
-              <form key={template.id} method="post" action="/api/campaigns" className="flex items-center gap-3 rounded-md bg-background p-2.5">
-                <input type="hidden" name="templateId" value={template.id} />
-                <Keyword>{template.language}</Keyword>
-                <span className="min-w-0 flex-1 text-[15px] [overflow-wrap:anywhere]">{template.body}</span>
-                <Button name="action" value="template_delete" variant="outline" size="sm" className="flex-none">
-                  Remove
-                </Button>
-              </form>
-            ))}
-            <form method="post" action="/api/campaigns" className="grid gap-3">
-              <input type="hidden" name="campaignId" value={campaign.id} />
-              <Field label="Language">
-                <LanguageSelect name="language" value={channel?.defaultLanguage} />
-              </Field>
-              <Field label="Reply text (use {link} once where the link goes)">
-                <Textarea name="body" rows={2} required defaultValue="Here you go: {link}" />
-              </Field>
-              <div>
-                <Button name="action" value="template_add" variant="outline">
-                  Add template
-                </Button>
+          {staticLinks.get(campaign.id) ? (
+            <details className="rounded-md bg-surface/80 p-3 text-[15px]">
+              <summary className="cursor-pointer font-semibold">Links for your description and pinned comment</summary>
+              <div className="mt-2 grid gap-2 text-sm">
+                <p className="m-0">
+                  For every video: <CopyMono text={staticLinks.get(campaign.id) ?? ""} className="mt-1" />
+                </p>
+                {videoLink && params.campaign === campaign.id ? (
+                  <p className="m-0">
+                    For video {videoId}: <CopyMono text={videoLink.url} className="mt-1" />
+                  </p>
+                ) : null}
+                <form method="get" action="/app/campaigns" className="flex flex-wrap gap-2">
+                  <input type="hidden" name="campaign" value={campaign.id} />
+                  <Input name="video" placeholder="Video link for a per-video link" aria-label="Video link" className="w-full sm:w-[280px]" />
+                  <Button type="submit" variant="outline">
+                    Get link
+                  </Button>
+                </form>
               </div>
-            </form>
-          </div>
+            </details>
+          ) : null}
+
+          <details className="rounded-md bg-surface/80 p-3 text-[15px]">
+            <summary className="cursor-pointer font-semibold">
+              Advanced: your reply wording and brand style (optional){campaign.templates.length ? ` (${campaign.templates.length})` : ""}
+            </summary>
+            <div className="mt-2 grid gap-3">
+              <Meta className="text-[14px]">
+                The AI writes a fresh reply to every comment. Add a few replies in your own words here: the AI copies their tone and style, and if
+                the AI is ever unavailable, one of these goes out instead. Put {"{link}"} where the link belongs. Each reply is in one language;
+                comments in that language get it.
+              </Meta>
+              {campaign.templates.map((template) => (
+                <form key={template.id} method="post" action="/api/campaigns" className="flex items-center gap-3 rounded-md bg-background p-2.5">
+                  <input type="hidden" name="templateId" value={template.id} />
+                  <Keyword>{template.language}</Keyword>
+                  <span className="min-w-0 flex-1 text-[15px] [overflow-wrap:anywhere]">{template.body}</span>
+                  <Button name="action" value="template_delete" variant="outline" size="sm" className="flex-none">
+                    Remove
+                  </Button>
+                </form>
+              ))}
+              <form method="post" action="/api/campaigns" className="grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-end">
+                <input type="hidden" name="campaignId" value={campaign.id} />
+                <Field label="Language">
+                  <LanguageSelect name="language" value={channel?.defaultLanguage} />
+                </Field>
+                <Field label="Your reply">
+                  <Textarea name="body" rows={2} required defaultValue="Here you go: {link}" />
+                </Field>
+                <div className="sm:col-start-2">
+                  <Button name="action" value="template_add" variant="outline">
+                    Save this reply
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </details>
         </Card>
       ))}
-
-
-
     </Page>
   );
 }

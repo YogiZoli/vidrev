@@ -11,9 +11,11 @@ import { requireSession } from "@/server/auth/current";
 import { listCampaigns, parseVideoIds } from "@/server/campaigns";
 import { ensureStaticLink } from "@/server/links";
 import { listChannels } from "@/server/channels";
+import { webChannelDeps } from "@/server/channel-deps";
 import { pickableVideos } from "@/server/video-picker";
 import { Notice } from "../../ui";
 import { KeywordPicker } from "./KeywordPicker";
+import { VideoPicker } from "./VideoPicker";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +35,7 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
   const db = getDb();
   const channel = (await listChannels(db, account.id)).find((c) => c.status === "connected");
   const campaignRows = await listCampaigns(db, account.id);
-  const pickable = channel ? await pickableVideos(db, channel) : [];
+  const videoList = channel ? await pickableVideos(db, channel.id, webChannelDeps()) : { source: "known" as const, videos: [] };
   // Reusable tracked links for video descriptions and pinned comments (R-07):
   // one channel-wide per keyword, and one per video on request.
   const host = fallbackHost();
@@ -65,32 +67,17 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
               <legend className="mb-2 flex items-center gap-2 p-0 text-base font-bold">
                 <StepNo n={1} /> Video
               </legend>
-              <label className="flex cursor-pointer items-start gap-2.5 rounded-md border border-border bg-surface p-2.5">
-                <input type="checkbox" name="allVideos" value="1" className="mt-1 size-4 flex-none accent-[var(--primary-600)]" />
-                <span className="grid gap-0.5">
-                  <span className="text-[15px] font-semibold">All my videos, including new uploads</span>
-                  <Meta>Or pick videos below.</Meta>
-                </span>
-              </label>
-              {pickable.length ? (
-                <div className="grid max-h-80 gap-1 overflow-y-auto rounded-md border border-border bg-surface p-2">
-                  {pickable.map((video) => (
-                    <label key={video.youtubeVideoId} className="flex cursor-pointer items-start gap-2.5 rounded-md p-2 hover:bg-background">
-                      <input type="checkbox" name="videoIds" value={video.youtubeVideoId} className="mt-1 size-4 flex-none accent-[var(--primary-600)]" />
-                      <span className="grid min-w-0 gap-0.5">
-                        <span className="text-[15px] [overflow-wrap:anywhere]">{video.title ?? video.youtubeVideoId}</span>
-                        {video.publishedAt ? <Meta>{video.publishedAt.toISOString().slice(0, 10)}</Meta> : null}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              ) : (
-                <Meta className="text-[15px]">We could not list your latest videos right now. Paste a video link below.</Meta>
-              )}
-              <Field label="Or paste video links (optional)">
-                <Textarea name="videos" rows={2} placeholder="https://youtu.be/..." />
-              </Field>
-              <Meta>Pick at least one video, or all of them. Only comments on the chosen videos get a reply draft.</Meta>
+              <VideoPicker
+                hasStats={videoList.source === "youtube"}
+                videos={videoList.videos.map((v) => ({
+                  id: v.youtubeVideoId,
+                  title: v.title,
+                  publishedAt: v.publishedAt?.toISOString() ?? null,
+                  thumbnail: v.thumbnail,
+                  views: v.views,
+                  comments: v.comments,
+                }))}
+              />
             </fieldset>
 
             <fieldset className="m-0 grid gap-3 border-0 p-0">

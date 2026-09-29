@@ -69,6 +69,26 @@ export interface VideoItem {
   snippet?: { title?: string; publishedAt?: string };
 }
 
+// The channel's newest uploads (playlistItems.list on the uploads playlist,
+// 1 unit for up to 50). The uploads playlist id is the channel id with "UU"
+// instead of "UC".
+export function listUploads(fetchImpl: FetchLike, token: string, youtubeChannelId: string, max = 50) {
+  const params = new URLSearchParams({ part: "contentDetails", playlistId: `UU${youtubeChannelId.slice(2)}`, maxResults: String(Math.min(max, 50)) });
+  return call<{ items?: { contentDetails?: { videoId?: string; videoPublishedAt?: string } }[] }>(fetchImpl, token, `/playlistItems?${params.toString()}`);
+}
+
+export interface VideoStatsItem {
+  id: string;
+  snippet?: { title?: string; publishedAt?: string; thumbnails?: { default?: { url?: string }; medium?: { url?: string } } };
+  statistics?: { viewCount?: string; commentCount?: string };
+}
+
+// Title, thumbnail, views and comment count for up to 50 videos, 1 unit.
+export function listVideoStats(fetchImpl: FetchLike, token: string, ids: string[]) {
+  const params = new URLSearchParams({ part: "snippet,statistics", id: ids.slice(0, 50).join(","), maxResults: "50" });
+  return call<{ items?: VideoStatsItem[] }>(fetchImpl, token, `/videos?${params.toString()}`);
+}
+
 // Up to 50 ids per call, 1 unit.
 export function listVideos(fetchImpl: FetchLike, token: string, ids: string[]) {
   const params = new URLSearchParams({ part: "snippet", id: ids.join(","), maxResults: "50" });

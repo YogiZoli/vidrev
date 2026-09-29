@@ -163,6 +163,26 @@ export async function recoverUnconfirmedSends(deps: EngineDeps): Promise<number>
   return stuck.length;
 }
 
+// An approved reply with no job behind it (the send job failed for good, or
+// queuing it after the approval failed) would wait for ever. After 15 minutes
+// without a change it is queued again; a duplicate job is harmless because
+// sendReply claims the reply before posting.
+export const ORPHANED_AFTER_MS = 15 * 60_000;
+
+export async function requeueOrphanedApproved(deps: EngineDeps): Promise<number> {
+  const now = deps.now?.() ?? new Date();
+  const orphans = await deps.db
+    .update(replies)
+    .set({ updatedAt: now })
+    .where(and(eq(replies.status, "approved"), lt(replies.updatedAt, new Date(now.getTime() - ORPHANED_AFTER_MS))))
+    .returning({ id: replies.id, accountId: replies.accountId });
+  for (const { id, accountId } of orphans) {
+    await deps.enqueue("reply.send", { replyId: id }, { singletonKey: id });
+    log("warn", "approved reply had no send job, queued again", { replyId: id, accountId });
+  }
+  return orphans.length;
+}
+
 async function emitReplyPosted(deps: EngineDeps, replyId: string, now: Date): Promise<void> {
   try {
     const context = await replyContext(deps.db, replyId);

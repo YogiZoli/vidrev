@@ -13,11 +13,11 @@ import { errorFields, log } from "@/lib/log";
 import { type Alerter, createAlerter } from "./alerts";
 import { type ChannelDeps, disconnectChannel, expireStuckConnects, syncChannel } from "./channels";
 import { EmailSendError, senderAddress, sendWithResend } from "./email";
-import { createDraft } from "./drafts";
+import { createDraft, requeueUndraftedComments } from "./drafts";
 import { checkDomain, type DomainDeps, queueDomainChecks, removeDomainHostname } from "./domains";
 import { runJob, runSteps } from "./jobs";
 import { runRetention } from "./retention";
-import { recoverUnconfirmedSends, sendReply } from "./sending";
+import { recoverUnconfirmedSends, requeueOrphanedApproved, sendReply } from "./sending";
 import { checkRss, type EngineDeps, engineTick, pollChannel, renewWebsub } from "./polling";
 import { deliver, deliverDue, type WebhookDeps } from "./webhooks";
 import { pushAuditLead } from "@/server/audit/owner-crm";
@@ -242,6 +242,7 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
     ["polling", () => engineTick(engineDeps(boss))],
     // Recovery of stuck states (reliability review 2026-09-29).
     ["unconfirmed sends", () => recoverUnconfirmedSends(engineDeps(boss))],
+    ["orphaned approved replies", () => requeueOrphanedApproved(engineDeps(boss))],
     ["stuck channel connects", () => expireStuckConnects(channelDeps())],
   ]);
   // Audit my channel (Phase 9): one run per request, own API key and quota.
@@ -267,6 +268,7 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
   await work<AccountJob>(QUEUES.reportRefresh, (job) => refreshAccountReports(reportDeps(boss), job.data.accountId));
   await schedule(QUEUES.reportHourly, "7 * * * *", () => [
     ["contacts backfill", () => backfillContacts(getDb())],
+    ["undrafted comments", () => requeueUndraftedComments({ db: getDb(), enqueue: sendVia(boss) })],
     ["mark reports dirty", () => markAllReportsDirty(getDb())],
   ]);
   // Contacts for rows older than the Contact model (DECISIONS section 13.10):

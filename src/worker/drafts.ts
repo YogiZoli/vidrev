@@ -1,4 +1,4 @@
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, gt, lt, notExists, sql } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import { accounts, campaigns, channels, comments, plans, replies, templates, users } from "@/db/schema";
 import { decryptSecret } from "@/lib/crypto";
@@ -176,6 +176,31 @@ export async function createDraft(deps: DraftDeps, commentId: string): Promise<v
   await deps.db.update(comments).set({ language: detected }).where(eq(comments.id, comment.id));
   if (template) await deps.db.update(templates).set({ lastUsedAt: now }).where(eq(templates.id, template.id));
   if (!overCap) await notifyDraftsWaiting(deps, account, now);
+}
+
+// A stored keyword comment whose draft job was lost (a crash between storing
+// and queuing, or a job that failed for good) would never get a reply: the next
+// poll sees it as known. Hourly, comments from the last day without a reply
+// are queued again; createDraft is idempotent and skips what no longer matches.
+export const UNDRAFTED_AFTER_MS = 15 * 60_000;
+const UNDRAFTED_WINDOW_MS = 25 * 3_600_000;
+
+export async function requeueUndraftedComments(deps: Pick<DraftDeps, "db" | "enqueue" | "now">): Promise<number> {
+  const now = deps.now?.() ?? new Date();
+  const rows = await deps.db
+    .select({ id: comments.id })
+    .from(comments)
+    .where(
+      and(
+        lt(comments.fetchedAt, new Date(now.getTime() - UNDRAFTED_AFTER_MS)),
+        gt(comments.fetchedAt, new Date(now.getTime() - UNDRAFTED_WINDOW_MS)),
+        notExists(deps.db.select({ one: sql`1` }).from(replies).where(eq(replies.commentId, comments.id))),
+      ),
+    )
+    .limit(500);
+  for (const { id } of rows) await deps.enqueue("reply.draft", { commentId: id });
+  if (rows.length > 0) log("warn", "keyword comments without a draft, queued again", { count: rows.length });
+  return rows.length;
 }
 
 async function notifyDraftsWaiting(deps: DraftDeps, account: typeof accounts.$inferSelect, now: Date): Promise<void> {

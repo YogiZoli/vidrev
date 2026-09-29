@@ -110,17 +110,19 @@ export async function updateGhlConfig(deps: GhlDeps, integrationId: string, patc
 }
 
 // Runs `fn` with an API client; one 401 triggers a forced refresh and a retry.
+// A 401 for a missing scope is thrown as it is: it never burns a refresh and
+// never marks the connection for a reconnect (the other calls still work).
 export async function withGhlApi<T>(deps: GhlDeps, integrationId: string, fn: (api: GhlApi, config: GhlConfig) => Promise<T>): Promise<T> {
   let config = await freshConfig(deps, integrationId);
   try {
     return await fn(createGhlApi(deps.fetch, config.accessToken), config);
   } catch (error) {
-    if (!(error instanceof GhlApiError) || error.status !== 401) throw error;
+    if (!(error instanceof GhlApiError) || error.status !== 401 || error.scopeDenied) throw error;
     config = await freshConfig(deps, integrationId, true);
     try {
       return await fn(createGhlApi(deps.fetch, config.accessToken), config);
     } catch (retryError) {
-      if (retryError instanceof GhlApiError && retryError.status === 401) {
+      if (retryError instanceof GhlApiError && retryError.status === 401 && !retryError.scopeDenied) {
         const [row] = await deps.db.select({ accountId: integrations.accountId }).from(integrations).where(eq(integrations.id, integrationId));
         if (row) await markReauth(deps, integrationId, row.accountId);
         throw new GhlReauthError();

@@ -34,3 +34,21 @@ describe("GoHighLevel destinations", () => {
     expect(preferredKinds("GUIDE")[0]).toBe("optin");
   });
 });
+
+describe("funnel domain detection", () => {
+  it("lists candidates best first, without our own hosts or duplicates", async () => {
+    const { domainCandidates } = await import("./destinations");
+    expect(
+      domainCandidates({ locationDomain: "", redirectHosts: ["www.vidrev.app", "vidrev.app"], website: "https://vidrev.app/" }, ["app.vidrev.app", "go.vidrev.app"]),
+    ).toEqual(["www.vidrev.app", "vidrev.app", "get.vidrev.app", "link.vidrev.app", "join.vidrev.app"]);
+  });
+
+  it("accepts only a host that really serves a funnel page", async () => {
+    const { probeFunnelHost } = await import("./destinations");
+    const served = new Set(["https://go.example.com/guide"]);
+    const fetchPage = async (url: string) => ({ finalUrl: url, status: served.has(url) ? 200 : 404, body: "" });
+    expect(await probeFunnelHost(["example.com", "go.example.com"], ["/guide"], fetchPage)).toBe("go.example.com");
+    expect(await probeFunnelHost(["example.com"], ["/guide"], fetchPage)).toBeNull();
+    expect(await probeFunnelHost(["example.com"], [], fetchPage)).toBeNull();
+  });
+});

@@ -109,6 +109,7 @@ export default async function AutomationsPage({ searchParams }: { searchParams: 
               <DestinationPicker
                 items={destinations.items}
                 baseUrl={destinations.baseUrl}
+                domainVerified={destinations.domainVerified}
                 status={destinations.status}
                 defaultUrl={account.defaultTargetUrl ?? ""}
               />

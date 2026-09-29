@@ -39,11 +39,13 @@ function joinUrl(base: string, path: string): string {
 export function DestinationPicker({
   items,
   baseUrl,
+  domainVerified,
   status,
   defaultUrl,
 }: {
   items: DestinationOption[];
   baseUrl: string | null;
+  domainVerified: boolean;
   status: "ok" | "not_connected" | "reconnect" | "error";
   defaultUrl: string;
 }) {
@@ -91,7 +93,7 @@ export function DestinationPicker({
         </p>
       ) : null}
       {status === "error" ? (
-        <p className="m-0 rounded-md bg-warm-surface p-3 text-[14px] text-warm-text">GoHighLevel did not answer just now. Enter the address under Advanced, or reload in a minute.</p>
+        <p className="m-0 rounded-md bg-warm-surface p-3 text-[14px] text-warm-text">GoHighLevel did not answer just now. Reload in a minute, or enter the address under Advanced.</p>
       ) : null}
 
       {items.length ? (
@@ -123,7 +125,11 @@ export function DestinationPicker({
         <label className="grid gap-1.5">
           <span className="text-[14px] font-semibold">Your page domain</span>
           <Input value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="https://yourdomain.com" className="font-mono" />
-          <span className="text-[13px] text-muted-foreground">From your GoHighLevel Sub-account website. Change it if this funnel runs on another domain.</span>
+          <span className="text-[13px] text-muted-foreground">
+            {domainVerified && domain === baseUrl
+              ? "Found automatically: your funnel pages load on this domain."
+              : "We could not confirm this domain automatically. Open the link below once to check, or enter the domain your funnel runs on."}
+          </span>
         </label>
       ) : null}
 

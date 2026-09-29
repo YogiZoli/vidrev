@@ -10,7 +10,7 @@ export function fallbackHost(): string | null {
   }
 }
 
-function appHost(): string | null {
+export function appHost(): string | null {
   try {
     return process.env.APP_BASE_URL ? new URL(process.env.APP_BASE_URL).hostname.toLowerCase() : null;
   } catch {

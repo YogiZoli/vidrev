@@ -94,9 +94,9 @@ export function createGhlApi(fetchImpl: FetchLike, accessToken: string) {
   }
 
   // Name and website of the Sub-account; the website prefills the target URL in onboarding.
-  async function getLocation(locationId: string): Promise<{ name: string | null; website: string | null }> {
-    const json = await call<{ location?: { name?: string; website?: string } }>(`/locations/${locationId}`);
-    return { name: json.location?.name ?? null, website: json.location?.website?.trim() || null };
+  async function getLocation(locationId: string): Promise<{ name: string | null; website: string | null; domain: string | null }> {
+    const json = await call<{ location?: { name?: string; website?: string; domain?: string } }>(`/locations/${locationId}`);
+    return { name: json.location?.name ?? null, website: json.location?.website?.trim() || null, domain: json.location?.domain?.trim() || null };
   }
 
   return {
@@ -113,9 +113,16 @@ export function createGhlApi(fetchImpl: FetchLike, accessToken: string) {
       return json.funnels ?? [];
     },
 
-    // Needs surveys.readonly.
+    // Hosts named in the Sub-account's funnel redirects (a hint for which
+    // domain the funnels are on). Needs funnels/redirect.readonly.
+    async listRedirectHosts(locationId: string): Promise<string[]> {
+      const json = await call<{ data?: { domain?: string; target?: string }[] }>("/funnels/lookup/redirect/list", { query: { locationId, limit: 50, offset: 0 } });
+      return (json.data ?? []).flatMap((r) => [r.domain, r.target]).filter((h): h is string => Boolean(h));
+    },
+
+    // Needs surveys.readonly. HighLevel allows at most 50 per page.
     async listSurveys(locationId: string): Promise<{ id: string; name: string }[]> {
-      const json = await call<{ surveys?: { id?: string; _id?: string; name?: string }[] }>("/surveys/", { query: { locationId, limit: 100 } });
+      const json = await call<{ surveys?: { id?: string; _id?: string; name?: string }[] }>("/surveys/", { query: { locationId, limit: 50 } });
       return (json.surveys ?? []).map((s) => ({ id: String(s.id ?? s._id ?? ""), name: s.name ?? "Survey" })).filter((s) => s.id);
     },
 

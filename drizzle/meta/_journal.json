@@ -113,6 +113,13 @@
       "when": 1791359819335,
       "tag": "0015_standard_price",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1791368235647,
+      "tag": "0016_crm_sync_mode",
+      "breakpoints": true
     }
   ]
 }

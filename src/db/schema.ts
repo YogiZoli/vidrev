@@ -96,11 +96,16 @@ export const accounts = pgTable("accounts", {
   accessSource: text("access_source").$type<AccessSource>(),
   // One free trial per account, by trial button or trial coupon.
   trialUsedAt: timestamp("trial_used_at", { withTimezone: true }),
+  // CRM sync mode (DECISIONS A-25): "clean" sends a commenter to the CRM only
+  // after opt-in; "beast" makes every keyword commenter a prospect contact at
+  // comment time. Beast counts only while the account is on BEAST_MODE_ACCOUNTS.
+  crmSyncMode: text("crm_sync_mode").$type<CrmSyncMode>().notNull().default("clean"),
   createdAt: createdAt(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export type AccessSource = "checkout" | "trial" | "coupon" | "partner_snapshot" | "partner_admin";
+export type CrmSyncMode = "clean" | "beast";
+export type AccessSource ="checkout" | "trial" | "coupon" | "partner_snapshot" | "partner_admin";
 export type CouponKind = "partner" | "trial";
 
 // Owner-made codes (admin): "partner" gives Partner access for good, "trial"

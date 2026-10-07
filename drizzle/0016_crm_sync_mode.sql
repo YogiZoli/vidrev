@@ -1,0 +1,1 @@
+ALTER TABLE "accounts" ADD COLUMN "crm_sync_mode" text DEFAULT 'clean' NOT NULL;

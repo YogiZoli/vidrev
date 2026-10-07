@@ -44,7 +44,9 @@ export const plans = pgTable("plans", {
   createdAt: createdAt(),
 });
 
-export type AccountStatus = "active" | "suspended";
+// "registered": signed up on the app, not paid yet; locked until a checkout
+// activates it (provisioning turns it "active").
+export type AccountStatus = "registered" | "active" | "suspended";
 export type AiProvider = "platform" | "gemini" | "openai" | "anthropic";
 
 export const accounts = pgTable("accounts", {

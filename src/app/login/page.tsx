@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Eyebrow } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,7 +30,9 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           Email me a sign-in link
         </Button>
       </form>
-      <Meta className="text-[15px]">No password needed. Your account is created when you subscribe.</Meta>
+      <Meta className="text-[15px]">
+        No password needed. New here? <Link href="/signup">Create an account</Link>
+      </Meta>
     </PublicCard>
   );
 }

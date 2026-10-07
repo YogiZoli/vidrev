@@ -87,6 +87,18 @@ describe.skipIf(!hasDb)("accounts, auth and provisioning (integration)", () => {
   });
 
   describe("provisioning", () => {
+    it("activates a signed-up account on purchase and sends the welcome link", async () => {
+      const db = getDb();
+      const address = email();
+      await createAccountWithUser(db, { email: address, planCode: "standard_monthly", status: "registered" });
+      const out = await handleProvisioning(db, payload({ event: "purchase", email: address, plan_code: "standard_monthly", subscription_id: "sub_r" }));
+      expect(out.result).toBe("activated");
+      expect(out.loginLink?.welcome).toBe(true);
+      const found = await findUserByEmail(db, address);
+      expect(found?.account.status).toBe("active");
+      expect(found?.account.planCode).toBe("standard_monthly");
+    });
+
     it("creates an account on purchase and is idempotent on (event, external_id)", async () => {
       const db = getDb();
       const event = payload({ event: "purchase", email: email(), plan_code: "standard_monthly", subscription_id: "sub_1" });

@@ -19,12 +19,13 @@ export async function findUserByEmail(db: DbOrTx, email: string) {
 
 export async function createAccountWithUser(
   db: DbOrTx,
-  input: { email: string; name?: string | null; planCode: string; trialEndsAt?: Date | null; billingRef?: string | null },
+  input: { email: string; name?: string | null; planCode: string; trialEndsAt?: Date | null; billingRef?: string | null; status?: "registered" | "active" },
 ) {
   const [account] = await db
     .insert(accounts)
     .values({
       name: input.name ?? null,
+      status: input.status ?? "active",
       planCode: input.planCode,
       trialEndsAt: input.trialEndsAt ?? null,
       billingRef: input.billingRef ?? null,

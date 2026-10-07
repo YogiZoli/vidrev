@@ -66,6 +66,9 @@ export function stretchFactor(tiers: readonly PollTier[], budget: number): numbe
   return Math.min(MAX_STRETCH, Math.max(1, pollsPerDay / usable));
 }
 
+// FAST_POLL_ACCOUNTS (owner testing): every minute, never stretched.
+export const FAST_POLL_MS = 60_000;
+
 export function nextPollAt(tier: PollTier, factor: number, now: Date): Date {
   return new Date(now.getTime() + TIER_MINUTES[tier] * factor * 60_000);
 }

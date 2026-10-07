@@ -36,10 +36,11 @@ Goal of the owner: the app never shows a raw error, always says what a process i
 - #142 Beast Mode: a prospect claim left in "creating" by a stopped worker blocked that person for ever (no tags, no thread). A fresh claim makes the job come back in 60 s; after 15 minutes the claim closes as unconfirmed, never created twice.
 - #143 Worker watchdog: when the shared heartbeat is 5 minutes stale and the database answers, the worker exits and Railway restarts it; with the database down it only logs.
 
-Open, not fixed (owner decision):
-- An unconfirmed prospect (create timed out or interrupted) may exist in the CRM with an unknown contact id; the sweep closes it as abandoned and it is never deleted, so its display name can stay in the CRM past 30 days. A fix would search the CRM by the "vidrev prospect id" field before closing.
-- If queueing ghl.prospect fails in the draft step it is only logged; there is no hourly re-queue for Beast Mode replies without a prospect.
-- Set an external uptime monitor on `https://app.vidrev.app/api/health/worker` (503 when the worker is down), so a dead worker reaches the owner even when the worker cannot send its own alert.
+Owner decisions 2026-10-07, done:
+- #145 29 day rule, strict: nothing of a Beast Mode prospect outlives 29 days. The hourly delete starts on day 28, is retried for one day; backups never pass day 29. Unconfirmed creates are looked up in the CRM by the prospect tag and our row id, then deleted through the same two proofs (sweep and cleanup before disconnect).
+- #146 A lost or failed ghl.prospect job is queued again by the hourly pass (Beast Mode replies 15 minutes to 2 days old, person still a commenter, no prospect row).
+
+Owner step, open: external uptime monitor (UptimeRobot, free) on `https://app.vidrev.app/api/health/worker`, keyword check, email alert. A dead worker cannot send its own alert.
 
 ## CRM sync mode, Clean Mode and Beast Mode (A-25 to A-29), done 2026-10-07
 

@@ -103,3 +103,9 @@ An optional step creators can drop into a HighLevel workflow. It answers with th
 What to confirm on the first live run: the note endpoint (`POST /contacts/{id}/notes`, `addNote` in `src/server/ghl/api.ts`, marked "verify live") accepts a body with and without `userId`, and HighLevel sends the header exactly as configured.
 
 There is no custom workflow trigger on purpose (DECISIONS P10-06): use HighLevel's built-in **Contact Tag** trigger with `vidrev`, `vidrev-keyword-<keyword>`, `vidrev-temperature-hot-lead` or `vidrev-video-<videoId>`.
+
+## vidrev inside GoHighLevel (SSO, DECISIONS A-22)
+
+1. Marketplace developer portal, the vidrev app, **Advanced settings, Auth**: copy the **Shared secret** (SSO key). Put it on Railway `web` as `GHL_SSO_KEY`.
+2. Same app, **Custom pages** (or a custom menu link for the sub-accounts): URL `https://app.vidrev.app/ghl`, name `vidrev`.
+3. Inside a sub-account that installed the app, open vidrev from the left menu: it signs in the vidrev account that connected that sub-account.

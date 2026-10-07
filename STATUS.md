@@ -26,6 +26,11 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 - Next: owner builds the GoHighLevel checkout for Founding 100 and sends the link (`FOUNDING_CHECKOUT_URL`); then move the landing into GoHighLevel on `vidrev.app` as Custom Code sections; then campaign drafts (L-03).
 - Next: owner brainstorm on the landing page and funnel, then a phase plan (not started).
 
+## 2026-10-07: vidrev inside GoHighLevel (SSO)
+
+- `/ghl` page for the Marketplace custom page / menu link: GoHighLevel SSO signs in the account that connected the sub-account (A-22). Owner steps in docs/SETUP-GHL.md (Shared secret as `GHL_SSO_KEY` on web, custom page URL).
+- C2C list closed: 1, 2, 5, 6 done; 3 and 4 not taken (A-14, A-23); 7 waits for the LLC.
+
 ## 2026-10-07: trial, GoHighLevel partner access, coupons
 
 - `/activate` offers: 14 day free trial; Free with GoHighLevel (partner link, or connect GoHighLevel to unlock); a code; Founding 97 USD/year with a 14 day money-back guarantee (A-20).

@@ -23,6 +23,11 @@ export const DEFAULT_GHL_SCOPES = [
   "locations.readonly",
   "locations/customFields.readonly",
   "locations/customFields.write",
+  // Beast Mode thread (A-25): our provider's conversations and messages.
+  "conversations.readonly",
+  "conversations.write",
+  "conversations/message.readonly",
+  "conversations/message.write",
 ];
 
 // Extra scopes for the "Where do they go?" list (pages, surveys, calendars).

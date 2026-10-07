@@ -109,3 +109,16 @@ There is no custom workflow trigger on purpose (DECISIONS P10-06): use HighLevel
 1. Marketplace developer portal, My apps, vidrev, **Manage, Secrets**, bottom box **Shared secret**: Generate key (not the "+ Add" of Client keys) and copy it. Put it on Railway `web` as `GHL_SSO_KEY`.
 2. Same app, **Custom pages** (or a custom menu link for the sub-accounts): URL `https://app.vidrev.app/crm`, name `vidrev`.
 3. Inside a sub-account that installed the app, open vidrev from the left menu: it signs in the vidrev account that connected that sub-account.
+
+## Beast Mode Conversations thread (DECISIONS A-25)
+
+Done by the owner on 2026-10-07 in the Marketplace app:
+
+1. Modules, Conversation Providers, Create: Name `YouTube comments`, Type `SMS`, "Is this a custom conversation provider?" ticked, "Always show" not ticked, Delivery URL `https://app.vidrev.app/api/hooks/crm/provider`, Alias `YouTube`. Provider ID `6ac6256f369dc5094e5b538d`.
+2. Advanced Settings, Auth, Scopes: `conversations.readonly`, `conversations.write`, `conversations/message.readonly`, `conversations/message.write`.
+3. Railway: `GHL_CONVERSATION_PROVIDER_ID=6ac6256f369dc5094e5b538d` on web and worker.
+4. Reconnect the CRM once (Settings, GoHighLevel, Disconnect, Connect) so the grant carries the new scopes.
+
+Do not make the provider the sub-account's default SMS provider (Settings, Phone Numbers): only vidrev threads should use it.
+
+How it works: a Beast Mode prospect gets one thread; each keyword comment arrives in it with the suggested reply. The creator answers in the thread: `OK` posts the suggestion, any other text is posted as the reply (the tracked link is added at the end when `{link}` is left out). The message is read back from the CRM with our own token before it is approved, then it goes through the normal approval and sending path; the CRM message turns delivered once posted on YouTube, failed with a reason otherwise.

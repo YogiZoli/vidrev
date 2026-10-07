@@ -31,6 +31,8 @@ const envSchema = z.object({
   BEAST_MODE_ACCOUNTS: optional,
   // The 29 day prospect delete (A-27): "dry_run" (default) only lists what it
   // would delete on /admin, "on" deletes, "off" is the emergency brake.
+  // Conversation Provider id of the Marketplace app (Beast Mode thread, A-25).
+  GHL_CONVERSATION_PROVIDER_ID: optional,
   BEAST_DELETE: z.enum(["off", "dry_run", "on"]).default("dry_run"),
   ENCRYPTION_KEY: optional,
   AUTH_SECRET: optional,

@@ -20,6 +20,8 @@ export const DELETE_GRACE_MS = 3 * 86_400_000;
 // Backups of deleted contacts: the sweep runs hourly from the 29th day, so
 // with 23 hours the display name inside stays within the 30 days.
 export const BACKUP_TTL_MS = 23 * 3_600_000;
+// A claim still "creating" after this long belongs to a worker that stopped.
+export const STALE_CREATING_MS = 15 * 60_000;
 export const PROSPECT_FIELD_NAME = "vidrev prospect id";
 const FALLBACK_NAME = "YouTube commenter";
 
@@ -90,6 +92,23 @@ export async function createProspect(deps: GhlWorkerDeps & { beastAllowlist?: st
           inArray(crmProspects.status, ["creating", "created", "unconfirmed"]),
         ),
       );
+    if (live?.status === "creating") {
+      // A worker that stopped mid-create (deploy, crash) leaves the claim in
+      // "creating" for ever: every later comment of this person would wait on
+      // it without a trace. After 15 minutes it is closed as unconfirmed (the
+      // contact may exist, so it is never created twice); until then this
+      // job comes back in a minute so its thread is not lost.
+      if (now.getTime() - live.createdAt.getTime() >= STALE_CREATING_MS) {
+        await deps.db
+          .update(crmProspects)
+          .set({ status: "unconfirmed", lastError: "create interrupted (worker stopped)", updatedAt: now })
+          .where(and(eq(crmProspects.id, live.id), eq(crmProspects.status, "creating")));
+        log("warn", "prospect create was interrupted, closed as unconfirmed", { accountId: reply.accountId, prospectId: live.id });
+        return "unconfirmed";
+      }
+      await deps.enqueue("ghl.prospect", { replyId }, { startAfter: 60 });
+      return "pending";
+    }
     if (live?.status !== "created" || !live.ghlContactId) return "pending";
     // Same person, another keyword or video: more tags on the same contact.
     try {

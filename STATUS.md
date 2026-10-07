@@ -26,12 +26,13 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 - Next: owner builds the GoHighLevel checkout for Founding 100 and sends the link (`FOUNDING_CHECKOUT_URL`); then move the landing into GoHighLevel on `vidrev.app` as Custom Code sections; then campaign drafts (L-03).
 - Next: owner brainstorm on the landing page and funnel, then a phase plan (not started).
 
-## CRM sync mode, Clean Mode and Beast Mode (A-25, A-27), in progress
+## CRM sync mode, Clean Mode and Beast Mode (A-25 to A-29), done 2026-10-07
 
 - PR1: setting `accounts.crm_sync_mode` (Clean default), choice in onboarding under the connected CRM step and in Settings, GoHighLevel; Beast Mode only for `BEAST_MODE_ACCOUNTS` (others see Coming soon), warning must be ticked. Nothing in the worker uses it yet (PR2).
 - PR2: Beast Mode prospect contact at comment time (job `ghl.prospect`: name, tags `vidrev-prospect`, keyword, temperature, video, field "vidrev prospect id"), table `crm_prospects`, hourly 29 day sweep with the A-28 safety belt (`BEAST_DELETE` dry_run default, off, on; 23 hour backups with Restore on `/admin`). No Conversations thread yet (PR3). Owner step: `BEAST_MODE_ACCOUNTS` on web and worker (done 2026-10-07).
 - PR3: Conversations thread through our provider (`6ac6256f369dc5094e5b538d`): comment plus suggested reply into the prospect thread; the creator answers in the CRM (OK or own text), the message is read back with our token, then the normal approval and send; status delivered or failed back in the thread. Owner steps: `GHL_CONVERSATION_PROVIDER_ID` on web and worker, reconnect the CRM (docs/SETUP-GHL.md).
 - PR4: opt-in merge into the email contact (tags, summary thread, then delete with the proofs), "Delete vidrev contacts now" before a disconnect, People shows prospects, /admin Recent activity (clicks, opt-ins, purchases).
+- Privacy draft section 9 "Beast Mode" and section 10 updated; LAUNCH-CHECKLIST note for the OAuth review.
 - Next: Conversion events (A-29): Lead types opt-in, survey, call booked, form, plus call showed; GHL webhooks and the universal inbound hook with an `event` field.
 - Opt-in test 2026-10-07 on YTC2C: click counted, opt-in not tied (C2C funnel form has no hidden "vidrev tracking id" field with query key `vidrev_tid`; latest attribution Direct traffic). Owner step: add the hidden field to the opt-in form.
 - `FAST_POLL_ACCOUNTS` (worker): listed accounts are polled every minute for testing; remove it once real customers arrive.

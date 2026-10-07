@@ -82,13 +82,24 @@ If you add a webhook endpoint or connect GoHighLevel, we send events to it: that
 
 In GoHighLevel we create or update one contact per email address, only when a person opts in or buys (never for a comment alone), set the "vidrev tracking id" field and add these tags: `vidrev`, `vidrev-source-youtube`, `vidrev-keyword-<keyword>`, `vidrev-temperature-<cold, warm or hot>-lead`, `vidrev-video-<video id>` and `vidrev-buyer`. The keywords, temperature and videos come only from the vidrev links this person clicked in the 30 days before the opt-in or purchase: our own first-party click records, not data read from YouTube.
 
+### Beast Mode (optional, chosen by you)
+
+By default (Clean Mode) a commenter reaches your CRM only after they opt in. If you choose Beast Mode, which you must confirm after a warning, every viewer who comments one of your trigger keywords becomes a contact in your connected GoHighLevel account when we see the comment:
+
+- What we send: the commenter's YouTube display name, the tags `vidrev-prospect`, `vidrev-keyword-<keyword>`, `vidrev-temperature-<cold, warm or hot>-lead` and `vidrev-video-<video id>`, and a "vidrev prospect id" field (our own random id). No email, no phone, no YouTube channel id.
+- A conversation thread in GoHighLevel holds the comment text, a link to your video and our suggested reply. You approve or write the reply there; we post it to YouTube only after you send it, through the same approval as in vidrev.
+- 29 days: a Beast Mode contact that has not opted in is deleted from your GoHighLevel account together with its thread on the 29th day, so this YouTube API data never stays there longer than 30 days. We delete only contacts we created ourselves, checked twice before each delete, and never a contact that has an email or a phone number. A copy of a deleted contact is kept for at most 23 hours so a mistaken delete can be undone, then removed. If the delete in GoHighLevel keeps failing for 3 days, we still remove everything on our side.
+- Opt-in: when the person opts in with their email, the tags move to the contact with that email, a new thread there lists only your own replies (video, keyword, date, reply text, never the comment text), and the Beast Mode contact is deleted.
+- Before you disconnect GoHighLevel, vidrev offers to delete the Beast Mode contacts it created, because after the disconnect it can no longer reach them.
+- Switching back to Clean Mode stops new Beast Mode contacts; the existing ones still follow the 29 day rule.
+
 ### What never leaves vidrev
 
-Data we read through the YouTube API Services about viewers is never sent to you, to GoHighLevel, to a webhook or to anyone else: not the comment text, not the commenter's name, not the commenter's YouTube channel id, not the fact that a particular person commented. It is used only inside vidrev to draft the reply you approve and to recognise the same person for at most 30 days (section 4), and it is deleted as section 4 describes. Nothing we send to a system you connect needs to be deleted after 30 days, because none of it is YouTube API data about viewers.
+Except in Beast Mode (above), data we read through the YouTube API Services about viewers is never sent to you, to GoHighLevel, to a webhook or to anyone else: not the comment text, not the commenter's name, not the commenter's YouTube channel id, not the fact that a particular person commented. In Beast Mode the display name and comment text go only to your own connected GoHighLevel account, as described above, and never the channel id. It is used only inside vidrev to draft the reply you approve and to recognise the same person for at most 30 days (section 4), and it is deleted as section 4 describes. Outside Beast Mode, nothing we send to a system you connect needs to be deleted after 30 days, because none of it is YouTube API data about viewers; the Beast Mode data is deleted on the 29th day as described above.
 
 ## 10. Viewers who click links or comment
 
-If you commented on a creator's video or clicked a creator's link, the creator decides why the data is used; we process it on their behalf. A comment alone never puts you in the creator's CRM: that only happens when you give your email on the creator's own page. Contact the creator, or write to [SUPPORT EMAIL] and we forward your request.
+If you commented on a creator's video or clicked a creator's link, the creator decides why the data is used; we process it on their behalf. A comment alone puts you in the creator's CRM only if the creator turned on Beast Mode (section 9): then your YouTube display name, the keyword and the comment appear there for at most 29 days, and are deleted unless you opt in. Otherwise you enter the creator's CRM only when you give your email on the creator's own page. Contact the creator, or write to [SUPPORT EMAIL] and we forward your request.
 
 ## 11. Your rights
 

@@ -17,10 +17,10 @@ export const runtime = "nodejs";
 const reportLimit = new RateLimiter(10, 3_600_000);
 
 export async function POST(request: Request): Promise<Response> {
-  if (!isSameOrigin(request)) return redirectTo("/audit?error=origin");
+  if (!isSameOrigin(request)) return redirectTo("/where-i-lose-money-on-youtube?error=origin");
   const form = await request.formData().catch(() => null);
   const auditId = String(form?.get("audit") ?? "");
-  const back = (query: string) => redirectTo(`/audit/${encodeURIComponent(auditId)}?${query}`);
+  const back = (query: string) => redirectTo(`/where-i-lose-money-on-youtube/${encodeURIComponent(auditId)}?${query}`);
   if (reportLimit.hit(`ip:${(clientIp(request.headers) ?? "unknown")}`) > 0) return back("error=rate");
 
   const db = getDb();

@@ -75,7 +75,7 @@ export default async function AuditResultPage({
         <h1 className={H1}>See where I lose money on YouTube</h1>
         <Notice tone="error">{failureText(audit.failureReason)}</Notice>
         <Button asChild pulse>
-          <Link href="/audit">Try another channel</Link>
+          <Link href="/where-i-lose-money-on-youtube">Try another channel</Link>
         </Button>
       </PublicCard>
     );
@@ -86,7 +86,7 @@ export default async function AuditResultPage({
   const emailSlot = expired ? (
     <Notice tone="info">
       The details of this audit were deleted after 30 days (YouTube data rule).{" "}
-      <Link href="/audit">Run a new audit</Link>.
+      <Link href="/where-i-lose-money-on-youtube">Run a new audit</Link>.
     </Notice>
   ) : audit.reportSentAt ? (
     <Meta className="text-[15px]">
@@ -150,7 +150,7 @@ export default async function AuditResultPage({
         emailSlot={emailSlot}
       />
       <p className="m-0 flex flex-wrap gap-4 text-[15px]">
-        <Link href="/audit">Check another channel</Link>
+        <Link href="/where-i-lose-money-on-youtube">Check another channel</Link>
       </p>
     </main>
   );

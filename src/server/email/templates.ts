@@ -25,6 +25,16 @@ export function magicLinkEmail(input: { to: string; url: string; productName: st
   };
 }
 
+export function passwordResetEmail(input: { to: string; url: string; productName: string }): SendEmailJob {
+  const paragraphs = [`Set a new password for ${input.productName}.`, "The link works once and expires in 15 minutes.", "If you did not ask for this, you can ignore this email."];
+  return {
+    to: input.to,
+    subject: `Reset your ${input.productName} password`,
+    text: `${paragraphs[0]}\n\nSet password: ${input.url}\n\n${paragraphs.slice(1).join("\n")}\n`,
+    html: layout(input.productName, paragraphs, { label: "Set password", url: input.url }),
+  };
+}
+
 export function ownerAlertEmail(input: { to: string; subject: string; lines: string[]; productName: string }): SendEmailJob {
   return {
     to: input.to,

@@ -61,7 +61,7 @@ export async function requestReport(
     email: auditReportEmail({
       to: email,
       productName: env().PRODUCT_NAME,
-      auditUrl: `${appBaseUrl()}/audit/${audit.id}`,
+      auditUrl: `${appBaseUrl()}/where-i-lose-money-on-youtube/${audit.id}`,
       learnMoreUrl,
       channelLabel: audit.examples.channelTitle ?? audit.channelInput,
       auditedAt: audit.fetchedAt ?? audit.createdAt,

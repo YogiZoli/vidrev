@@ -105,10 +105,14 @@ export const users = pgTable(
       .references(() => accounts.id, { onDelete: "cascade" }),
     email: text("email").notNull(),
     name: text("name"),
+    // scrypt hash (src/lib/password.ts); null until the user sets a password.
+    passwordHash: text("password_hash"),
+    // Google account id for "Continue with Google" (openid only, no YouTube scope).
+    googleSub: text("google_sub"),
     lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
     createdAt: createdAt(),
   },
-  (t) => [uniqueIndex("users_email_uq").on(t.email), index("users_account_idx").on(t.accountId)],
+  (t) => [uniqueIndex("users_email_uq").on(t.email), uniqueIndex("users_google_sub_uq").on(t.googleSub), index("users_account_idx").on(t.accountId)],
 );
 
 // Only token hashes are stored; the token itself exists only in the cookie.

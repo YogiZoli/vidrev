@@ -55,6 +55,13 @@ In Testing mode Google expires refresh tokens after 7 days, so a connected chann
 
 When the brand domain exists, add `https://app.<brand domain>/api/oauth/google/callback` here and set `APP_BASE_URL` to match.
 
+"Continue with Google" on /login and /signup (DECISIONS A-18) uses the same client with its own redirect URI. Add it next to the others, or Google answers `redirect_uri_mismatch`:
+
+- `https://app.vidrev.app/api/auth/google/callback`
+- `http://localhost:3100/api/auth/google/callback` (local preview)
+
+It asks only `openid email profile` (no sensitive scope, no extra review).
+
 ## 7. Put the values into Railway
 
 From the repo root, in Windows PowerShell:

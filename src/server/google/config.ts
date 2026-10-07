@@ -18,3 +18,12 @@ export function appGoogleClient(): GoogleClient {
     redirectUri: `${appBaseUrl()}/api/oauth/google/callback`,
   };
 }
+
+// Sign-in with Google uses the same OAuth client with its own redirect URI,
+// which must be listed in the GCP console (docs/SETUP-GOOGLE.md).
+export const SIGNIN_COOKIE = "g_signin";
+export const SIGNIN_COOKIE_PATH = "/api/auth/google";
+
+export function signInGoogleClient(): GoogleClient {
+  return { ...appGoogleClient(), redirectUri: `${appBaseUrl()}/api/auth/google/callback` };
+}

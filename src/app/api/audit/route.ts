@@ -19,26 +19,26 @@ export const runtime = "nodejs";
 const startLimit = new RateLimiter(5, 3_600_000);
 
 export async function POST(request: Request): Promise<Response> {
-  if (!isSameOrigin(request)) return redirectTo("/audit?error=origin");
+  if (!isSameOrigin(request)) return redirectTo("/where-i-lose-money-on-youtube?error=origin");
   const ip = (clientIp(request.headers) ?? "unknown");
-  if (startLimit.hit(`ip:${ip}`) > 0) return redirectTo("/audit?error=rate");
+  if (startLimit.hit(`ip:${ip}`) > 0) return redirectTo("/where-i-lose-money-on-youtube?error=rate");
 
   const form = await request.formData().catch(() => null);
   const input = String(form?.get("channel") ?? "").trim();
   const { TURNSTILE_SITE_KEY, TURNSTILE_SECRET_KEY } = env();
   if (TURNSTILE_SITE_KEY && TURNSTILE_SECRET_KEY) {
     const token = String(form?.get("cf-turnstile-response") ?? "") || null;
-    if (!(await verifyTurnstile(TURNSTILE_SECRET_KEY, token, ip))) return redirectTo("/audit?error=human");
+    if (!(await verifyTurnstile(TURNSTILE_SECRET_KEY, token, ip))) return redirectTo("/where-i-lose-money-on-youtube?error=human");
   }
   const parsed = parseChannelInput(input);
-  if (!parsed.ok) return redirectTo(`/audit?error=input&msg=${encodeURIComponent(parsed.error)}`);
+  if (!parsed.ok) return redirectTo(`/where-i-lose-money-on-youtube?error=input&msg=${encodeURIComponent(parsed.error)}`);
 
   try {
     const { audit, cached } = await createAudit(getDb(), parsed.ref, input);
     if (!cached) await enqueue(QUEUES.auditRun, { auditId: audit.id });
-    return redirectTo(`/audit/${audit.id}`);
+    return redirectTo(`/where-i-lose-money-on-youtube/${audit.id}`);
   } catch (error) {
     log("error", "audit start failed", errorFields(error));
-    return redirectTo("/audit?error=server");
+    return redirectTo("/where-i-lose-money-on-youtube?error=server");
   }
 }

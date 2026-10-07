@@ -5,7 +5,7 @@ import { parseEmailList } from "@/lib/email";
 import { appBaseUrl, env } from "@/lib/env";
 import { log } from "@/lib/log";
 import { issueMagicLink } from "@/server/auth/tokens";
-import { magicLinkEmail, ownerAlertEmail } from "@/server/email/templates";
+import { magicLinkEmail, ownerAlertEmail, passwordResetEmail } from "@/server/email/templates";
 
 export function magicLinkUrl(token: string): string {
   return `${appBaseUrl()}/auth/verify?token=${encodeURIComponent(token)}`;
@@ -23,6 +23,18 @@ export async function sendLoginLink(db: Db, target: { userId: string; email: str
     QUEUES.sendEmail,
     magicLinkEmail({ to: target.email, url: magicLinkUrl(token), productName: env().PRODUCT_NAME, welcome: target.welcome }),
   );
+  return true;
+}
+
+// Password reset rides on the one-time sign-in tokens (15 minutes, rate limited).
+export async function sendPasswordReset(db: Db, target: { userId: string; email: string }): Promise<boolean> {
+  const token = await issueMagicLink(db, target.userId);
+  if (!token) {
+    log("warn", "password reset rate limited", { userId: target.userId });
+    return false;
+  }
+  const url = `${appBaseUrl()}/auth/reset?token=${encodeURIComponent(token)}`;
+  await enqueue(QUEUES.sendEmail, passwordResetEmail({ to: target.email, url, productName: env().PRODUCT_NAME }));
   return true;
 }
 

@@ -26,6 +26,14 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 - Next: owner builds the GoHighLevel checkout for Founding 100 and sends the link (`FOUNDING_CHECKOUT_URL`); then move the landing into GoHighLevel on `vidrev.app` as Custom Code sections; then campaign drafts (L-03).
 - Next: owner brainstorm on the landing page and funnel, then a phase plan (not started).
 
+## 2026-10-07: landing, standard log-in, audit page
+
+- `app.vidrev.app/` is the approved landing with Get started and Log in (A-18). vidrev.app stays in GoHighLevel.
+- Log in and sign up: Continue with Google, or email and password; Forgot password by email link. New accounts are `registered` until their checkout (A-16).
+- The audit lives at `/where-i-lose-money-on-youtube` (A-19); `/audit` redirects.
+- Owner step: add `https://app.vidrev.app/api/auth/google/callback` to the Google OAuth client's redirect URIs (docs/SETUP-GOOGLE.md). Until then the Google button returns to the page with an error; email and password work.
+- Owner step (optional): on the GoHighLevel landing, point the main button to `https://app.vidrev.app/signup` and Sign in to `https://app.vidrev.app/login`.
+
 ## 2026-10-07: rename, sign-up, People
 
 - GitHub repo renamed `YogiZoli/vidrev` (old URL redirects), Railway project renamed `vidrev` by the owner. C2C stays `YogiZoli/commentclient`. The local folder is still `C:/Users/gdp/repos/c2c-saas`.

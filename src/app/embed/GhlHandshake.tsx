@@ -27,7 +27,7 @@ export function GhlHandshake() {
       if (!data || data.message !== "REQUEST_USER_DATA_RESPONSE" || !data.payload) return;
       window.clearTimeout(timer);
       try {
-        const response = await fetch("/api/ghl/sso", {
+        const response = await fetch("/api/embed/sso", {
           method: "POST",
           headers: { "content-type": "application/json" },
           credentials: "same-origin",

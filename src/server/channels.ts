@@ -55,10 +55,12 @@ export async function createConnectingChannel(
 }
 
 // Account-scoped: a user can only disconnect their own channel.
-export async function markDisconnecting(db: Db, accountId: string, channelId: string): Promise<boolean> {
+// disconnectedAt holds the request time until the worker finishes, so the
+// engine tick can queue a lost or failed disconnect again.
+export async function markDisconnecting(db: Db, accountId: string, channelId: string, now = new Date()): Promise<boolean> {
   const rows = await db
     .update(channels)
-    .set({ status: "disconnecting" })
+    .set({ status: "disconnecting", disconnectedAt: now })
     .where(and(eq(channels.id, channelId), eq(channels.accountId, accountId), inArray(channels.status, [...LIVE_STATUSES, "revoked", "rejected"])))
     .returning({ id: channels.id });
   return rows.length > 0;

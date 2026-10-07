@@ -11,7 +11,7 @@ import { appBaseUrl, domainConnectConfig, env } from "@/lib/env";
 import { timedFetch } from "@/lib/http";
 import { errorFields, log } from "@/lib/log";
 import { type Alerter, createAlerter } from "./alerts";
-import { type ChannelDeps, disconnectChannel, expireStuckConnects, syncChannel } from "./channels";
+import { type ChannelDeps, disconnectChannel, expireStuckConnects, requeueStuckDisconnects, syncChannel } from "./channels";
 import { EmailSendError, senderAddress, sendWithResend } from "./email";
 import { createDraft, requeueUndraftedComments } from "./drafts";
 import { checkDomain, type DomainDeps, queueDomainChecks, removeDomainHostname } from "./domains";
@@ -248,6 +248,7 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
     ["unconfirmed sends", () => recoverUnconfirmedSends(engineDeps(boss))],
     ["orphaned approved replies", () => requeueOrphanedApproved(engineDeps(boss))],
     ["stuck channel connects", () => expireStuckConnects(channelDeps())],
+    ["stuck channel disconnects", () => requeueStuckDisconnects({ ...channelDeps(), enqueue: sendVia(boss) })],
     ["crm thread statuses", () => syncThreadStatuses(ghlDeps(boss))],
   ]);
   // Audit my channel (Phase 9): one run per request, own API key and quota.

@@ -8,7 +8,7 @@ import { runMigrations } from "@/scripts/migrate";
 import { createAccountWithUser } from "@/server/accounts";
 import { countLiveChannels, createConnectingChannel, markDisconnecting } from "@/server/channels";
 import { onboardingState } from "@/server/onboarding";
-import { type ChannelDeps, CONNECT_TIMEOUT_MS, disconnectChannel, expireStuckConnects, syncChannel } from "./channels";
+import { type ChannelDeps, CONNECT_TIMEOUT_MS, DISCONNECT_RETRY_MS, disconnectChannel, expireStuckConnects, requeueStuckDisconnects, syncChannel } from "./channels";
 
 // Runs only where a real Postgres is available (CI service container).
 const hasDb = Boolean(process.env.DATABASE_URL);
@@ -158,5 +158,46 @@ describe.skipIf(!hasDb)("channel connection (integration)", () => {
     expect(row).toMatchObject({ status: "disconnected", refreshTokenEnc: null, accessTokenEnc: null, title: null });
     expect(new URLSearchParams(google.calls.find((c) => c.url.endsWith("/revoke"))!.body).get("token")).toBe("refresh-1");
     expect(await countLiveChannels(getDb(), account.id)).toBe(0);
+  });
+
+  it("queues a stuck disconnect again after 10 minutes, once", async () => {
+    const account = await newAccount();
+    const id = await connecting(account.id);
+    await syncChannel(deps(fakeGoogle({ youtubeChannelId: `UC${randomUUID()}` }).fetchImpl), id);
+    const asked = new Date();
+    expect(await markDisconnecting(getDb(), account.id, id, asked)).toBe(true);
+
+    const queued: unknown[] = [];
+    const enqueue = async (_queue: string, data: unknown) => {
+      queued.push(data);
+    };
+    const at = (ms: number) => ({ ...deps(fakeGoogle({ youtubeChannelId: null }).fetchImpl), enqueue, now: () => new Date(asked.getTime() + ms) });
+    await requeueStuckDisconnects(at(DISCONNECT_RETRY_MS - 1000));
+    expect(queued).not.toContainEqual({ channelId: id });
+    await requeueStuckDisconnects(at(DISCONNECT_RETRY_MS + 1000));
+    expect(queued.filter((d) => JSON.stringify(d) === JSON.stringify({ channelId: id }))).toHaveLength(1);
+    await requeueStuckDisconnects(at(DISCONNECT_RETRY_MS + 2000));
+    expect(queued.filter((d) => JSON.stringify(d) === JSON.stringify({ channelId: id }))).toHaveLength(1);
+  });
+
+  it("wipes the channel even when Google refuses the revoke with a 4xx", async () => {
+    const account = await newAccount();
+    const id = await connecting(account.id);
+    await syncChannel(deps(fakeGoogle({ youtubeChannelId: `UC${randomUUID()}` }).fetchImpl), id);
+    await markDisconnecting(getDb(), account.id, id);
+    const refusing = async (url: string) =>
+      url.endsWith("/revoke") ? Response.json({ error: "unsupported_token_type" }, { status: 400 }) : new Response("not found", { status: 404 });
+    await disconnectChannel(deps(refusing), id);
+    expect(await channelRow(id)).toMatchObject({ status: "disconnected", refreshTokenEnc: null, title: null });
+  });
+
+  it("keeps retrying when Google answers 5xx on revoke", async () => {
+    const account = await newAccount();
+    const id = await connecting(account.id);
+    await syncChannel(deps(fakeGoogle({ youtubeChannelId: `UC${randomUUID()}` }).fetchImpl), id);
+    await markDisconnecting(getDb(), account.id, id);
+    const down = async () => new Response("down", { status: 503 });
+    await expect(disconnectChannel(deps(down), id)).rejects.toThrow();
+    expect((await channelRow(id)).status).toBe("disconnecting");
   });
 });

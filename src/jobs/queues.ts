@@ -19,6 +19,8 @@ export const QUEUES = {
   ghlSync: "ghl.sync",
   ghlEvent: "ghl.event",
   ghlNote: "ghl.note",
+  ghlProspect: "ghl.prospect",
+  ghlProspectRestore: "ghl.prospect_restore",
   stripeSync: "stripe.sync",
   reportRefresh: "report.refresh",
   reportHourly: "report.hourly",
@@ -74,6 +76,15 @@ export interface GhlNoteJob {
   text: string;
 }
 
+// Beast Mode prospect (A-25) and the owner's restore of a deleted one (A-27).
+export interface ProspectJob {
+  replyId: string;
+}
+
+export interface ProspectRestoreJob {
+  backupId: string;
+}
+
 export interface AuditJob {
   auditId: string;
 }
@@ -93,6 +104,8 @@ export interface JobPayloads {
   [QUEUES.ghlSync]: GhlIntegrationJob;
   [QUEUES.ghlEvent]: GhlEventJob;
   [QUEUES.ghlNote]: GhlNoteJob;
+  [QUEUES.ghlProspect]: ProspectJob;
+  [QUEUES.ghlProspectRestore]: ProspectRestoreJob;
   [QUEUES.stripeSync]: GhlIntegrationJob;
   [QUEUES.reportRefresh]: AccountJob;
   [QUEUES.auditRun]: AuditJob;
@@ -120,6 +133,9 @@ export const QUEUE_OPTIONS = {
   [QUEUES.ghlSync]: { policy: "stately", retryLimit: 1, retryDelay: 60, expireInSeconds: 600 },
   [QUEUES.ghlEvent]: { retryLimit: 5, retryDelay: 30, retryBackoff: true },
   [QUEUES.ghlNote]: { policy: "short", retryLimit: 5, retryDelay: 30, retryBackoff: true },
+  // One per reply; the claimed crm_prospects row keeps a retry from creating twice.
+  [QUEUES.ghlProspect]: { retryLimit: 5, retryDelay: 60, retryBackoff: true },
+  [QUEUES.ghlProspectRestore]: { retryLimit: 3, retryDelay: 60, retryBackoff: true },
   // Stripe (Phase 8): the read-only sync every 5 minutes, one queued plus one
   // running per integration.
   [QUEUES.stripeSync]: { policy: "stately", retryLimit: 1, retryDelay: 60, expireInSeconds: 900 },

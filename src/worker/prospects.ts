@@ -1,0 +1,281 @@
+import { and, eq, inArray, lte, sql } from "drizzle-orm";
+import { comments, contacts, crmProspectBackups, crmProspects, integrations, replies } from "@/db/schema";
+import { env } from "@/lib/env";
+import { errorFields, log } from "@/lib/log";
+import { TAG_PROSPECT, TEMPERATURES, temperatureTag, vidrevTags } from "@/lib/tags";
+import { crmSyncModeState } from "@/server/crm-sync-mode";
+import { type GhlApi, GhlApiError, type GhlContact } from "@/server/ghl/api";
+import { type GhlConfig, GhlReauthError, updateGhlConfig, withGhlApi } from "@/server/ghl/tokens";
+import type { GhlWorkerDeps } from "./ghl";
+
+// Beast Mode prospects (DECISIONS A-25, A-27). A keyword commenter becomes a
+// CRM contact at comment time (display name, tags, no email). Unless they opt
+// in, the contact is deleted on the 29th day. Only contacts vidrev itself
+// created are ever deleted, and only after two independent proofs.
+
+export const PROSPECT_TTL_MS = 29 * 86_400_000;
+// The CRM delete is retried this long past the 29 days, then our side gives up.
+export const DELETE_GRACE_MS = 3 * 86_400_000;
+// Backups of deleted contacts: the sweep runs hourly from the 29th day, so
+// with 23 hours the display name inside stays within the 30 days.
+export const BACKUP_TTL_MS = 23 * 3_600_000;
+export const PROSPECT_FIELD_NAME = "vidrev prospect id";
+const FALLBACK_NAME = "YouTube commenter";
+
+async function ensureProspectField(deps: GhlWorkerDeps, integrationId: string, api: GhlApi, config: GhlConfig): Promise<string> {
+  if (config.prospectFieldId) return config.prospectFieldId;
+  const fields = await api.listContactFields(config.locationId);
+  const existing = fields.find((f) => f.fieldKey === "contact.vidrev_prospect_id" || f.name?.trim().toLowerCase() === PROSPECT_FIELD_NAME);
+  const id = (existing ?? (await api.createContactField(config.locationId, PROSPECT_FIELD_NAME))).id;
+  await updateGhlConfig(deps, integrationId, { prospectFieldId: id });
+  return id;
+}
+
+function prospectTags(reply: { keyword: string; intent: string; youtubeVideoId: string }): string[] {
+  return [...vidrevTags({ keyword: reply.keyword, intent: reply.intent, videoId: reply.youtubeVideoId }), TAG_PROSPECT];
+}
+
+// Contacts merged away point to the winner; the live one tells the stage.
+async function liveStage(deps: GhlWorkerDeps, contactId: string): Promise<string | null> {
+  let id: string | null = contactId;
+  for (let depth = 0; id && depth < 10; depth += 1) {
+    const [row] = await deps.db.select({ stage: contacts.stage, mergedIntoId: contacts.mergedIntoId }).from(contacts).where(eq(contacts.id, id));
+    if (!row) return null;
+    if (!row.mergedIntoId) return row.stage;
+    id = row.mergedIntoId;
+  }
+  return null;
+}
+
+async function activeGhl(deps: GhlWorkerDeps, accountId: string) {
+  const [row] = await deps.db
+    .select({ id: integrations.id, syncState: integrations.syncState })
+    .from(integrations)
+    .where(and(eq(integrations.accountId, accountId), eq(integrations.type, "ghl"), eq(integrations.status, "active")));
+  return row && row.syncState.setup === "done" ? row : null;
+}
+
+export type ProspectOutcome = "not_beast" | "no_crm" | "no_contact" | "opted_in" | "tagged" | "pending" | "created" | "unconfirmed";
+
+// Job ghl.prospect, queued by the draft step for a Beast Mode account.
+export async function createProspect(deps: GhlWorkerDeps & { beastAllowlist?: string }, replyId: string): Promise<ProspectOutcome> {
+  const now = deps.now?.() ?? new Date();
+  const [reply] = await deps.db.select().from(replies).where(eq(replies.id, replyId));
+  if (!reply?.contactId) return "no_contact";
+  // Checked again here: the mode or the allowlist may have changed since the comment.
+  if ((await crmSyncModeState(deps.db, reply.accountId, deps.beastAllowlist)).effective !== "beast") return "not_beast";
+  const ghl = await activeGhl(deps, reply.accountId);
+  if (!ghl) return "no_crm";
+  // Already a lead: the opt-in path (A-15) owns them.
+  if ((await liveStage(deps, reply.contactId)) !== "commenter") return "opted_in";
+  const tags = prospectTags(reply);
+
+  // Our row is claimed before the CRM is called: two jobs for the same person
+  // can never both create a contact (unique live row per account and Contact).
+  const [claimed] = await deps.db
+    .insert(crmProspects)
+    .values({ accountId: reply.accountId, contactId: reply.contactId, integrationId: ghl.id, expiresAt: new Date(now.getTime() + PROSPECT_TTL_MS) })
+    .onConflictDoNothing()
+    .returning();
+  if (!claimed) {
+    const [live] = await deps.db
+      .select()
+      .from(crmProspects)
+      .where(and(eq(crmProspects.accountId, reply.accountId), eq(crmProspects.contactId, reply.contactId), inArray(crmProspects.status, ["creating", "created", "unconfirmed"])));
+    if (live?.status !== "created" || !live.ghlContactId || live.integrationId !== ghl.id) return "pending";
+    // Same person, another keyword or video: more tags on the same contact.
+    try {
+      await withGhlApi(deps, ghl.id, async (api) => {
+        await api.addTags(live.ghlContactId!, tags);
+        const cooler = TEMPERATURES.map(temperatureTag).filter((tag) => !tags.includes(tag));
+        if (cooler.length < TEMPERATURES.length) await api.removeTags(live.ghlContactId!, cooler);
+      });
+    } catch (error) {
+      if (error instanceof GhlReauthError) return "no_crm";
+      throw error;
+    }
+    return "tagged";
+  }
+
+  const [comment] = reply.commentId ? await deps.db.select({ authorName: comments.authorName }).from(comments).where(eq(comments.id, reply.commentId)) : [];
+  const name = comment?.authorName?.trim().slice(0, 200) || FALLBACK_NAME;
+  let sent = false;
+  try {
+    await withGhlApi(deps, ghl.id, async (api, config) => {
+      const fieldId = await ensureProspectField(deps, ghl.id, api, config);
+      sent = true;
+      const ghlContactId = await api.createContact(config.locationId, { name, tags, customFields: [{ id: fieldId, value: claimed.id }] });
+      await deps.db
+        .update(crmProspects)
+        .set({ status: "created", ghlContactId, ghlLocationId: config.locationId, updatedAt: now })
+        .where(eq(crmProspects.id, claimed.id));
+    });
+  } catch (error) {
+    // A clear refusal (4xx) or a failure before the create call: nothing was
+    // made, so the claim is released and the job may retry. Anything else may
+    // have created the contact: never create a second one.
+    const nothingMade = !sent || error instanceof GhlReauthError || (error instanceof GhlApiError && error.status >= 400 && error.status < 500 && error.status !== 408);
+    if (nothingMade) {
+      await deps.db.delete(crmProspects).where(and(eq(crmProspects.id, claimed.id), eq(crmProspects.status, "creating")));
+      if (error instanceof GhlReauthError) return "no_crm";
+      throw error;
+    }
+    await deps.db
+      .update(crmProspects)
+      .set({ status: "unconfirmed", lastError: String(error instanceof Error ? error.message : error).slice(0, 300), updatedAt: now })
+      .where(eq(crmProspects.id, claimed.id));
+    log("warn", "prospect create unconfirmed, not retried", { accountId: reply.accountId, prospectId: claimed.id, ...errorFields(error) });
+    return "unconfirmed";
+  }
+  log("info", "prospect contact created", { accountId: reply.accountId, prospectId: claimed.id });
+  return "created";
+}
+
+export type OwnershipCheck = { ok: true; contact: GhlContact } | { ok: false; reason: string } | { ok: "gone" };
+
+// The second, independent proof (A-27), read live right before a delete:
+// our prospect row id in the "vidrev prospect id" field, the prospect tag,
+// and no email or phone. A contact with an email or a phone is never ours to
+// delete, whatever else it shows.
+export function proveOwnProspect(contact: GhlContact | null, prospect: { id: string }, fieldId: string | null | undefined): OwnershipCheck {
+  if (!contact) return { ok: "gone" };
+  if (contact.email?.trim()) return { ok: false, reason: "has an email" };
+  if (contact.phone?.trim()) return { ok: false, reason: "has a phone" };
+  if (!fieldId) return { ok: false, reason: "prospect field unknown" };
+  const value = contact.customFields?.find((f) => f.id === fieldId)?.value;
+  if (value !== prospect.id) return { ok: false, reason: "prospect id field does not match" };
+  if (!(contact.tags ?? []).some((tag) => tag.trim().toLowerCase() === TAG_PROSPECT)) return { ok: false, reason: "prospect tag missing" };
+  return { ok: true, contact };
+}
+
+// The only caller of api.deleteContact. Proves ownership itself, so no other
+// code path can delete a contact without both proofs.
+export async function deleteOwnProspect(
+  deps: GhlWorkerDeps,
+  api: GhlApi,
+  config: GhlConfig,
+  prospect: typeof crmProspects.$inferSelect,
+  now: Date,
+): Promise<{ deleted: true } | { deleted: false; gone: true } | { deleted: false; kept: string }> {
+  if (!prospect.ghlContactId || prospect.ghlLocationId !== config.locationId) return { deleted: false, kept: "not our contact id in this location" };
+  const check = proveOwnProspect(await api.getContact(prospect.ghlContactId), prospect, config.prospectFieldId);
+  if (check.ok === "gone") return { deleted: false, gone: true };
+  if (!check.ok) return { deleted: false, kept: check.reason };
+  await deps.db.insert(crmProspectBackups).values({
+    prospectId: prospect.id,
+    accountId: prospect.accountId,
+    contact: check.contact as unknown as Record<string, unknown>,
+    expiresAt: new Date(now.getTime() + BACKUP_TTL_MS),
+  });
+  await api.deleteContact(prospect.ghlContactId);
+  return { deleted: true };
+}
+
+export interface SweepResult {
+  mode: "off" | "dry_run" | "on";
+  deleted: number;
+  wouldDelete: number;
+  kept: number;
+  optedIn: number;
+  retry: number;
+  abandoned: number;
+  backupsDropped: number;
+}
+
+// Hourly. Prospects past their 29 days: opted in ones are left alone, the
+// rest are deleted from the CRM (BEAST_DELETE=on), listed only (dry_run) or
+// not touched at all (off, the emergency brake).
+export async function sweepProspects(deps: GhlWorkerDeps, mode = env().BEAST_DELETE): Promise<SweepResult> {
+  const now = deps.now?.() ?? new Date();
+  const result: SweepResult = { mode, deleted: 0, wouldDelete: 0, kept: 0, optedIn: 0, retry: 0, abandoned: 0, backupsDropped: 0 };
+  // Backups never outlive their 23 hours, whatever the mode.
+  result.backupsDropped = (await deps.db.delete(crmProspectBackups).where(lte(crmProspectBackups.expiresAt, now)).returning({ id: crmProspectBackups.id })).length;
+  if (mode === "off") {
+    log("info", "prospect sweep off (BEAST_DELETE=off)");
+    return result;
+  }
+  const set = (id: string, values: Partial<Omit<typeof crmProspects.$inferInsert, "deleteAttempts">> & { deleteAttempts?: ReturnType<typeof sql> }) =>
+    deps.db.update(crmProspects).set({ ...values, updatedAt: now }).where(eq(crmProspects.id, id));
+
+  const due = await deps.db
+    .select()
+    .from(crmProspects)
+    .where(and(inArray(crmProspects.status, ["created", "creating", "unconfirmed"]), lte(crmProspects.expiresAt, now)));
+  for (const prospect of due) {
+    if ((await liveStage(deps, prospect.contactId)) !== "commenter") {
+      await set(prospect.id, { status: "opted_in" });
+      result.optedIn += 1;
+      continue;
+    }
+    const pastGrace = now.getTime() >= prospect.expiresAt.getTime() + DELETE_GRACE_MS;
+    // Never confirmed by the CRM: no contact id we could prove, nothing to delete.
+    if (prospect.status !== "created" || !prospect.ghlContactId) {
+      await set(prospect.id, { status: "abandoned", lastError: prospect.lastError ?? "no confirmed contact id" });
+      log("warn", "prospect without a confirmed contact id closed", { accountId: prospect.accountId, prospectId: prospect.id });
+      result.abandoned += 1;
+      continue;
+    }
+    if (mode === "dry_run") {
+      await set(prospect.id, { wouldDeleteAt: now });
+      log("info", "prospect would be deleted (dry run)", { accountId: prospect.accountId, prospectId: prospect.id });
+      result.wouldDelete += 1;
+      continue;
+    }
+    const [ghl] = prospect.integrationId
+      ? await deps.db.select({ status: integrations.status }).from(integrations).where(eq(integrations.id, prospect.integrationId))
+      : [];
+    try {
+      if (ghl?.status !== "active") throw new Error("CRM connection is not active");
+      const outcome = await withGhlApi(deps, prospect.integrationId!, (api, config) => deleteOwnProspect(deps, api, config, prospect, now));
+      if (outcome.deleted || "gone" in outcome) {
+        await set(prospect.id, { status: "deleted", deletedAt: now, lastError: outcome.deleted ? null : "already gone in the CRM" });
+        result.deleted += 1;
+      } else {
+        await set(prospect.id, { status: "kept", lastError: outcome.kept });
+        log("warn", "prospect kept: ownership proof failed", { accountId: prospect.accountId, prospectId: prospect.id, reason: outcome.kept });
+        result.kept += 1;
+      }
+    } catch (error) {
+      const message = String(error instanceof Error ? error.message : error).slice(0, 300);
+      if (pastGrace) {
+        await set(prospect.id, { status: "abandoned", lastError: message, deleteAttempts: sql`${crmProspects.deleteAttempts} + 1` });
+        log("error", "prospect delete gave up after the grace days", { accountId: prospect.accountId, prospectId: prospect.id, ...errorFields(error) });
+        result.abandoned += 1;
+      } else {
+        await set(prospect.id, { lastError: message, deleteAttempts: sql`${crmProspects.deleteAttempts} + 1` });
+        log("warn", "prospect delete failed, retried next hour", { accountId: prospect.accountId, prospectId: prospect.id, ...errorFields(error) });
+        result.retry += 1;
+      }
+    }
+  }
+  log("info", "prospect sweep done", { ...result });
+  return result;
+}
+
+// Owner restore from /admin (A-27): the contact is made again from the
+// backup, without the prospect tag and field, so it is never ours to delete.
+export async function restoreProspect(deps: GhlWorkerDeps, backupId: string): Promise<"restored" | "missing" | "no_crm"> {
+  const now = deps.now?.() ?? new Date();
+  const [backup] = await deps.db.select().from(crmProspectBackups).where(eq(crmProspectBackups.id, backupId));
+  if (!backup || backup.restoredAt) return "missing";
+  const [prospect] = await deps.db.select().from(crmProspects).where(eq(crmProspects.id, backup.prospectId));
+  if (!prospect?.integrationId) return "no_crm";
+  const contact = backup.contact as unknown as GhlContact;
+  try {
+    const id = await withGhlApi(deps, prospect.integrationId, (api, config) =>
+      api.createContact(config.locationId, {
+        name: contact.contactName ?? contact.name ?? ([contact.firstName, contact.lastName].filter(Boolean).join(" ") || FALLBACK_NAME),
+        tags: (contact.tags ?? []).filter((tag) => tag.trim().toLowerCase() !== TAG_PROSPECT),
+        customFields: (contact.customFields ?? [])
+          .filter((f) => f.id !== config.prospectFieldId && typeof f.value === "string")
+          .map((f) => ({ id: f.id, value: f.value as string })),
+      }),
+    );
+    await deps.db.update(crmProspectBackups).set({ restoredAt: now, restoredGhlContactId: id }).where(eq(crmProspectBackups.id, backupId));
+    log("info", "prospect restored by the owner", { accountId: backup.accountId, prospectId: prospect.id });
+    return "restored";
+  } catch (error) {
+    if (error instanceof GhlReauthError) return "no_crm";
+    throw error;
+  }
+}

@@ -5,6 +5,7 @@ import { type AdminAction, runAdminAction } from "@/server/admin";
 import { isSameOrigin, redirectTo } from "@/server/http";
 import { log } from "@/lib/log";
 import { sendLoginLink } from "@/server/notify";
+import { enqueue } from "@/jobs/enqueue";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -43,7 +44,16 @@ export async function POST(request: Request): Promise<Response> {
     return new Response("Forbidden", { status: 403 });
   }
 
-  const action = parseAction(await request.formData());
+  const form = await request.formData();
+  // Restore of a contact the Beast Mode sweep deleted (A-27): the worker makes it again.
+  if (form.get("kind") === "restore_prospect") {
+    const backupId = String(form.get("backupId") ?? "").trim();
+    if (!/^[0-9a-f-]{36}$/i.test(backupId)) return redirectTo(`/admin?msg=${encodeURIComponent("Invalid request.")}`);
+    await enqueue("ghl.prospect_restore", { backupId });
+    log("info", "owner admin action", { kind: "restore_prospect", backupId, userId: session.user.id });
+    return redirectTo(`/admin?msg=${encodeURIComponent("Restore queued. The contact is made again within a minute.")}`);
+  }
+  const action = parseAction(form);
   if (!action) return redirectTo(`/admin?msg=${encodeURIComponent("Invalid request.")}`);
 
   const db = getDb();

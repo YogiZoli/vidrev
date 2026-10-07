@@ -17,6 +17,8 @@ export interface GhlConfig {
   userId: string | null;
   // The contact custom field that carries the tracking id (vidrev tracking id).
   customFieldId: string | null;
+  // The contact field "vidrev prospect id" (Beast Mode ownership proof, A-27).
+  prospectFieldId?: string | null;
   // Contacts with this tag are buyers (revenue not reported), DECISIONS Q-06.
   buyerTag: string;
   locationName: string | null;

@@ -173,6 +173,11 @@ export async function createDraft(deps: DraftDeps, commentId: string): Promise<v
     },
     kickWith(deps.enqueue),
   );
+  // Beast Mode (A-25): the commenter becomes a CRM prospect now. The job checks
+  // the allowlist and the CRM again; Clean Mode accounts never get here.
+  if (account.crmSyncMode === "beast") {
+    await deps.enqueue("ghl.prospect", { replyId: inserted.id }).catch((error: unknown) => log("warn", "prospect job not queued", { accountId: account.id, ...errorFields(error) }));
+  }
   await deps.db.update(comments).set({ language: detected }).where(eq(comments.id, comment.id));
   if (template) await deps.db.update(templates).set({ lastUsedAt: now }).where(eq(templates.id, template.id));
   if (!overCap) await notifyDraftsWaiting(deps, account, now);

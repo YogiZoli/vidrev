@@ -29,6 +29,9 @@ const envSchema = z.object({
   // Comma separated account ids or emails that may choose Beast Mode, until
   // the LLC and the Google OAuth review (DECISIONS A-25).
   BEAST_MODE_ACCOUNTS: optional,
+  // The 29 day prospect delete (A-27): "dry_run" (default) only lists what it
+  // would delete on /admin, "on" deletes, "off" is the emergency brake.
+  BEAST_DELETE: z.enum(["off", "dry_run", "on"]).default("dry_run"),
   ENCRYPTION_KEY: optional,
   AUTH_SECRET: optional,
   PROVISIONING_SECRET: optional,

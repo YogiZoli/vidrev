@@ -115,6 +115,7 @@ export async function createProspect(deps: GhlWorkerDeps & { beastAllowlist?: st
     // made, so the claim is released and the job may retry. Anything else may
     // have created the contact: never create a second one.
     const nothingMade = !sent || error instanceof GhlReauthError || (error instanceof GhlApiError && error.status >= 400 && error.status < 500 && error.status !== 408);
+    if (error instanceof GhlApiError) log("warn", "prospect create refused by the crm", { accountId: reply.accountId, status: error.status, body: error.body.slice(0, 300) });
     if (nothingMade) {
       await deps.db.delete(crmProspects).where(and(eq(crmProspects.id, claimed.id), eq(crmProspects.status, "creating")));
       if (error instanceof GhlReauthError) return "no_crm";

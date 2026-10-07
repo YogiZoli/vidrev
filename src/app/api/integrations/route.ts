@@ -70,6 +70,17 @@ export async function POST(request: Request): Promise<Response> {
       await disconnectGhl(db, accountId, field("id"));
       await done();
       return redirectTo(returnPath(session.account, `${GHL}?ghl_disconnected=1`));
+    case "ghl_prospect_cleanup": {
+      // Before a disconnect: our Beast Mode prospects in this CRM are deleted now (A-27).
+      const [own] = await db
+        .select({ id: integrations.id })
+        .from(integrations)
+        .where(and(eq(integrations.id, field("id")), eq(integrations.accountId, accountId), eq(integrations.type, "ghl"), eq(integrations.status, "active")));
+      if (!own) return redirectTo(GHL);
+      await enqueue(QUEUES.ghlProspectCleanup, { integrationId: own.id }, { singletonKey: own.id });
+      await done();
+      return redirectTo(`${GHL}?prospects_cleanup=1`);
+    }
     case "ghl_sync": {
       // The engine tick picks it up within a minute.
       await db

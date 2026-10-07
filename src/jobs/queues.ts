@@ -23,6 +23,8 @@ export const QUEUES = {
   ghlProspectRestore: "ghl.prospect_restore",
   ghlThread: "ghl.thread",
   ghlOutbound: "ghl.outbound",
+  ghlMerge: "ghl.merge",
+  ghlProspectCleanup: "ghl.prospect_cleanup",
   stripeSync: "stripe.sync",
   reportRefresh: "report.refresh",
   reportHourly: "report.hourly",
@@ -92,6 +94,13 @@ export interface GhlOutboundJob {
   payload: Record<string, unknown>;
 }
 
+// Opt-in: the prospect of `contactId` (our Contact) merges into the email contact.
+export interface GhlMergeJob {
+  integrationId: string;
+  contactId: string;
+  emailContactId: string;
+}
+
 export interface AuditJob {
   auditId: string;
 }
@@ -115,6 +124,8 @@ export interface JobPayloads {
   [QUEUES.ghlProspectRestore]: ProspectRestoreJob;
   [QUEUES.ghlThread]: ProspectJob;
   [QUEUES.ghlOutbound]: GhlOutboundJob;
+  [QUEUES.ghlMerge]: GhlMergeJob;
+  [QUEUES.ghlProspectCleanup]: GhlIntegrationJob;
   [QUEUES.stripeSync]: GhlIntegrationJob;
   [QUEUES.reportRefresh]: AccountJob;
   [QUEUES.auditRun]: AuditJob;
@@ -148,6 +159,9 @@ export const QUEUE_OPTIONS = {
   // Thread push is guarded by replies.crm_threaded_at; outbound by replies.crm_message_id.
   [QUEUES.ghlThread]: { retryLimit: 5, retryDelay: 60, retryBackoff: true },
   [QUEUES.ghlOutbound]: { retryLimit: 5, retryDelay: 20, retryBackoff: true },
+  // Merge steps are recorded on the prospect row, so a retry continues where it stopped.
+  [QUEUES.ghlMerge]: { retryLimit: 6, retryDelay: 60, retryBackoff: true },
+  [QUEUES.ghlProspectCleanup]: { policy: "stately", retryLimit: 3, retryDelay: 60, retryBackoff: true },
   // Stripe (Phase 8): the read-only sync every 5 minutes, one queued plus one
   // running per integration.
   [QUEUES.stripeSync]: { policy: "stately", retryLimit: 1, retryDelay: 60, expireInSeconds: 900 },

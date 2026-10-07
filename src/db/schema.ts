@@ -937,6 +937,10 @@ export const crmProspects = pgTable(
     ghlContactId: text("ghl_contact_id"),
     // The Conversations thread of our provider (PR3); deleted with the contact.
     ghlConversationId: text("ghl_conversation_id"),
+    // Opt-in merge (A-27): the email contact that took over, and when its
+    // tags and thread summary were written (before the prospect is deleted).
+    mergedIntoGhlContactId: text("merged_into_ghl_contact_id"),
+    mergeCopiedAt: timestamp("merge_copied_at", { withTimezone: true }),
     status: text("status").$type<CrmProspectStatus>().notNull().default("creating"),
     // 29 days after the first comment unless they opt in.
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),

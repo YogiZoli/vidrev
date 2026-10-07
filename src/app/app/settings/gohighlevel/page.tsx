@@ -1,4 +1,4 @@
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/input";
 import { Meta, Page, PageHeader, SectionTitle } from "@/components/ui/page";
 import { getDb } from "@/db/client";
-import { integrations } from "@/db/schema";
+import { crmProspects, integrations } from "@/db/schema";
 import { requireEnv } from "@/lib/env";
 import { verifySignedValue } from "@/lib/signed";
 import { requireSession } from "@/server/auth/current";
@@ -34,6 +34,13 @@ export default async function GoHighLevelSettingsPage({ searchParams }: { search
   const claim = verifySignedValue<{ token: string }>((await cookies()).get(GHL_CLAIM_COOKIE)?.value, requireEnv("AUTH_SECRET"));
   const pendingInstall = !ghl && claim ? await hasPendingInstall(db, claim.token) : false;
   const syncMode = ghl ? await crmSyncModeState(db, account.id) : null;
+  // Beast Mode contacts we can still reach: deleted only while connected (A-27).
+  const [liveProspects] = ghl
+    ? await db
+        .select({ n: sql<number>`count(*)::int` })
+        .from(crmProspects)
+        .where(and(eq(crmProspects.integrationId, ghl.id), eq(crmProspects.status, "created")))
+    : [];
   const pulseGhl = (!ghl || ghl.status === "error") && ghlConfigured();
 
   const ghlState = ghl
@@ -60,6 +67,7 @@ export default async function GoHighLevelSettingsPage({ searchParams }: { search
       {params.ghl_sync ? <Notice tone="info">Sync queued. It runs within a minute.</Notice> : null}
       {params.ghl_saved ? <Notice tone="info">Saved.</Notice> : null}
       {params.mode_saved ? <Notice tone="info">CRM sync mode saved.</Notice> : null}
+      {params.prospects_cleanup ? <Notice tone="info">Deleting the vidrev contacts from your CRM. It runs within a minute; disconnect after that.</Notice> : null}
       <Card className="grid gap-3">
         <SectionTitle>GoHighLevel</SectionTitle>
         {!ghl ? (
@@ -117,6 +125,20 @@ export default async function GoHighLevelSettingsPage({ searchParams }: { search
                 Disconnect
               </ActionForm>
             </div>
+            {liveProspects && liveProspects.n > 0 ? (
+              <div className="grid gap-2 rounded-md bg-warning-surface p-3 text-[15px] text-warning-text">
+                <span>
+                  {liveProspects.n} Beast Mode contact{liveProspects.n === 1 ? "" : "s"} made by vidrev {liveProspects.n === 1 ? "is" : "are"} in this CRM. After a
+                  disconnect we can no longer delete {liveProspects.n === 1 ? "it" : "them"} on day 29. Delete them first, then disconnect. Contacts
+                  that were already in your CRM or have an email are never touched.
+                </span>
+                <div>
+                  <ActionForm action="ghl_prospect_cleanup" id={ghl.id}>
+                    Delete vidrev contacts now
+                  </ActionForm>
+                </div>
+              </div>
+            ) : null}
           </>
         )}
       </Card>

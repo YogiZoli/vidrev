@@ -2,7 +2,7 @@ import type { JobWithMetadata, PgBoss } from "pg-boss";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { users } from "@/db/schema";
-import { type AccountJob, type AuditJob, type ChannelJob, type CommentJob, type DeliveryJob, type DomainJob, type GhlEventJob, type GhlIntegrationJob, type GhlNoteJob, type GhlOutboundJob, type ProspectJob, type ProspectRestoreJob, type ReplyJob, QUEUES, QUEUE_OPTIONS, type SendEmailJob } from "@/jobs/queues";
+import { type AccountJob, type AuditJob, type ChannelJob, type CommentJob, type DeliveryJob, type DomainJob, type GhlEventJob, type GhlIntegrationJob, type GhlNoteJob, type GhlMergeJob, type GhlOutboundJob, type ProspectJob, type ProspectRestoreJob, type ReplyJob, QUEUES, QUEUE_OPTIONS, type SendEmailJob } from "@/jobs/queues";
 import { ghlReconnectEmail, stripeReconnectEmail } from "@/server/email/templates";
 import { postJson } from "@/server/integrations/http-post";
 import { pruneDeliveries } from "@/server/integrations/outbound";
@@ -17,7 +17,7 @@ import { createDraft, requeueUndraftedComments } from "./drafts";
 import { checkDomain, type DomainDeps, queueDomainChecks, removeDomainHostname } from "./domains";
 import { runJob, runSteps } from "./jobs";
 import { runRetention } from "./retention";
-import { createProspect, restoreProspect, sweepProspects } from "./prospects";
+import { cleanupProspects, createProspect, mergeProspects, restoreProspect, sweepProspects } from "./prospects";
 import { handleOutbound, pushToThread, syncThreadStatuses } from "./threads";
 import { recoverUnconfirmedSends, requeueOrphanedApproved, sendReply } from "./sending";
 import { checkRss, type EngineDeps, engineTick, pollChannel, renewWebsub } from "./polling";
@@ -281,6 +281,12 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
   await work<GhlOutboundJob>(QUEUES.ghlOutbound, async (job) => {
     const outcome = await handleOutbound(ghlDeps(boss), job.data.payload);
     log("info", "crm outbound message", { outcome });
+  });
+  await work<GhlMergeJob>(QUEUES.ghlMerge, async (job) => {
+    await mergeProspects(ghlDeps(boss), job.data);
+  });
+  await work<GhlIntegrationJob>(QUEUES.ghlProspectCleanup, async (job) => {
+    await cleanupProspects(ghlDeps(boss), job.data.integrationId);
   });
   await work<ProspectRestoreJob>(QUEUES.ghlProspectRestore, async (job) => {
     const outcome = await restoreProspect(ghlDeps(boss), job.data.backupId);

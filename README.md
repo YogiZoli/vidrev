@@ -1,4 +1,4 @@
-# c2c-saas
+# vidrev
 
 Internal codename for a new SaaS: **"See which video makes money from your comments."**
 

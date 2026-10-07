@@ -145,8 +145,10 @@ async function activate(tx: Tx, payload: ProvisioningPayload, trialEndsAt: Date 
         updatedAt: new Date(),
       })
       .where(eq(accounts.id, accountId));
-    result = wasSuspended ? "reactivated" : "updated";
-    if (wasSuspended) loginLink = { userId: existing.user.id, email: existing.user.email, welcome: false };
+    result = wasSuspended ? "reactivated" : existing.account.status === "registered" ? "activated" : "updated";
+    // A signed-up account that pays now gets the welcome link like a new one.
+    if (existing.account.status === "registered") loginLink = { userId: existing.user.id, email: existing.user.email, welcome: true };
+    else if (wasSuspended) loginLink = { userId: existing.user.id, email: existing.user.email, welcome: false };
   }
 
   await writeAudit(tx, { actor: "ghl", accountId, action: `provisioning.${result}`, details: { event: payload.event, plan: planCode } });

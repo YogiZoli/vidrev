@@ -25,7 +25,7 @@ Merge notes (2026-09-25, Phase 3): owner answers to the Phase 1 review (DECISION
 | Database | PostgreSQL (Railway) | Relational data, transactional quota ledger |
 | ORM and migrations | Drizzle ORM | Typed SQL, simple migrations |
 | Email | Resend (magic links, audit reports, fallback resource email) | Simple API, good deliverability |
-| Hosting | Railway project `c2c-saas`: services `web`, `worker`, plus Postgres | No Supabase, no Upstash, no Redis (D-29) |
+| Hosting | Railway project `vidrev`: services `web`, `worker`, plus Postgres | No Supabase, no Upstash, no Redis (D-29) |
 | Tests | Vitest | Fast unit tests |
 
 The tracked link redirect is served by the `web` service, routed by host name (user custom hostnames and the fallback link host). Split it into its own service only if traffic requires.
@@ -41,7 +41,7 @@ flowchart LR
   subgraph CF[Cloudflare for SaaS]
     CH[Custom Hostnames: go.userdomain.com, TLS]
   end
-  subgraph R[Railway project c2c-saas]
+  subgraph R[Railway project vidrev]
     WEB[web: app.brand.tld + link hosts]
     WK[worker: polling, replies, sync, retention]
     DB[(Postgres)]

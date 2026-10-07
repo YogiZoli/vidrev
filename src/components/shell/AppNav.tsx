@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, ChevronDown, Inbox, Megaphone, Settings } from "lucide-react";
+import { BarChart3, ChevronDown, Inbox, Megaphone, Settings, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -11,12 +11,14 @@ import { SETTINGS_GROUPS } from "./settings-nav";
 const TOP = [
   { href: "/app", label: "To Approve", exact: true, count: true },
   { href: "/app/campaigns", label: "Automations", live: true },
+  { href: "/app/people", label: "People" },
   { href: "/app/reports", label: "Reports" },
 ];
 
 const BOTTOM = [
   { href: "/app", label: "To Approve", icon: Inbox, exact: true, count: true },
   { href: "/app/campaigns", label: "Automations", icon: Megaphone, live: true },
+  { href: "/app/people", label: "People", icon: Users },
   { href: "/app/reports", label: "Reports", icon: BarChart3 },
   { href: "/app/settings", label: "Settings", icon: Settings },
 ];
@@ -138,13 +140,13 @@ export function TopTabs({ queueCount, isAdmin, liveCount = 0 }: { queueCount: nu
   );
 }
 
-// Four-item bottom tab bar on phones.
+// Five-item bottom tab bar on phones.
 export function BottomTabs({ queueCount, liveCount = 0 }: { queueCount: number; liveCount?: number }) {
   const path = usePathname();
   return (
     <nav
       aria-label="Main"
-      className="sticky bottom-0 z-10 grid grid-cols-4 border-t border-border bg-white/90 px-1 pt-1.5 backdrop-blur-md md:hidden"
+      className="sticky bottom-0 z-10 grid grid-cols-5 border-t border-border bg-white/90 px-1 pt-1.5 backdrop-blur-md md:hidden"
       style={{ paddingBottom: "calc(6px + env(safe-area-inset-bottom))" }}
     >
       {BOTTOM.map((b) => {

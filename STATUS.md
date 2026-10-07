@@ -1,6 +1,6 @@
 # STATUS
 
-Last updated: 2026-09-29 (reliability pass 2, Works with GoHighLevel, affiliate link)
+Last updated: 2026-10-07 (repo and Railway renamed vidrev, sign-up, People)
 
 ## End goal
 
@@ -25,6 +25,14 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 - App restructure (onboarding wizard, Video > Keyword > Target URL, Settings) runs in a separate session with its own prompt.
 - Next: owner builds the GoHighLevel checkout for Founding 100 and sends the link (`FOUNDING_CHECKOUT_URL`); then move the landing into GoHighLevel on `vidrev.app` as Custom Code sections; then campaign drafts (L-03).
 - Next: owner brainstorm on the landing page and funnel, then a phase plan (not started).
+
+## 2026-10-07: rename, sign-up, People
+
+- GitHub repo renamed `YogiZoli/vidrev` (old URL redirects), Railway project renamed `vidrev` by the owner. C2C stays `YogiZoli/commentclient`. The local folder is still `C:/Users/gdp/repos/c2c-saas`.
+- C2C port 3 not taken (DECISIONS A-14); if ever revisited, the 29 day retention from C2C #97 and #98 is mandatory.
+- Self sign-up `/signup`: account `registered`, locked on `/activate` until its checkout with the same email activates it (A-16). Login page links to it.
+- New tab People `/app/people`: Commenters stay in vidrev, Leads (opted in) go to the CRM (A-15, A-17).
+- Next: continue the C2C comparison with #6 (inside GoHighLevel with SSO), #5 (affiliate marker), #4 (Conversations). Legal items wait for the LLC.
 
 ## Phases
 

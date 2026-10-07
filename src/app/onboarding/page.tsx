@@ -55,6 +55,7 @@ function Step({ n, title, why, state, children, change }: { n: number; title: st
 
 export default async function OnboardingPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const { account } = await requireSession();
+  if (account.status === "registered") redirect("/activate");
   if (account.onboardedAt) redirect("/app");
   const db = getDb();
   // Every step may already be done (for example a Stripe key that just turned active).

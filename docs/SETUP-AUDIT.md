@@ -29,7 +29,7 @@ Leave application restrictions at "None": the calls come from Railway, which has
 
 ## 4. Put it on Railway
 
-In the Railway project `c2c-saas`, add to **both** services (`web` and `worker`):
+In the Railway project `vidrev`, add to **both** services (`web` and `worker`):
 
 - `YT_API_KEY_AUDIT` = the key
 - `AUDIT_DAILY_LIMIT` = `10000` (raise it only after Google grants more quota for this project)

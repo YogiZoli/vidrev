@@ -32,7 +32,7 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 - Partner access proof: snapshot marker field `vidrev_partner_<VIDREV_PARTNER_MARKER>` read on every GoHighLevel connect; Grant on `/admin`; partner coupons.
 - `/admin`: Coupon codes card (partner or trial, max uses, expiry, note); account status shows how access came (checkout, trial, coupon, GHL affiliate snapshot, owner grant).
 - Landing FAQ: "Is there a free trial?" answered yes; Pricing says 14 day money-back guarantee. GHL kit regenerated (`design/landing/ghl-kit.html`).
-- Standard price proposal A-21 (29 USD/month, 290 USD/year) waits for the owner.
+- Standard price set (A-21): 25 USD/month, 150 USD/year; not sold until the founding offer closes. Partner marker field created in the vidrev Sub-account (`pxyPDisvT58wyyL3GGOR`); the owner adds it to the snapshot source.
 
 ## 2026-10-07: landing, standard log-in, audit page
 

@@ -30,9 +30,9 @@ describe.skipIf(!hasDb)("accounts, auth and provisioning (integration)", () => {
       await db.update(plans).set({ priceLabel: "$49/month" }).where(eq(plans.code, "standard_monthly"));
       await runMigrations(process.env.DATABASE_URL!);
       const rows = await db.select().from(plans);
-      expect(rows.map((p) => p.code).sort()).toEqual(["enterprise", "founding", "ghl_affiliate_free", "internal", "standard_monthly"]);
+      expect(rows.map((p) => p.code).sort()).toEqual(["enterprise", "founding", "ghl_affiliate_free", "internal", "standard_annual", "standard_monthly"]);
       expect(rows.find((p) => p.code === "standard_monthly")?.priceLabel).toBe("$49/month");
-      await db.update(plans).set({ priceLabel: null }).where(eq(plans.code, "standard_monthly"));
+      await db.update(plans).set({ priceLabel: "$25/month" }).where(eq(plans.code, "standard_monthly"));
     });
 
     it("creates owner accounts once, on the internal plan", async () => {

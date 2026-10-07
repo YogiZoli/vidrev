@@ -198,7 +198,15 @@ export function createGhlApi(fetchImpl: FetchLike, accessToken: string) {
     async createContact(locationId: string, input: { name: string; tags: string[]; customFields: { id: string; value: string }[] }): Promise<string> {
       const json = await call<{ contact?: { id?: string } }>(`/contacts/`, {
         method: "POST",
-        body: { locationId, name: input.name, tags: input.tags, customFields: input.customFields },
+        // The create endpoint wants field_value (live 422 with value, 2026-10-07)
+        // and first and last name, like C2C's working call.
+        body: {
+          locationId,
+          firstName: input.name.split(" ")[0] || input.name,
+          lastName: input.name.includes(" ") ? input.name.slice(input.name.indexOf(" ") + 1) : "",
+          tags: input.tags,
+          customFields: input.customFields.map((f) => ({ id: f.id, field_value: f.value })),
+        },
       });
       if (!json.contact?.id) throw new GhlApiError(502, "create response had no contact id", "contacts");
       return json.contact.id;

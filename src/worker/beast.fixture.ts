@@ -63,7 +63,8 @@ export function fakeCrm(crm: Crm) {
       if (crm.failCreate === "422") return new Response("{}", { status: 422 });
       crm.creates += 1;
       const id = `GC-${crm.creates}-${randomUUID().slice(0, 6)}`;
-      crm.contacts.set(id, { id, name: body.name, tags: body.tags, customFields: body.customFields });
+      // Stored the way the API reads it back: { id, value }.
+      crm.contacts.set(id, { id, name: [body.firstName, body.lastName].filter(Boolean).join(" "), tags: body.tags, customFields: (body.customFields as { id: string; field_value: string }[]).map((f) => ({ id: f.id, value: f.field_value })) });
       if (crm.failCreate === "timeout") throw new Error("socket hang up");
       return Response.json({ contact: { id } });
     }

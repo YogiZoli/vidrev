@@ -17,6 +17,8 @@ export interface OnboardingState {
   channelConnecting: boolean;
   // Why the latest connect attempt did not work (rejected or revoked), if so.
   channelProblem: string | null;
+  // When the connecting grant was stored, for the wait status.
+  channelConnectingSince: Date | null;
   ghlActive: boolean;
   stripeActive: boolean;
   purchaseSource: "ghl" | "stripe" | null;
@@ -29,7 +31,7 @@ export async function onboardingState(db: Db, accountId: string): Promise<Onboar
     .from(accounts)
     .where(eq(accounts.id, accountId));
   const channelRows = await db
-    .select({ status: channels.status, statusReason: channels.statusReason })
+    .select({ status: channels.status, statusReason: channels.statusReason, createdAt: channels.createdAt })
     .from(channels)
     .where(and(eq(channels.accountId, accountId), inArray(channels.status, ["connecting", "connected", "rejected", "revoked"])))
     .orderBy(desc(channels.createdAt));
@@ -51,6 +53,7 @@ export async function onboardingState(db: Db, accountId: string): Promise<Onboar
     done,
     current: ONBOARDING_STEPS.find((step) => !done[step]) ?? null,
     channelConnecting: channelRows.some((r) => r.status === "connecting"),
+    channelConnectingSince: channelRows.find((r) => r.status === "connecting")?.createdAt ?? null,
     channelProblem: !youtube && channelRows[0] && ["rejected", "revoked"].includes(channelRows[0].status) ? (channelRows[0].statusReason ?? channelRows[0].status) : null,
     ghlActive,
     stripeActive,

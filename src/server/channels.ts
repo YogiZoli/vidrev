@@ -26,6 +26,8 @@ export async function listChannels(db: Db, accountId: string) {
       statusReason: channels.statusReason,
       defaultLanguage: channels.defaultLanguage,
       connectedAt: channels.connectedAt,
+      createdAt: channels.createdAt,
+      disconnectedAt: channels.disconnectedAt,
     })
     .from(channels)
     .where(and(eq(channels.accountId, accountId), inArray(channels.status, [...LIVE_STATUSES, "disconnecting", "revoked", "rejected"])))

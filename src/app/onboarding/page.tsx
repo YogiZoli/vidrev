@@ -18,6 +18,7 @@ import { Notice } from "../ui";
 import { CHANNEL_CONNECT_ERRORS, CHANNEL_REASONS } from "@/lib/status-text";
 import { CrmSyncModeForm } from "@/components/forms/CrmSyncModeForm";
 import { crmSyncModeState } from "@/server/crm-sync-mode";
+import { WaitStatus } from "@/components/ui/wait-status";
 
 export const dynamic = "force-dynamic";
 
@@ -102,6 +103,14 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
       </div>
       {params.error ? <Notice tone="error">{CHANNEL_CONNECT_ERRORS[params.error] ?? params.error}</Notice> : null}
       {params.connected || state.channelConnecting ? <Notice tone="info">Google access granted. Finishing the connection.</Notice> : null}
+      {state.channelConnectingSince ? (
+        <WaitStatus
+          startedAt={state.channelConnectingSince}
+          usualSeconds={30}
+          giveUpMinutes={30}
+          leave="You can close this page or the laptop: the connection finishes on our side, and the next step is here when you come back."
+        />
+      ) : null}
       {state.channelProblem && !params.error ? (
         <Notice tone="error">{CHANNEL_REASONS[state.channelProblem] ?? "The channel could not be connected. Connect again."}</Notice>
       ) : null}

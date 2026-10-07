@@ -6,6 +6,7 @@ import { requireSession } from "@/server/auth/current";
 import { listChannels, LIVE_STATUSES } from "@/server/channels";
 import { Notice } from "../../../ui";
 import { CHANNEL_CONNECT_ERRORS, CHANNEL_REASONS } from "@/lib/status-text";
+import { WaitStatus } from "@/components/ui/wait-status";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,21 @@ export default async function YoutubeSettingsPage({ searchParams }: { searchPara
       <PageHeader title="YouTube channel" />
       {params.error && CHANNEL_CONNECT_ERRORS[params.error] ? <Notice tone="error">{CHANNEL_CONNECT_ERRORS[params.error]}</Notice> : null}
       {params.connected ? <Notice tone="info">Google access granted. Finishing the connection.</Notice> : null}
+      {channelRows
+        .filter((c) => c.status === "connecting" || c.status === "disconnecting")
+        .map((c) => (
+          <WaitStatus
+            key={c.id}
+            startedAt={(c.status === "disconnecting" ? c.disconnectedAt : null) ?? c.createdAt}
+            usualSeconds={30}
+            giveUpMinutes={c.status === "connecting" ? 30 : undefined}
+            leave={
+              c.status === "connecting"
+                ? "You can close this page or the laptop: the connection finishes on our side."
+                : "You can close this page or the laptop: the disconnect and the deletion of the YouTube data finish on our side, and are retried until done."
+            }
+          />
+        ))}
       {params.disconnected ? <Notice tone="info">Channel disconnected. Its YouTube data is being deleted.</Notice> : null}
         <Card className="grid content-start gap-3">
           <SectionTitle>Channel</SectionTitle>

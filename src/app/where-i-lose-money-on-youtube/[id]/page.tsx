@@ -17,6 +17,7 @@ import {
 import { getAudit } from "@/server/audit/service";
 import { Notice } from "../../ui";
 import { AutoRefresh } from "./AutoRefresh";
+import { WaitStatus } from "@/components/ui/wait-status";
 
 export const dynamic = "force-dynamic";
 
@@ -63,8 +64,14 @@ export default async function AuditResultPage({
         </div>
         <p className="m-0 text-base text-ink-2">
           We are reading your last videos and comments and checking the links in
-          your descriptions. This takes a few seconds.
+          your descriptions.
         </p>
+        <WaitStatus
+          startedAt={audit.createdAt}
+          usualSeconds={30}
+          giveUpMinutes={10}
+          leave="You can close this page: the reading goes on, and the result waits at this address. Bookmark it to come back."
+        />
       </PublicCard>
     );
   }

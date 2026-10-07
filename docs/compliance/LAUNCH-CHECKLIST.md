@@ -35,3 +35,7 @@ Strict order (owner, 2026-09-29, DECISIONS A-13): nothing goes to Google before 
 2. OAuth consent screen is In production (not Testing), so tokens no longer expire weekly.
 3. Founding checkout in GHL calls the provisioning webhook; buy once with a test card and confirm the magic link email arrives.
 4. `/admin` shows the worker heartbeat, quota and no failed jobs.
+
+## Beast Mode before the Google review (A-25)
+
+- Privacy section 9 "Beast Mode" discloses the flow (display name and comment text into the creator's CRM, 29 day delete). The OAuth verification answers must describe it the same way; until the review passes, Beast Mode stays on the `BEAST_MODE_ACCOUNTS` allowlist.

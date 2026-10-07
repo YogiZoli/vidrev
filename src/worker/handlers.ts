@@ -2,7 +2,7 @@ import type { JobWithMetadata, PgBoss } from "pg-boss";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { users } from "@/db/schema";
-import { type AccountJob, type AuditJob, type ChannelJob, type CommentJob, type DeliveryJob, type DomainJob, type GhlEventJob, type GhlIntegrationJob, type GhlNoteJob, type ProspectJob, type ProspectRestoreJob, type ReplyJob, QUEUES, QUEUE_OPTIONS, type SendEmailJob } from "@/jobs/queues";
+import { type AccountJob, type AuditJob, type ChannelJob, type CommentJob, type DeliveryJob, type DomainJob, type GhlEventJob, type GhlIntegrationJob, type GhlNoteJob, type GhlOutboundJob, type ProspectJob, type ProspectRestoreJob, type ReplyJob, QUEUES, QUEUE_OPTIONS, type SendEmailJob } from "@/jobs/queues";
 import { ghlReconnectEmail, stripeReconnectEmail } from "@/server/email/templates";
 import { postJson } from "@/server/integrations/http-post";
 import { pruneDeliveries } from "@/server/integrations/outbound";
@@ -18,6 +18,7 @@ import { checkDomain, type DomainDeps, queueDomainChecks, removeDomainHostname }
 import { runJob, runSteps } from "./jobs";
 import { runRetention } from "./retention";
 import { createProspect, restoreProspect, sweepProspects } from "./prospects";
+import { handleOutbound, pushToThread, syncThreadStatuses } from "./threads";
 import { recoverUnconfirmedSends, requeueOrphanedApproved, sendReply } from "./sending";
 import { checkRss, type EngineDeps, engineTick, pollChannel, renewWebsub } from "./polling";
 import { deliver, deliverDue, type WebhookDeps } from "./webhooks";
@@ -247,6 +248,7 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
     ["unconfirmed sends", () => recoverUnconfirmedSends(engineDeps(boss))],
     ["orphaned approved replies", () => requeueOrphanedApproved(engineDeps(boss))],
     ["stuck channel connects", () => expireStuckConnects(channelDeps())],
+    ["crm thread statuses", () => syncThreadStatuses(ghlDeps(boss))],
   ]);
   // Audit my channel (Phase 9): one run per request, own API key and quota.
   await work<AuditJob>(QUEUES.auditRun, (job) => runAudit(auditDeps(), job.data.auditId));
@@ -269,6 +271,16 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
   await work<ProspectJob>(QUEUES.ghlProspect, async (job) => {
     const outcome = await createProspect(ghlDeps(boss), job.data.replyId);
     log("info", "prospect job", { replyId: job.data.replyId, outcome });
+    // The comment and draft go into the prospect's Conversations thread.
+    if (outcome === "created" || outcome === "tagged") await sendVia(boss)("ghl.thread", { replyId: job.data.replyId });
+  });
+  await work<ProspectJob>(QUEUES.ghlThread, async (job) => {
+    const outcome = await pushToThread(ghlDeps(boss), job.data.replyId);
+    log("info", "thread job", { replyId: job.data.replyId, outcome });
+  });
+  await work<GhlOutboundJob>(QUEUES.ghlOutbound, async (job) => {
+    const outcome = await handleOutbound(ghlDeps(boss), job.data.payload);
+    log("info", "crm outbound message", { outcome });
   });
   await work<ProspectRestoreJob>(QUEUES.ghlProspectRestore, async (job) => {
     const outcome = await restoreProspect(ghlDeps(boss), job.data.backupId);

@@ -42,6 +42,16 @@ export interface GhlContact {
   lastAttributionSource?: { utmContent?: string | null } | null;
 }
 
+export interface GhlMessage {
+  id: string;
+  direction?: string;
+  contactId?: string;
+  conversationId?: string;
+  locationId?: string;
+  body?: string;
+  conversationProviderId?: string;
+}
+
 export interface GhlOpportunity {
   id: string;
   status?: string;
@@ -83,7 +93,7 @@ export interface GhlFunnel {
 }
 
 export function createGhlApi(fetchImpl: FetchLike, accessToken: string) {
-  async function call<T>(path: string, options: { method?: "GET" | "POST" | "DELETE"; query?: Query; body?: unknown } = {}): Promise<T> {
+  async function call<T>(path: string, options: { method?: "GET" | "POST" | "PUT" | "DELETE"; query?: Query; body?: unknown } = {}): Promise<T> {
     const url = new URL(`${GHL_API}${path}`);
     for (const [key, value] of Object.entries(options.query ?? {})) if (value !== undefined) url.searchParams.set(key, String(value));
     const response = await fetchImpl(url.toString(), {
@@ -198,6 +208,44 @@ export function createGhlApi(fetchImpl: FetchLike, accessToken: string) {
     // proves the contact is ours first. Never call it from anywhere else.
     async deleteContact(contactId: string): Promise<void> {
       await call(`/contacts/${contactId}`, { method: "DELETE" });
+    },
+
+    // Conversations (A-25, Beast Mode). The thread belongs to our custom
+    // conversation provider; shapes follow C2C, which runs them live.
+    async createConversation(locationId: string, contactId: string, providerId: string): Promise<string> {
+      const json = await call<{ conversation?: { id?: string }; id?: string }>(`/conversations/`, {
+        method: "POST",
+        body: { locationId, contactId, providerId },
+      });
+      const id = json.conversation?.id ?? json.id;
+      if (!id) throw new GhlApiError(502, "conversation response had no id", "conversations");
+      return id;
+    },
+
+    async addInboundMessage(conversationId: string, providerId: string, message: string): Promise<void> {
+      await call(`/conversations/messages/inbound`, {
+        method: "POST",
+        body: { type: "Custom", conversationId, conversationProviderId: providerId, message },
+      });
+    },
+
+    // verify live: read back an outbound message the delivery URL announced,
+    // so a forged webhook can never trigger a reply.
+    async getMessage(messageId: string): Promise<GhlMessage | null> {
+      try {
+        const json = await call<{ message?: GhlMessage } & Partial<GhlMessage>>(`/conversations/messages/${messageId}`);
+        return json.message ?? (json.id ? (json as GhlMessage) : null);
+      } catch (error) {
+        if (error instanceof GhlApiError && error.status === 404) return null;
+        throw error;
+      }
+    },
+
+    async setMessageStatus(messageId: string, status: "delivered" | "failed" | "pending", error?: string): Promise<void> {
+      await call(`/conversations/messages/${messageId}/status`, {
+        method: "PUT",
+        body: { status, ...(error ? { error: { code: "1", type: "saas", message: error } } : {}) },
+      });
     },
 
     // Additive: existing tags stay (upsert itself may replace them).

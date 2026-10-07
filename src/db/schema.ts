@@ -512,6 +512,11 @@ export const replies = pgTable(
     youtubeReplyId: text("youtube_reply_id"),
     // Tracked link minted for this reply (Phase 5).
     linkId: uuid("link_id"),
+    // Beast Mode thread (A-25): when the comment and draft went into the CRM
+    // thread, and the CRM message that approved it (its status follows the send).
+    crmThreadedAt: timestamp("crm_threaded_at", { withTimezone: true }),
+    crmMessageId: text("crm_message_id"),
+    crmStatusSentAt: timestamp("crm_status_sent_at", { withTimezone: true }),
     attempts: integer("attempts").notNull().default(0),
     createdAt: createdAt(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -930,6 +935,8 @@ export const crmProspects = pgTable(
     integrationId: uuid("integration_id").references(() => integrations.id, { onDelete: "set null" }),
     ghlLocationId: text("ghl_location_id"),
     ghlContactId: text("ghl_contact_id"),
+    // The Conversations thread of our provider (PR3); deleted with the contact.
+    ghlConversationId: text("ghl_conversation_id"),
     status: text("status").$type<CrmProspectStatus>().notNull().default("creating"),
     // 29 days after the first comment unless they opt in.
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),

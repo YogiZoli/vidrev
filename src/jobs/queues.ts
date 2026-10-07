@@ -21,6 +21,8 @@ export const QUEUES = {
   ghlNote: "ghl.note",
   ghlProspect: "ghl.prospect",
   ghlProspectRestore: "ghl.prospect_restore",
+  ghlThread: "ghl.thread",
+  ghlOutbound: "ghl.outbound",
   stripeSync: "stripe.sync",
   reportRefresh: "report.refresh",
   reportHourly: "report.hourly",
@@ -85,6 +87,11 @@ export interface ProspectRestoreJob {
   backupId: string;
 }
 
+// A message the creator sent in the CRM thread (delivery URL of our provider).
+export interface GhlOutboundJob {
+  payload: Record<string, unknown>;
+}
+
 export interface AuditJob {
   auditId: string;
 }
@@ -106,6 +113,8 @@ export interface JobPayloads {
   [QUEUES.ghlNote]: GhlNoteJob;
   [QUEUES.ghlProspect]: ProspectJob;
   [QUEUES.ghlProspectRestore]: ProspectRestoreJob;
+  [QUEUES.ghlThread]: ProspectJob;
+  [QUEUES.ghlOutbound]: GhlOutboundJob;
   [QUEUES.stripeSync]: GhlIntegrationJob;
   [QUEUES.reportRefresh]: AccountJob;
   [QUEUES.auditRun]: AuditJob;
@@ -136,6 +145,9 @@ export const QUEUE_OPTIONS = {
   // One per reply; the claimed crm_prospects row keeps a retry from creating twice.
   [QUEUES.ghlProspect]: { retryLimit: 5, retryDelay: 60, retryBackoff: true },
   [QUEUES.ghlProspectRestore]: { retryLimit: 3, retryDelay: 60, retryBackoff: true },
+  // Thread push is guarded by replies.crm_threaded_at; outbound by replies.crm_message_id.
+  [QUEUES.ghlThread]: { retryLimit: 5, retryDelay: 60, retryBackoff: true },
+  [QUEUES.ghlOutbound]: { retryLimit: 5, retryDelay: 20, retryBackoff: true },
   // Stripe (Phase 8): the read-only sync every 5 minutes, one queued plus one
   // running per integration.
   [QUEUES.stripeSync]: { policy: "stately", retryLimit: 1, retryDelay: 60, expireInSeconds: 900 },

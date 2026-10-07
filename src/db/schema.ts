@@ -949,9 +949,10 @@ export const crmProspects = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    // One live prospect per person; a deleted one may be followed by a new one.
+    // One live prospect per person and CRM connection; a deleted one may be
+    // followed by a new one, and another sub-account gets its own.
     uniqueIndex("crm_prospects_live_uq")
-      .on(t.accountId, t.contactId)
+      .on(t.accountId, t.contactId, t.integrationId)
       .where(sql`status in ('creating', 'created', 'unconfirmed')`),
     uniqueIndex("crm_prospects_ghl_contact_uq").on(t.ghlLocationId, t.ghlContactId),
     index("crm_prospects_due_idx").on(t.status, t.expiresAt),

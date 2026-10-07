@@ -81,8 +81,15 @@ export async function createProspect(deps: GhlWorkerDeps & { beastAllowlist?: st
     const [live] = await deps.db
       .select()
       .from(crmProspects)
-      .where(and(eq(crmProspects.accountId, reply.accountId), eq(crmProspects.contactId, reply.contactId), inArray(crmProspects.status, ["creating", "created", "unconfirmed"])));
-    if (live?.status !== "created" || !live.ghlContactId || live.integrationId !== ghl.id) return "pending";
+      .where(
+        and(
+          eq(crmProspects.accountId, reply.accountId),
+          eq(crmProspects.contactId, reply.contactId),
+          eq(crmProspects.integrationId, ghl.id),
+          inArray(crmProspects.status, ["creating", "created", "unconfirmed"]),
+        ),
+      );
+    if (live?.status !== "created" || !live.ghlContactId) return "pending";
     // Same person, another keyword or video: more tags on the same contact.
     try {
       await withGhlApi(deps, ghl.id, async (api) => {

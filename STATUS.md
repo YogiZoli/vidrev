@@ -40,7 +40,7 @@ Owner decisions 2026-10-07, done:
 - #145 29 day rule, strict: nothing of a Beast Mode prospect outlives 29 days. The hourly delete starts on day 28, is retried for one day; backups never pass day 29. Unconfirmed creates are looked up in the CRM by the prospect tag and our row id, then deleted through the same two proofs (sweep and cleanup before disconnect).
 - #146 A lost or failed ghl.prospect job is queued again by the hourly pass (Beast Mode replies 15 minutes to 2 days old, person still a commenter, no prospect row).
 
-Owner step, open: external uptime monitor (UptimeRobot, free) on `https://app.vidrev.app/api/health/worker`, keyword check, email alert. A dead worker cannot send its own alert.
+Uptime monitor: already in place (UptimeRobot free tier, 2 of 50 monitors): `app.vidrev.app/api/health/worker` and `vidrev.app`, every 5 minutes. The worker URL also answers 503 when the database is down, so no third monitor is needed.
 
 ## CRM sync mode, Clean Mode and Beast Mode (A-25 to A-29), done 2026-10-07
 

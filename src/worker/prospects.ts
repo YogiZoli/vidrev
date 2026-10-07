@@ -14,12 +14,37 @@ import type { GhlWorkerDeps } from "./ghl";
 // in, the contact is deleted on the 29th day. Only contacts vidrev itself
 // created are ever deleted, and only after two independent proofs.
 
-export const PROSPECT_TTL_MS = 29 * 86_400_000;
-// The CRM delete is retried this long past the 29 days, then our side gives up.
-export const DELETE_GRACE_MS = 3 * 86_400_000;
-// Backups of deleted contacts: the sweep runs hourly from the 29th day, so
-// with 23 hours the display name inside stays within the 30 days.
+// Owner rule (2026-10-07): nothing of a prospect may outlive 29 days, in the
+// CRM or here. The hourly delete starts on day 28 and is retried for one day,
+// so every contact is gone by day 29; backups never pass day 29 either.
+export const MAX_AGE_MS = 29 * 86_400_000;
+export const PROSPECT_TTL_MS = 28 * 86_400_000;
+// The CRM delete is retried this long past PROSPECT_TTL_MS, then our side gives up.
+export const DELETE_GRACE_MS = MAX_AGE_MS - PROSPECT_TTL_MS;
+// Backups of deleted contacts: 23 hours at most, and never past day 29.
 export const BACKUP_TTL_MS = 23 * 3_600_000;
+// How far the CRM is paged to find a contact whose create was never confirmed.
+const FIND_MAX_PAGES = 200;
+
+// A create that timed out or was interrupted may still have made the contact:
+// find it by the prospect tag and our row id in the "vidrev prospect id"
+// field. Throws when the search cannot finish, so the sweep retries.
+export async function findProspectContact(api: GhlApi, config: GhlConfig, prospectId: string): Promise<string | null> {
+  if (!config.prospectFieldId) return null;
+  let page: { startAfterId?: string; startAfter?: string | number } = {};
+  for (let n = 0; n < FIND_MAX_PAGES; n += 1) {
+    const { contacts: rows, next } = await api.listContacts(config.locationId, page);
+    const hit = rows.find(
+      (c) =>
+        (c.tags ?? []).some((tag) => tag.trim().toLowerCase() === TAG_PROSPECT) &&
+        c.customFields?.some((f) => f.id === config.prospectFieldId && f.value === prospectId),
+    );
+    if (hit) return hit.id;
+    if (!next || rows.length === 0) return null;
+    page = next;
+  }
+  throw new Error("contact search did not finish within the page limit");
+}
 // A claim still "creating" after this long belongs to a worker that stopped.
 export const STALE_CREATING_MS = 15 * 60_000;
 export const PROSPECT_FIELD_NAME = "vidrev prospect id";
@@ -193,7 +218,7 @@ export async function deleteOwnProspect(
     prospectId: prospect.id,
     accountId: prospect.accountId,
     contact: check.contact as unknown as Record<string, unknown>,
-    expiresAt: new Date(now.getTime() + BACKUP_TTL_MS),
+    expiresAt: new Date(Math.min(now.getTime() + BACKUP_TTL_MS, prospect.createdAt.getTime() + MAX_AGE_MS)),
   });
   await api.deleteContact(prospect.ghlContactId);
   return { deleted: true };
@@ -229,7 +254,7 @@ export async function sweepProspects(deps: GhlWorkerDeps, mode = env().BEAST_DEL
     .select()
     .from(crmProspects)
     .where(and(inArray(crmProspects.status, ["created", "creating", "unconfirmed"]), lte(crmProspects.expiresAt, now)));
-  for (const prospect of due) {
+  for (let prospect of due) {
     if ((await liveStage(deps, prospect.contactId)) !== "commenter") {
       // Opted in: never deleted by the 29 day rule. The merge deletes it (its
       // tags and summary went to the email contact at opt-in).
@@ -247,12 +272,40 @@ export async function sweepProspects(deps: GhlWorkerDeps, mode = env().BEAST_DEL
       continue;
     }
     const pastGrace = now.getTime() >= prospect.expiresAt.getTime() + DELETE_GRACE_MS;
-    // Never confirmed by the CRM: no contact id we could prove, nothing to delete.
+    // Never confirmed by the CRM: the contact may still exist, so it is looked
+    // up by our row id and then goes through the same proofs and delete.
     if (prospect.status !== "created" || !prospect.ghlContactId) {
-      await set(prospect.id, { status: "abandoned", lastError: prospect.lastError ?? "no confirmed contact id" });
-      log("warn", "prospect without a confirmed contact id closed", { accountId: prospect.accountId, prospectId: prospect.id });
-      result.abandoned += 1;
-      continue;
+      if (mode === "dry_run") {
+        await set(prospect.id, { wouldDeleteAt: now });
+        result.wouldDelete += 1;
+        continue;
+      }
+      let found: { id: string; locationId: string } | null = null;
+      try {
+        const [ghl] = prospect.integrationId ? await deps.db.select({ status: integrations.status }).from(integrations).where(eq(integrations.id, prospect.integrationId)) : [];
+        if (ghl?.status !== "active") throw new Error("CRM connection is not active");
+        found = await withGhlApi(deps, prospect.integrationId!, async (api, config) => {
+          const id = await findProspectContact(api, config, prospect.id);
+          return id ? { id, locationId: config.locationId } : null;
+        });
+      } catch (error) {
+        const message = String(error instanceof Error ? error.message : error).slice(0, 300);
+        const giveUp = now.getTime() >= prospect.expiresAt.getTime() + DELETE_GRACE_MS;
+        await set(prospect.id, { ...(giveUp ? { status: "abandoned" as const } : {}), lastError: message, deleteAttempts: sql`${crmProspects.deleteAttempts} + 1` });
+        log(giveUp ? "error" : "warn", giveUp ? "unconfirmed prospect search gave up" : "unconfirmed prospect search failed, retried next hour", { accountId: prospect.accountId, prospectId: prospect.id, ...errorFields(error) });
+        if (giveUp) result.abandoned += 1;
+        else result.retry += 1;
+        continue;
+      }
+      if (!found) {
+        await set(prospect.id, { status: "abandoned", lastError: "no contact with this prospect id in the CRM" });
+        log("info", "unconfirmed prospect not in the crm, closed", { accountId: prospect.accountId, prospectId: prospect.id });
+        result.abandoned += 1;
+        continue;
+      }
+      await set(prospect.id, { status: "created", ghlContactId: found.id, ghlLocationId: found.locationId });
+      log("warn", "unconfirmed prospect found in the crm, deleting it", { accountId: prospect.accountId, prospectId: prospect.id });
+      prospect = { ...prospect, status: "created", ghlContactId: found.id, ghlLocationId: found.locationId };
     }
     if (mode === "dry_run") {
       await set(prospect.id, { wouldDeleteAt: now });
@@ -413,10 +466,22 @@ export async function cleanupProspects(deps: GhlWorkerDeps, integrationId: strin
   const now = deps.now?.() ?? new Date();
   const result = { deleted: 0, kept: 0 };
   if (mode === "off") return result;
-  const rows = await deps.db.select().from(crmProspects).where(and(eq(crmProspects.integrationId, integrationId), eq(crmProspects.status, "created")));
+  const rows = await deps.db
+    .select()
+    .from(crmProspects)
+    .where(and(eq(crmProspects.integrationId, integrationId), inArray(crmProspects.status, ["created", "unconfirmed", "creating"])));
   if (rows.length === 0) return result;
   await withGhlApi(deps, integrationId, async (api, config) => {
-    for (const prospect of rows) {
+    for (let prospect of rows) {
+      // A never confirmed create may have made the contact: find it first.
+      if (!prospect.ghlContactId) {
+        const id = await findProspectContact(api, config, prospect.id);
+        if (!id) {
+          await deps.db.update(crmProspects).set({ status: "abandoned", lastError: "no contact with this prospect id in the CRM", updatedAt: now }).where(eq(crmProspects.id, prospect.id));
+          continue;
+        }
+        prospect = { ...prospect, ghlContactId: id, ghlLocationId: config.locationId };
+      }
       const outcome = await deleteOwnProspect(deps, api, config, prospect, now);
       if (outcome.deleted || "gone" in outcome) {
         await deps.db

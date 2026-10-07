@@ -59,6 +59,7 @@ export function fakeCrm(crm: Crm) {
       crm.fields.push(field);
       return Response.json({ customField: field });
     }
+    if (path === "/contacts/" && method === "GET") return Response.json({ contacts: [...crm.contacts.values()], meta: {} });
     if (path === "/contacts/" && method === "POST") {
       if (crm.failCreate === "422") return new Response("{}", { status: 422 });
       crm.creates += 1;

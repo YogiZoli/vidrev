@@ -1,6 +1,6 @@
 # STATUS
 
-Last updated: 2026-10-07 (repo and Railway renamed vidrev, sign-up, People)
+Last updated: 2026-10-07 (reliability review: PRs #139 to #143)
 
 ## End goal
 
@@ -25,6 +25,21 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 - App restructure (onboarding wizard, Video > Keyword > Target URL, Settings) runs in a separate session with its own prompt.
 - Next: owner builds the GoHighLevel checkout for Founding 100 and sends the link (`FOUNDING_CHECKOUT_URL`); then move the landing into GoHighLevel on `vidrev.app` as Custom Code sections; then campaign drafts (L-03).
 - Next: owner brainstorm on the landing page and funnel, then a phase plan (not started).
+
+## Reliability review 2026-10-07 (PRs #139 to #143)
+
+Goal of the owner: the app never shows a raw error, always says what a process is doing (wait or not, can the laptop be closed), and every failure can be traced.
+
+- #139 Stuck disconnect: a channel no longer stays in "disconnecting" for ever (lost or failed job, Google 4xx on revoke, undecryptable token). The engine tick queues it again after 10 minutes; a refused revoke no longer blocks the wipe of the YouTube data.
+- #140 Form posts: 16 route handlers showed a bare "Internal Server Error" on any failure. Now `guarded()` (src/server/route-guard.ts) logs "request failed" with a short reference, sends the browser to `/oops` (Go back, reference), and answers API calls with JSON plus the reference. Webhook routes keep their 500 so the sender retries.
+- #141 Wait status: onboarding, Settings > YouTube and the audit waiting page show how long the process has run, if that is normal, when it stops by itself (audit 10 min, connect 30 min) or that it is retried until done, and that the page or laptop can be closed.
+- #142 Beast Mode: a prospect claim left in "creating" by a stopped worker blocked that person for ever (no tags, no thread). A fresh claim makes the job come back in 60 s; after 15 minutes the claim closes as unconfirmed, never created twice.
+- #143 Worker watchdog: when the shared heartbeat is 5 minutes stale and the database answers, the worker exits and Railway restarts it; with the database down it only logs.
+
+Open, not fixed (owner decision):
+- An unconfirmed prospect (create timed out or interrupted) may exist in the CRM with an unknown contact id; the sweep closes it as abandoned and it is never deleted, so its display name can stay in the CRM past 30 days. A fix would search the CRM by the "vidrev prospect id" field before closing.
+- If queueing ghl.prospect fails in the draft step it is only logged; there is no hourly re-queue for Beast Mode replies without a prospect.
+- Set an external uptime monitor on `https://app.vidrev.app/api/health/worker` (503 when the worker is down), so a dead worker reaches the owner even when the worker cannot send its own alert.
 
 ## CRM sync mode, Clean Mode and Beast Mode (A-25 to A-29), done 2026-10-07
 

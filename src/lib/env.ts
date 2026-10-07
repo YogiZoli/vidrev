@@ -21,6 +21,9 @@ const envSchema = z.object({
   // Secret part of the contact field name the owner's affiliate snapshot
   // carries ("vidrev_partner_<token>"); unset turns the snapshot path off (A-20).
   VIDREV_PARTNER_MARKER: z.string().trim().min(8).optional(),
+  // Marketplace app "Shared secret" (SSO key): decrypts the user GoHighLevel
+  // hands the embedded app; unset turns /ghl sign-in off (A-22).
+  GHL_SSO_KEY: z.string().trim().min(8).optional(),
   // "1" adds the page, survey and calendar scopes once the Marketplace app has them.
   GHL_DESTINATION_SCOPES: optional,
   ENCRYPTION_KEY: optional,

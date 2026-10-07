@@ -17,7 +17,7 @@ export interface PlanSeed {
   seatsCap: number | null;
 }
 
-export const PLAN_CODES = ["standard_monthly", "founding", "ghl_affiliate_free", "enterprise", "internal"] as const;
+export const PLAN_CODES = ["standard_monthly", "standard_annual", "founding", "ghl_affiliate_free", "enterprise", "internal"] as const;
 export type PlanCode = (typeof PLAN_CODES)[number];
 
 export const PLAN_SEEDS: readonly PlanSeed[] = [
@@ -25,10 +25,22 @@ export const PLAN_SEEDS: readonly PlanSeed[] = [
     code: "standard_monthly",
     label: "Standard",
     billing: "monthly",
-    // Price is not decided yet (D-37); set it in the plans table when it is.
-    priceLabel: null,
-    priceCents: null,
-    priceCurrency: null,
+    // Owner, 2026-10-07 (DECISIONS A-21): after the Founding 100.
+    priceLabel: "$25/month",
+    priceCents: 2500,
+    priceCurrency: "USD",
+    channelLimit: 1,
+    monthlyReplyCap: 300,
+    dailyReplyCap: 30,
+    seatsCap: null,
+  },
+  {
+    code: "standard_annual",
+    label: "Standard yearly",
+    billing: "annual",
+    priceLabel: "$150/year",
+    priceCents: 15000,
+    priceCurrency: "USD",
     channelLimit: 1,
     monthlyReplyCap: 300,
     dailyReplyCap: 30,

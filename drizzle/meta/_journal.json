@@ -106,6 +106,13 @@
       "when": 1791358076812,
       "tag": "0014_access_trial_coupons",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1791359819335,
+      "tag": "0015_standard_price",
+      "breakpoints": true
     }
   ]
 }

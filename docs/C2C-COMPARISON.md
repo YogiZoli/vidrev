@@ -11,7 +11,7 @@ Written 2026-09-29. Direction set by the owner: vidrev replaces C2C, not the oth
 | 3 | Commenters as GoHighLevel prospect contacts (name only, no email) at comment time, tagged with keyword and lead temperature | `app/crm/ghl.py` | lead compounding by temperature (L-03) starts at the comment, not only at the opt-in | medium | not taken (A-14); if revisited, 29 day retention from C2C #97 and #98 |
 | 4 | Comments and drafts as a GoHighLevel Conversations thread; the creator replies inside GoHighLevel and it is posted to YouTube | `app/crm/ghl.py`, `app/webhooks/ghl_provider.py` (custom Conversations provider) | "direct integration with GoHighLevel" (L-09) at its strongest; approval stays manual | large | not taken now (A-23) |
 | 5 | Affiliate forever-free proven by a snapshot marker field | `app/affiliate.py` | replaces the manual Grant access for affiliates | medium | done (A-20: snapshot marker, admin grant, coupons) |
-| 6 | Running inside GoHighLevel (custom menu link, iframe) with SSO | `app/auth/ghl_sso.py` | GHL users stay in GHL; needs the SSO proof, never trust a location id alone | medium | done (A-22: /embed with SSO) |
+| 6 | Running inside GoHighLevel (custom menu link, iframe) with SSO | `app/auth/ghl_sso.py` | GHL users stay in GHL; needs the SSO proof, never trust a location id alone | medium | done (A-22: /crm with SSO) |
 | 7 | Legal pages and the Google verification pack that passed | `app/routes/legal.py`, `GCP_VERIFICATION.md` | the template for vidrev's own Privacy, Terms and Google review (after the LLC) | small | waits for the LLC (A-13) |
 
 ## Deliberately not taken

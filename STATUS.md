@@ -28,7 +28,7 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 
 ## 2026-10-07: vidrev inside GoHighLevel (SSO)
 
-- `/embed` page for the Marketplace custom page / menu link: GoHighLevel SSO signs in the account that connected the sub-account (A-22). Owner steps in docs/SETUP-GHL.md (Shared secret as `GHL_SSO_KEY` on web, custom page URL).
+- `/crm` page for the Marketplace custom page / menu link: GoHighLevel SSO signs in the account that connected the sub-account (A-22). Owner steps in docs/SETUP-GHL.md (Shared secret as `GHL_SSO_KEY` on web, custom page URL).
 - C2C list closed: 1, 2, 5, 6 done; 3 and 4 not taken (A-14, A-23); 7 waits for the LLC.
 
 ## 2026-10-07: trial, GoHighLevel partner access, coupons

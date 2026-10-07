@@ -15,7 +15,7 @@ export const runtime = "nodejs";
 
 const limiter = new RateLimiter(30, 60 * 1000);
 
-// The /embed page posts the encrypted user GoHighLevel handed it. The session
+// The /crm page posts the encrypted user GoHighLevel handed it. The session
 // cookie set here is SameSite=None and Partitioned: it is sent only inside
 // GoHighLevel's frame, never to another site that might frame vidrev.
 export async function POST(request: Request): Promise<Response> {

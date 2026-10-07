@@ -107,5 +107,5 @@ There is no custom workflow trigger on purpose (DECISIONS P10-06): use HighLevel
 ## vidrev inside GoHighLevel (SSO, DECISIONS A-22)
 
 1. Marketplace developer portal, My apps, vidrev, **Manage, Secrets**, bottom box **Shared secret**: Generate key (not the "+ Add" of Client keys) and copy it. Put it on Railway `web` as `GHL_SSO_KEY`.
-2. Same app, **Custom pages** (or a custom menu link for the sub-accounts): URL `https://app.vidrev.app/embed`, name `vidrev`.
+2. Same app, **Custom pages** (or a custom menu link for the sub-accounts): URL `https://app.vidrev.app/crm`, name `vidrev`.
 3. Inside a sub-account that installed the app, open vidrev from the left menu: it signs in the vidrev account that connected that sub-account.

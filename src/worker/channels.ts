@@ -1,4 +1,4 @@
-import { and, eq, inArray, lt, ne } from "drizzle-orm";
+import { and, eq, inArray, isNull, lt, ne, or } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import { accounts, channels, comments, contactIdentities, replies, videos } from "@/db/schema";
 import { decryptSecret, encryptSecret } from "@/lib/crypto";
@@ -158,10 +158,28 @@ async function reject(deps: ChannelDeps, channel: ChannelRow, reason: string): P
   log("info", "channel rejected", { channelId: channel.id, reason });
 }
 
+// A grant Google refuses to revoke (or a token we can no longer decrypt) must
+// not keep the channel in "disconnecting" with its YouTube data for ever: it
+// is logged and the wipe goes on. Network errors and 5xx still retry.
 async function revokeGrant(deps: ChannelDeps, channel: ChannelRow): Promise<void> {
   const encrypted = channel.refreshTokenEnc ?? channel.accessTokenEnc;
   if (!encrypted) return;
-  await revokeToken(decryptSecret(encrypted, deps.encryptionKey), deps.fetch);
+  let token: string;
+  try {
+    token = decryptSecret(encrypted, deps.encryptionKey);
+  } catch (error) {
+    log("error", "channel token could not be decrypted, wiping without revoke", { channelId: channel.id, ...errorFields(error) });
+    return;
+  }
+  try {
+    await revokeToken(token, deps.fetch);
+  } catch (error) {
+    if (error instanceof GoogleOAuthError && !/^http_5\d\d$/.test(error.code)) {
+      log("warn", "google refused the revoke, wiping anyway", { channelId: channel.id, ...errorFields(error) });
+      return;
+    }
+    throw error;
+  }
 }
 
 // Revokes the Google grant, then deletes the channel's YouTube data.
@@ -175,6 +193,31 @@ export async function disconnectChannel(deps: ChannelDeps, channelId: string): P
     .where(eq(channels.id, channel.id));
   await wipeYoutubeData(deps.db, channel.id);
   log("info", "channel disconnected", { channelId });
+}
+
+// A disconnect whose job was lost or failed on every retry would leave the
+// channel in "disconnecting" (page refreshing for ever, YouTube data kept).
+// After 10 minutes it is queued again; the owner was already alerted by the
+// failed job.
+export const DISCONNECT_RETRY_MS = 10 * 60_000;
+
+export async function requeueStuckDisconnects(deps: ChannelDeps & { enqueue: (queue: string, data: unknown, options?: { singletonKey?: string }) => Promise<void> }): Promise<number> {
+  const now = deps.now?.() ?? new Date();
+  const stuck = await deps.db
+    .update(channels)
+    .set({ disconnectedAt: now })
+    .where(
+      and(
+        eq(channels.status, "disconnecting"),
+        or(isNull(channels.disconnectedAt), lt(channels.disconnectedAt, new Date(now.getTime() - DISCONNECT_RETRY_MS))),
+      ),
+    )
+    .returning({ id: channels.id, accountId: channels.accountId });
+  for (const { id, accountId } of stuck) {
+    log("warn", "channel disconnect was stuck, queued again", { channelId: id, accountId });
+    await deps.enqueue("channel.disconnect", { channelId: id }, { singletonKey: id });
+  }
+  return stuck.length;
 }
 
 // A grant that never finished connecting (channel.sync failed on every retry,

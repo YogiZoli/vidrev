@@ -2,11 +2,11 @@ import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { contacts, crmProspectBackups, integrations } from "@/db/schema";
+import { contacts, crmProspectBackups, crmProspects, integrations } from "@/db/schema";
 import { runMigrations } from "@/scripts/migrate";
 import type { GhlContact } from "@/server/ghl/api";
 import { DAY, rig } from "./beast.fixture";
-import { cleanupProspects, createProspect, mergeProspects, PROSPECT_TTL_MS, proveOwnProspect, restoreProspect, sweepProspects } from "./prospects";
+import { cleanupProspects, createProspect, mergeProspects, PROSPECT_TTL_MS, proveOwnProspect, restoreProspect, STALE_CREATING_MS, sweepProspects } from "./prospects";
 
 const hasDb = Boolean(process.env.DATABASE_URL);
 const db = () => getDb();
@@ -181,5 +181,26 @@ describe.skipIf(!hasDb)("Beast Mode prospects (integration)", () => {
     expect((await r.prospectOf(c.contactId))?.deleteAttempts).toBe(1);
     await sweepProspects(r.later(33), "on");
     expect((await r.prospectOf(c.contactId))?.status).toBe("abandoned");
+  });
+
+  it("a claim left in creating by a stopped worker: later comments come back, then it is closed as unconfirmed, never created twice", async () => {
+    const r = await rig();
+    const first = await r.comment();
+    // The worker stopped right after claiming: the row stays "creating".
+    const [stale] = await db()
+      .insert(crmProspects)
+      .values({ accountId: r.account.id, contactId: first.contactId, integrationId: r.integrationId, expiresAt: new Date(Date.now() + PROSPECT_TTL_MS) })
+      .returning();
+    const queued: unknown[] = [];
+    const deps = { ...r.deps, enqueue: async (queue: string, data: unknown, options?: unknown) => void queued.push({ queue, data, options }) };
+    const second = await r.comment(first.contactId);
+    expect(await createProspect(deps, second.replyId)).toBe("pending");
+    expect(queued).toEqual([{ queue: "ghl.prospect", data: { replyId: second.replyId }, options: { startAfter: 60 } }]);
+
+    const later = { ...deps, now: () => new Date(stale!.createdAt.getTime() + STALE_CREATING_MS + 1000) };
+    expect(await createProspect(later, second.replyId)).toBe("unconfirmed");
+    expect((await r.prospectOf(first.contactId))?.status).toBe("unconfirmed");
+    expect(await createProspect(later, second.replyId)).toBe("pending");
+    expect(r.crm.creates).toBe(0);
   });
 });

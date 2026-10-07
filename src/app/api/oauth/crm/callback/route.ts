@@ -54,7 +54,7 @@ export async function GET(request: Request): Promise<Response> {
   if (!code || params.get("state") !== saved.state || saved.userId !== session.user.id) {
     return fail("The connection request expired. Try again.", session?.account);
   }
-  if (session.account.status !== "active") return fail("Your account is suspended.", session?.account);
+  if (session.account.status === "suspended") return fail("Your account is suspended.", session?.account);
 
   try {
     const tokens = await exchangeGhlCode(ghlClient(), code);
@@ -78,7 +78,7 @@ async function marketplaceInstall(session: Awaited<ReturnType<typeof currentSess
     const tokens = await exchangeGhlCode(ghlClient(), code);
 
     // Signed in already: connect straight away, exactly as the button would.
-    if (session?.account.status === "active") {
+    if (session && session.account.status !== "suspended") {
       const result = await connectGhl(db, key, session.account.id, tokens);
       if (!result.ok) return fail(CONNECT_ERRORS[result.error], session?.account);
       await enqueue(QUEUES.ghlSetup, { integrationId: result.id }, { singletonKey: result.id });

@@ -18,6 +18,9 @@ const envSchema = z.object({
   FOUNDING_CHECKOUT_URL: z.string().trim().url().optional(),
   // Owner's GoHighLevel affiliate link, offered in onboarding to creators without GoHighLevel.
   GHL_AFFILIATE_URL: z.string().trim().url().optional(),
+  // Secret part of the contact field name the owner's affiliate snapshot
+  // carries ("vidrev_partner_<token>"); unset turns the snapshot path off (A-20).
+  VIDREV_PARTNER_MARKER: z.string().trim().min(8).optional(),
   // "1" adds the page, survey and calendar scopes once the Marketplace app has them.
   GHL_DESTINATION_SCOPES: optional,
   ENCRYPTION_KEY: optional,

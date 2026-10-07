@@ -23,6 +23,13 @@ function parseAction(form: FormData): AdminAction | null {
     case "block_links":
     case "unblock_links":
       return field("accountId") ? { kind: "block_links", accountId: field("accountId"), blocked: field("kind") === "block_links" } : null;
+    case "create_coupon": {
+      const kind = field("couponKind") === "partner" ? "partner" : "trial";
+      const num = (name: string) => (field(name) ? Number.parseInt(field(name), 10) : null);
+      const expires = field("expiresAt") ? new Date(`${field("expiresAt")}T23:59:59Z`) : null;
+      if (!field("code") || (expires && Number.isNaN(expires.getTime()))) return null;
+      return { kind: "create_coupon", code: field("code"), couponKind: kind, days: kind === "trial" ? (num("days") ?? 14) : null, maxUses: num("maxUses"), expiresAt: expires, note: field("note") || null };
+    }
     default:
       return null;
   }

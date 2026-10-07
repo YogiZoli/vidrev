@@ -6,6 +6,7 @@ import { Meta, Page, PageHeader, SectionTitle } from "@/components/ui/page";
 import { Table, TableWrap, Td, Th } from "@/components/ui/table";
 import { getDb } from "@/db/client";
 import { env } from "@/lib/env";
+import { listCoupons } from "@/server/access";
 import { auditOverview, listAccountsForAdmin, listPlans } from "@/server/admin";
 import { requireAdmin } from "@/server/auth/current";
 import { auditUnitsLeft } from "@/server/quota";
@@ -15,18 +16,27 @@ import { SystemHealthCard } from "./SystemHealthCard";
 
 export const dynamic = "force-dynamic";
 
+const ACCESS_LABEL = {
+  checkout: "checkout",
+  trial: "trial",
+  coupon: "coupon",
+  partner_snapshot: "GHL affiliate snapshot",
+  partner_admin: "owner grant",
+} as const;
+
 // Owner console (DECISIONS Q-21), limited to ADMIN_EMAILS.
 export default async function AdminPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   await requireAdmin();
   const { msg } = await searchParams;
   const db = getDb();
   const auditLimit = env().AUDIT_DAILY_LIMIT;
-  const [accountRows, planRows, audit, auditLeft, health] = await Promise.all([
+  const [accountRows, planRows, audit, auditLeft, health, couponRows] = await Promise.all([
     listAccountsForAdmin(db),
     listPlans(db),
     auditOverview(db),
     auditUnitsLeft(db, auditLimit),
     systemHealth(db),
+    listCoupons(db),
   ]);
   const founding = accountRows.filter((a) => a.planCode === "founding").length;
   const foundingCap = planRows.find((p) => p.code === "founding")?.seatsCap ?? 100;
@@ -49,7 +59,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
       <Card className="grid gap-3">
         <SectionTitle>Grant access</SectionTitle>
-        <Meta className="text-[15px]">Creates the account (or updates its plan) and emails a sign-in link. Use it for partner access (ghl_affiliate_free).</Meta>
+        <Meta className="text-[15px]">Creates the account (or updates its plan) and emails a sign-in link. Use it for partner access (ghl_affiliate_free), for example when your GoHighLevel affiliate dashboard shows a referral the snapshot did not catch.</Meta>
         <form method="post" action="/api/admin" className="flex flex-wrap gap-2">
           <input type="hidden" name="kind" value="grant" />
           <Input name="email" type="email" required placeholder="email" aria-label="Email" className="w-full sm:w-[280px]" />
@@ -58,6 +68,55 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             Grant
           </Button>
         </form>
+      </Card>
+
+      <Card className="grid gap-3">
+        <SectionTitle>Coupon codes</SectionTitle>
+        <Meta className="text-[15px]">
+          Partner: free for good (Partner access). Trial: full access for the given days, once per account. Give a code to anyone who got stuck or deserves a make-good;
+          they enter it on the activation page.
+        </Meta>
+        <form method="post" action="/api/admin" className="flex flex-wrap items-end gap-2">
+          <input type="hidden" name="kind" value="create_coupon" />
+          <Input name="code" required placeholder="CODE" aria-label="Code" className="w-40 uppercase" />
+          <Select name="couponKind" defaultValue="trial" className="w-auto" aria-label="Kind">
+            <option value="trial">trial</option>
+            <option value="partner">partner</option>
+          </Select>
+          <Input name="days" type="number" min={1} max={365} defaultValue={14} aria-label="Trial days" className="w-24" />
+          <Input name="maxUses" type="number" min={1} placeholder="max uses" aria-label="Max uses" className="w-28" />
+          <Input name="expiresAt" type="date" aria-label="Expires" className="w-auto" />
+          <Input name="note" placeholder="note" aria-label="Note" className="w-48" />
+          <Button type="submit">Create code</Button>
+        </form>
+        {couponRows.length > 0 ? (
+          <TableWrap>
+            <Table>
+              <thead>
+                <tr>
+                  {["Code", "Kind", "Days", "Used", "Expires", "Note"].map((h) => (
+                    <Th key={h}>{h}</Th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {couponRows.map((c) => (
+                  <tr key={c.code}>
+                    <Td className="font-mono">{c.code}</Td>
+                    <Td>{c.kind}</Td>
+                    <Td>{c.days ?? "-"}</Td>
+                    <Td>
+                      {c.uses}
+                      {c.maxUses ? ` of ${c.maxUses}` : ""}
+                    </Td>
+                    <Td>{c.expiresAt ? c.expiresAt.toISOString().slice(0, 10) : "never"}</Td>
+                    <Td>{c.note ?? ""}</Td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </TableWrap>
+        ) : null}
       </Card>
 
       <section className="grid gap-3">
@@ -82,7 +141,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                 <tr key={a.accountId}>
                   <Td className="[overflow-wrap:anywhere]">{a.email}</Td>
                   <Td>
-                    <Badge tone={a.status === "active" ? "success" : "danger"}>{a.status}</Badge>
+                    <Badge tone={a.status === "active" ? "success" : a.status === "registered" ? "warning" : "danger"}>{a.status}</Badge>
+                    {a.accessSource ? <span className="ml-1.5 text-[13px] text-muted-foreground">via {ACCESS_LABEL[a.accessSource]}</span> : null}
                     {a.trialEndsAt ? <span className="ml-1.5 text-[13px] text-muted-foreground">trial to {a.trialEndsAt.toISOString().slice(0, 10)}</span> : null}
                   </Td>
                   <Td>

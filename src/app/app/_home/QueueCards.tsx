@@ -21,6 +21,10 @@ export interface CardData {
   body: string;
   link: string;
   commentText: string | null;
+  // YouTube display name, shown only while the comment is stored (30 days).
+  authorName: string | null;
+  // When it was sent, or last changed for failed and skipped ones.
+  at: Date;
   videoTitle: string | null;
   commentUrl: string | null;
   repliedBefore: boolean;

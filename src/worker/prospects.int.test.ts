@@ -6,7 +6,7 @@ import { contacts, crmProspectBackups, integrations } from "@/db/schema";
 import { runMigrations } from "@/scripts/migrate";
 import type { GhlContact } from "@/server/ghl/api";
 import { DAY, rig } from "./beast.fixture";
-import { createProspect, PROSPECT_TTL_MS, proveOwnProspect, restoreProspect, sweepProspects } from "./prospects";
+import { cleanupProspects, createProspect, mergeProspects, PROSPECT_TTL_MS, proveOwnProspect, restoreProspect, sweepProspects } from "./prospects";
 
 const hasDb = Boolean(process.env.DATABASE_URL);
 const db = () => getDb();
@@ -110,7 +110,7 @@ describe.skipIf(!hasDb)("Beast Mode prospects (integration)", () => {
     expect(await db().select().from(crmProspectBackups).where(eq(crmProspectBackups.id, backup!.id))).toEqual([]);
   });
 
-  it("never deletes a contact that fails a proof, and leaves opted-in people alone", async () => {
+  it("never deletes a contact that fails a proof, and merges opted-in people instead of expiring them", async () => {
     const r = await rig();
     const withEmail = await r.comment();
     const otherField = await r.comment();
@@ -124,12 +124,51 @@ describe.skipIf(!hasDb)("Beast Mode prospects (integration)", () => {
     await db().update(contacts).set({ stage: "subscriber" }).where(eq(contacts.id, optedIn.contactId));
 
     await sweepProspects(r.later(30), "on");
-    expect(r.crm.deletes).toEqual([]);
+    // Only the opted-in prospect goes: through the merge, with both proofs.
+    const optedInId = (await r.prospectOf(optedIn.contactId))!.ghlContactId;
+    expect(r.crm.deletes).toEqual([optedInId]);
     for (const c of [withEmail, otherField, noTag]) expect((await r.prospectOf(c.contactId))?.status).toBe("kept");
     expect((await r.prospectOf(optedIn.contactId))?.status).toBe("opted_in");
     // Kept rows are never looked at again.
     await sweepProspects(r.later(31), "on");
-    expect(r.crm.deletes).toEqual([]);
+    expect(r.crm.deletes).toEqual([optedInId]);
+  });
+
+  it("on opt-in copies tags and a summary to the email contact, then deletes the prospect (only when BEAST_DELETE is on)", async () => {
+    const r = await rig();
+    const c = await r.comment();
+    await createProspect(r.deps, c.replyId);
+    const prospect = (await r.prospectOf(c.contactId))!;
+    r.crm.contacts.set("EMAIL-1", { id: "EMAIL-1", email: "lead@example.com", tags: ["from-form"] });
+    const deps = { ...r.deps, providerId: "PROV-1" };
+
+    // Dry run: copied, not deleted, and the copy is not repeated.
+    expect(await mergeProspects(deps, { integrationId: r.integrationId, contactId: c.contactId, emailContactId: "EMAIL-1" }, "dry_run")).toMatchObject({ merged: 1, waiting: 1 });
+    expect(r.crm.contacts.get("EMAIL-1")!.tags).toEqual(expect.arrayContaining(["from-form", "vidrev-keyword-guide"]));
+    expect(r.crm.contacts.get("EMAIL-1")!.tags).not.toContain("vidrev-prospect");
+    expect(r.crm.inbound.at(-1)!.message).toContain("Opted in from YouTube comments");
+    expect(r.crm.inbound.at(-1)!.message).not.toContain("GUIDE please");
+    expect(r.crm.contacts.has(prospect.ghlContactId!)).toBe(true);
+
+    expect(await mergeProspects(deps, { integrationId: r.integrationId, contactId: c.contactId, emailContactId: "EMAIL-1" }, "on")).toMatchObject({ merged: 0, deleted: 1 });
+    expect(r.crm.deletes).toEqual([prospect.ghlContactId]);
+    expect(r.crm.contacts.has("EMAIL-1")).toBe(true);
+    expect((await r.prospectOf(c.contactId))?.status).toBe("opted_in");
+    expect(r.crm.conversations.filter((v) => v.contactId === "EMAIL-1")).toHaveLength(1);
+  });
+
+  it("deletes our prospects before a disconnect, never a contact with an email, and not with the brake on", async () => {
+    const r = await rig();
+    const a = await r.comment();
+    const b = await r.comment();
+    await createProspect(r.deps, a.replyId);
+    await createProspect(r.deps, b.replyId);
+    const bContact = r.crm.contacts.get((await r.prospectOf(b.contactId))!.ghlContactId!)!;
+    bContact.email = "someone@example.com";
+    expect(await cleanupProspects(r.deps, r.integrationId, "off")).toEqual({ deleted: 0, kept: 0 });
+    expect(await cleanupProspects(r.deps, r.integrationId, "dry_run")).toEqual({ deleted: 1, kept: 1 });
+    expect(r.crm.contacts.has(bContact.id)).toBe(true);
+    expect((await r.prospectOf(a.contactId))?.status).toBe("deleted");
   });
 
   it("retries a failing CRM for the grace days, then closes our row", async () => {

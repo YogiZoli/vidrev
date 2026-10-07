@@ -391,6 +391,8 @@ export async function deliverToGhl(deps: GhlWorkerDeps, integrationId: string, p
   // Contacts that cannot be traced to a comment are not ours to tag.
   if (!email || typeof payload.keyword !== "string" || tags.length === 0) return { skipped: "not_attributed" };
   const tid = typeof payload.tid === "string" ? payload.tid : null;
+  const ourContactId = typeof payload.contact_id === "string" ? payload.contact_id : null;
+  let emailContactId: string | null = null;
   await withGhlApi(deps, integrationId, async (api, config) => {
     const contactId = await api.upsertContact(config.locationId, {
       email,
@@ -400,6 +402,9 @@ export async function deliverToGhl(deps: GhlWorkerDeps, integrationId: string, p
     // One temperature per person: a lead that got hotter loses the cooler tag.
     const cooler = TEMPERATURES.map(temperatureTag).filter((tag) => !tags.includes(tag));
     if (cooler.length < TEMPERATURES.length) await api.removeTags(contactId, cooler);
+    emailContactId = contactId;
   });
+  // A Beast Mode prospect of this person merges into the email contact (A-25, A-27).
+  if (ourContactId && emailContactId) await deps.enqueue("ghl.merge", { integrationId, contactId: ourContactId, emailContactId });
   return { skipped: null };
 }

@@ -7,6 +7,9 @@ import { getDb } from "@/db/client";
 import type { ContactStage } from "@/db/schema";
 import { cn } from "@/lib/cn";
 import { requireSession } from "@/server/auth/current";
+import { and, eq } from "drizzle-orm";
+import { crmProspects } from "@/db/schema";
+import { crmSyncModeState } from "@/server/crm-sync-mode";
 import { listPeople } from "@/server/people";
 
 export const dynamic = "force-dynamic";
@@ -33,13 +36,28 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
   const params = await searchParams;
   const stage = STAGES.find((s) => s.key === params.stage)?.key ?? null;
   const view = await listPeople(getDb(), account.id, stage);
+  // Beast Mode (A-25): commenters that are already prospects in the CRM.
+  const db = getDb();
+  const mode = await crmSyncModeState(db, account.id);
+  const prospects = new Map(
+    (
+      await db
+        .select({ contactId: crmProspects.contactId, expiresAt: crmProspects.expiresAt })
+        .from(crmProspects)
+        .where(and(eq(crmProspects.accountId, account.id), eq(crmProspects.status, "created")))
+    ).map((r) => [r.contactId, r.expiresAt]),
+  );
   const total = view.counts.commenter + view.counts.subscriber + view.counts.buyer;
 
   return (
     <Page width="lg">
       <PageHeader
         title="People"
-        lead="Everyone who commented a trigger keyword. Commenters stay here in vidrev. The moment someone opts in with their email, they become a Lead and go to your CRM with their keyword, video and lead temperature."
+        lead={
+          mode.effective === "beast"
+            ? "Everyone who commented a trigger keyword. Beast Mode is on: each commenter is already a prospect contact in your CRM, deleted after 29 days unless they opt in. The moment someone opts in with their email, they become a Lead."
+            : "Everyone who commented a trigger keyword. Commenters stay here in vidrev. The moment someone opts in with their email, they become a Lead and go to your CRM with their keyword, video and lead temperature."
+        }
       />
       <nav aria-label="Filter" className="flex flex-wrap gap-2">
         {STAGES.map((s) => {
@@ -95,7 +113,15 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
                         "-"
                       )}
                     </Td>
-                    <Td>{inCrm ? (view.crmConnected ? "Yes" : "No CRM connected") : "Not yet, waits for opt-in"}</Td>
+                    <Td>
+                      {inCrm
+                        ? view.crmConnected
+                          ? "Yes"
+                          : "No CRM connected"
+                        : prospects.has(p.id)
+                          ? `Prospect (Beast Mode), deleted ${day(prospects.get(p.id)!)} unless they opt in`
+                          : "Not yet, waits for opt-in"}
+                    </Td>
                     <Td>{day(p.lastSeenAt)}</Td>
                   </tr>
                 );

@@ -12,6 +12,7 @@ import { requireAdmin } from "@/server/auth/current";
 import { auditUnitsLeft } from "@/server/quota";
 import { systemHealth } from "@/server/system-health";
 import { prospectOverview } from "@/server/prospects-admin";
+import { recentActivity } from "@/server/activity-admin";
 import { Notice } from "../ui";
 import { SystemHealthCard } from "./SystemHealthCard";
 
@@ -31,7 +32,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const { msg } = await searchParams;
   const db = getDb();
   const auditLimit = env().AUDIT_DAILY_LIMIT;
-  const [accountRows, planRows, audit, auditLeft, health, couponRows, prospects] = await Promise.all([
+  const [accountRows, planRows, audit, auditLeft, health, couponRows, prospects, activity] = await Promise.all([
     listAccountsForAdmin(db),
     listPlans(db),
     auditOverview(db),
@@ -39,6 +40,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     systemHealth(db),
     listCoupons(db),
     prospectOverview(db),
+    recentActivity(db),
   ]);
   const backupOf = new Map(prospects.backups.map((b) => [b.prospectId, b]));
   const founding = accountRows.filter((a) => a.planCode === "founding").length;
@@ -120,6 +122,43 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             </Table>
           </TableWrap>
         ) : null}
+      </Card>
+
+      <Card className="grid gap-3">
+        <SectionTitle>Recent activity</SectionTitle>
+        <Meta className="text-[15px]">The last clicks, opt-ins and purchases of every account (UTC). An opt-in without a tracking id means the form has no hidden vidrev tracking id field.</Meta>
+        {activity.length > 0 ? (
+          <TableWrap>
+            <Table>
+              <thead>
+                <tr>
+                  <Th>When</Th>
+                  <Th>What</Th>
+                  <Th>Account</Th>
+                  <Th>Video</Th>
+                  <Th>Keyword</Th>
+                  <Th>Detail</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {activity.map((a, i) => (
+                  <tr key={`${a.kind}-${i}`}>
+                    <Td>{a.at.toISOString().slice(0, 16).replace("T", " ")}</Td>
+                    <Td>
+                      <Badge tone={a.kind === "purchase" ? "success" : a.kind === "opt-in" ? "primary" : "neutral"}>{a.kind}</Badge>
+                    </Td>
+                    <Td>{a.account}</Td>
+                    <Td>{a.videoId ? <a href={`https://youtu.be/${a.videoId}`} target="_blank" rel="noopener">{a.videoId}</a> : ""}</Td>
+                    <Td>{a.keyword ?? ""}</Td>
+                    <Td>{a.detail}</Td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </TableWrap>
+        ) : (
+          <Meta>Nothing yet.</Meta>
+        )}
       </Card>
 
       <Card className="grid gap-3">

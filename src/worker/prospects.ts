@@ -3,6 +3,7 @@ import { comments, contacts, crmProspectBackups, crmProspects, integrations, rep
 import { env } from "@/lib/env";
 import { errorFields, log } from "@/lib/log";
 import { TAG_PROSPECT, TEMPERATURES, temperatureTag, vidrevTags } from "@/lib/tags";
+import { LINK_PLACEHOLDER } from "@/lib/templates";
 import { crmSyncModeState } from "@/server/crm-sync-mode";
 import { type GhlApi, GhlApiError, type GhlContact } from "@/server/ghl/api";
 import { type GhlConfig, GhlReauthError, updateGhlConfig, withGhlApi } from "@/server/ghl/tokens";
@@ -211,7 +212,18 @@ export async function sweepProspects(deps: GhlWorkerDeps, mode = env().BEAST_DEL
     .where(and(inArray(crmProspects.status, ["created", "creating", "unconfirmed"]), lte(crmProspects.expiresAt, now)));
   for (const prospect of due) {
     if ((await liveStage(deps, prospect.contactId)) !== "commenter") {
-      await set(prospect.id, { status: "opted_in" });
+      // Opted in: never deleted by the 29 day rule. The merge deletes it (its
+      // tags and summary went to the email contact at opt-in).
+      if (prospect.status === "created" && prospect.integrationId && mode === "on") {
+        await mergeProspects(deps, { integrationId: prospect.integrationId, contactId: prospect.contactId, emailContactId: null }, mode).catch((error: unknown) =>
+          log("warn", "opted-in prospect merge failed, retried next hour", { prospectId: prospect.id, ...errorFields(error) }),
+        );
+      } else if (prospect.status === "created") {
+        // Dry run or brake: listed, deleted once BEAST_DELETE is on.
+        await set(prospect.id, { wouldDeleteAt: now });
+      } else {
+        await set(prospect.id, { status: "opted_in" });
+      }
       result.optedIn += 1;
       continue;
     }
@@ -286,4 +298,119 @@ export async function restoreProspect(deps: GhlWorkerDeps, backupId: string): Pr
     if (error instanceof GhlReauthError) return "no_crm";
     throw error;
   }
+}
+
+// The person's prospects in this CRM connection: rows of their Contact and of
+// Contacts merged into it (an opt-in may resolve to the older Contact).
+async function prospectsOfPerson(deps: GhlWorkerDeps, integrationId: string, contactId: string) {
+  const merged = await deps.db.select({ id: contacts.id }).from(contacts).where(eq(contacts.mergedIntoId, contactId));
+  const ids = [contactId, ...merged.map((r) => r.id)];
+  return deps.db
+    .select()
+    .from(crmProspects)
+    .where(and(eq(crmProspects.integrationId, integrationId), inArray(crmProspects.contactId, ids), eq(crmProspects.status, "created")));
+}
+
+// The new thread on the email contact: first-party only (A-27), our own sent
+// replies with video, keyword and date, never the comment text.
+async function mergeSummary(deps: GhlWorkerDeps, contactId: string): Promise<string> {
+  const sent = await deps.db
+    .select({ videoId: replies.youtubeVideoId, keyword: replies.keyword, body: replies.body, sentAt: replies.sentAt })
+    .from(replies)
+    .where(and(eq(replies.contactId, contactId), inArray(replies.status, ["sent", "sent_manually"])))
+    .orderBy(replies.sentAt);
+  const lines = sent.map((r) => `${r.sentAt?.toISOString().slice(0, 10) ?? ""} https://youtu.be/${r.videoId} (keyword ${r.keyword}): ${r.body.replace(LINK_PLACEHOLDER, "[link]")}`);
+  return ["Opted in from YouTube comments (vidrev).", ...(lines.length > 0 ? ["", "Our replies:", ...lines] : [])].join("\n");
+}
+
+export interface MergeOutcome {
+  merged: number;
+  deleted: number;
+  kept: number;
+  waiting: number;
+}
+
+// Opt-in (A-25, A-27): the prospect's tags and a thread summary go to the
+// email contact first, then the prospect is deleted through deleteOwnProspect
+// (both proofs). The prospect never gets the email written to it, so the two
+// contacts can never collide. Each step is recorded on the row, so a retry or
+// the hourly sweep finishes a half-done merge. Deletes follow BEAST_DELETE (A-28).
+export async function mergeProspects(
+  deps: GhlWorkerDeps & { providerId?: string | null },
+  input: { integrationId: string; contactId: string; emailContactId: string | null },
+  mode = env().BEAST_DELETE,
+): Promise<MergeOutcome> {
+  const now = deps.now?.() ?? new Date();
+  const result: MergeOutcome = { merged: 0, deleted: 0, kept: 0, waiting: 0 };
+  const provider = deps.providerId === undefined ? (env().GHL_CONVERSATION_PROVIDER_ID ?? null) : deps.providerId;
+  const rows = await prospectsOfPerson(deps, input.integrationId, input.contactId);
+  if (rows.length === 0) return result;
+  try {
+    await withGhlApi(deps, input.integrationId, async (api, config) => {
+      for (const prospect of rows) {
+        if (!prospect.mergeCopiedAt && input.emailContactId && prospect.ghlContactId) {
+          const contact = await api.getContact(prospect.ghlContactId);
+          const tags = (contact?.tags ?? []).filter((tag) => tag.trim().toLowerCase() !== TAG_PROSPECT);
+          if (tags.length > 0) await api.addTags(input.emailContactId, tags);
+          if (provider) {
+            const conversationId = await api.createConversation(config.locationId, input.emailContactId, provider);
+            await api.addInboundMessage(conversationId, provider, await mergeSummary(deps, prospect.contactId));
+          }
+          await deps.db
+            .update(crmProspects)
+            .set({ mergedIntoGhlContactId: input.emailContactId, mergeCopiedAt: now, updatedAt: now })
+            .where(eq(crmProspects.id, prospect.id));
+          result.merged += 1;
+        }
+        if (mode !== "on") {
+          await deps.db.update(crmProspects).set({ wouldDeleteAt: now, updatedAt: now }).where(eq(crmProspects.id, prospect.id));
+          log("info", "opted-in prospect would be deleted (BEAST_DELETE not on)", { accountId: prospect.accountId, prospectId: prospect.id });
+          result.waiting += 1;
+          continue;
+        }
+        const outcome = await deleteOwnProspect(deps, api, config, prospect, now);
+        if (outcome.deleted || "gone" in outcome) {
+          await deps.db.update(crmProspects).set({ status: "opted_in", deletedAt: now, updatedAt: now }).where(eq(crmProspects.id, prospect.id));
+          result.deleted += 1;
+        } else {
+          await deps.db.update(crmProspects).set({ status: "kept", lastError: outcome.kept, updatedAt: now }).where(eq(crmProspects.id, prospect.id));
+          log("warn", "opted-in prospect kept: ownership proof failed", { accountId: prospect.accountId, prospectId: prospect.id, reason: outcome.kept });
+          result.kept += 1;
+        }
+      }
+    });
+  } catch (error) {
+    if (error instanceof GhlReauthError) return result;
+    throw error;
+  }
+  log("info", "prospect merge", { integrationId: input.integrationId, ...result });
+  return result;
+}
+
+// Before a CRM is disconnected (Settings button): our prospects in it are
+// deleted now, with both proofs, because after the disconnect we can no
+// longer reach them. Only BEAST_DELETE=off (the brake) stops it.
+export async function cleanupProspects(deps: GhlWorkerDeps, integrationId: string, mode = env().BEAST_DELETE): Promise<{ deleted: number; kept: number }> {
+  const now = deps.now?.() ?? new Date();
+  const result = { deleted: 0, kept: 0 };
+  if (mode === "off") return result;
+  const rows = await deps.db.select().from(crmProspects).where(and(eq(crmProspects.integrationId, integrationId), eq(crmProspects.status, "created")));
+  if (rows.length === 0) return result;
+  await withGhlApi(deps, integrationId, async (api, config) => {
+    for (const prospect of rows) {
+      const outcome = await deleteOwnProspect(deps, api, config, prospect, now);
+      if (outcome.deleted || "gone" in outcome) {
+        await deps.db
+          .update(crmProspects)
+          .set({ status: "deleted", deletedAt: now, lastError: "deleted before disconnect", updatedAt: now })
+          .where(eq(crmProspects.id, prospect.id));
+        result.deleted += 1;
+      } else {
+        await deps.db.update(crmProspects).set({ status: "kept", lastError: outcome.kept, updatedAt: now }).where(eq(crmProspects.id, prospect.id));
+        result.kept += 1;
+      }
+    }
+  });
+  log("info", "prospects cleaned up before disconnect", { integrationId, ...result });
+  return result;
 }

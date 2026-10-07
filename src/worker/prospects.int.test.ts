@@ -6,7 +6,7 @@ import { contacts, crmProspectBackups, crmProspects, integrations } from "@/db/s
 import { runMigrations } from "@/scripts/migrate";
 import type { GhlContact } from "@/server/ghl/api";
 import { rig } from "./beast.fixture";
-import { cleanupProspects, createProspect, mergeProspects, MAX_AGE_MS, PROSPECT_TTL_MS, proveOwnProspect, restoreProspect, STALE_CREATING_MS, sweepProspects } from "./prospects";
+import { cleanupProspects, createProspect, mergeProspects, MAX_AGE_MS, PROSPECT_TTL_MS, proveOwnProspect, requeueLostProspects, restoreProspect, STALE_CREATING_MS, sweepProspects } from "./prospects";
 
 const hasDb = Boolean(process.env.DATABASE_URL);
 const db = () => getDb();
@@ -240,5 +240,30 @@ describe.skipIf(!hasDb)("Beast Mode prospects (integration)", () => {
     const made = [...r.crm.contacts.keys()].at(-1)!;
     expect(await cleanupProspects(r.deps, r.integrationId, "on")).toEqual({ deleted: 1, kept: 0 });
     expect(r.crm.deletes).toEqual([made]);
+  });
+
+  it("queues a Beast Mode reply again when its prospect job was lost, once per person, and not in Clean Mode", async () => {
+    const r = await rig();
+    const lost = await r.comment();
+    const done = await r.comment();
+    await createProspect(r.deps, done.replyId);
+    const clean = await rig({ mode: "clean" });
+    const cleanReply = await clean.comment();
+    const queued: { data: unknown; options: unknown }[] = [];
+    const deps = { ...r.deps, enqueue: async (_q: string, data: unknown, options?: unknown) => void queued.push({ data, options }), now: () => new Date(Date.now() + 20 * 60_000) };
+
+    await requeueLostProspects(deps);
+    const ids = queued.map((q) => (q.data as { replyId: string }).replyId);
+    expect(ids).toContain(lost.replyId);
+    expect(ids).not.toContain(done.replyId);
+    expect(ids).not.toContain(cleanReply.replyId);
+    expect(queued.find((q) => (q.data as { replyId: string }).replyId === lost.replyId)?.options).toEqual({ singletonKey: `prospect:${lost.replyId}` });
+
+    // Too fresh (the first job may still run) or older than 2 days: left alone.
+    queued.length = 0;
+    await requeueLostProspects({ ...deps, now: () => new Date() });
+    expect(queued.map((q) => (q.data as { replyId: string }).replyId)).not.toContain(lost.replyId);
+    await requeueLostProspects({ ...deps, now: () => new Date(Date.now() + 3 * 86_400_000) });
+    expect(queued.map((q) => (q.data as { replyId: string }).replyId)).not.toContain(lost.replyId);
   });
 });

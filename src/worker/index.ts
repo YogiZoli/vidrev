@@ -1,17 +1,47 @@
 import { createServer, type Server } from "node:http";
 import { PgBoss } from "pg-boss";
 import { closeDb, getDb } from "@/db/client";
-import { recordHeartbeat } from "@/db/heartbeat";
+import { latestHeartbeat, recordHeartbeat } from "@/db/heartbeat";
 import { QUEUES } from "@/jobs/queues";
 import { appVersion, env } from "@/lib/env";
 import { errorFields, log } from "@/lib/log";
 import { registerHandlers } from "./handlers";
+import { watchdogVerdict } from "./watchdog";
 
 const WORKER_ID = "worker";
 const HEARTBEAT_QUEUE = QUEUES.heartbeat;
 
 async function beat(): Promise<void> {
   await recordHeartbeat(getDb(), WORKER_ID, appVersion());
+}
+
+// The latest heartbeat of any worker (so a second worker during a deploy is
+// not restarted), or null when the database does not answer.
+async function lastBeat(): Promise<{ databaseOk: boolean; at: number }> {
+  try {
+    const at = await latestHeartbeat(getDb());
+    return { databaseOk: true, at: at?.getTime() ?? 0 };
+  } catch {
+    return { databaseOk: false, at: 0 };
+  }
+}
+
+// See src/worker/watchdog.ts.
+function startWatchdog(isStopping: () => boolean, startedAt: number): NodeJS.Timeout {
+  return setInterval(() => {
+    void (async () => {
+      if (isStopping()) return;
+      const beatNow = await lastBeat();
+      const lastBeatOkAt = Math.max(beatNow.at, startedAt);
+      const verdict = watchdogVerdict({ lastBeatOkAt, now: Date.now(), databaseOk: beatNow.databaseOk });
+      const fields = { lastBeatOkAt: new Date(lastBeatOkAt).toISOString(), version: appVersion() };
+      if (verdict === "wait_for_database") log("error", "worker watchdog: heartbeat stale and database unreachable, waiting", fields);
+      if (verdict === "restart") {
+        log("error", "worker watchdog: jobs stopped running while the database answers, exiting so Railway restarts the worker", fields);
+        process.exit(1);
+      }
+    })();
+  }, 60_000);
 }
 
 // Railway health checks need an HTTP endpoint; the worker exposes a tiny
@@ -56,11 +86,13 @@ async function main(): Promise<void> {
   log("info", "worker started", { version: appVersion() });
 
   let stopping = false;
+  const watchdog = startWatchdog(() => stopping, Date.now());
   const shutdown = async (signal: string) => {
     if (stopping) return;
     stopping = true;
     log("info", "worker stopping", { signal });
     ready = false;
+    clearInterval(watchdog);
     await boss.stop({ graceful: true, timeout: 20_000 });
     await closeDb();
     server.close();

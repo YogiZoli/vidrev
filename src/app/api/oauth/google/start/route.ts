@@ -9,11 +9,12 @@ import { appGoogleClient, googleConfigured, OAUTH_COOKIE, OAUTH_COOKIE_PATH, OAU
 import { buildAuthUrl, createPkcePair } from "@/server/google/oauth";
 import { clientIsSecure, redirectTo } from "@/server/http";
 import { returnPath } from "@/server/onboarding";
+import { guarded } from "@/server/route-guard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export async function GET(): Promise<Response> {
+async function getHandler(): Promise<Response> {
   const session = await currentSession();
   if (!session) return redirectTo("/login");
   if (!googleConfigured()) return redirectTo(returnPath(session.account, "/app/settings/youtube?error=google_not_configured"));
@@ -36,3 +37,5 @@ export async function GET(): Promise<Response> {
   });
   return redirectTo(buildAuthUrl(appGoogleClient(), state, pkce.challenge), 302);
 }
+
+export const GET = guarded("/api/oauth/google/start", getHandler);

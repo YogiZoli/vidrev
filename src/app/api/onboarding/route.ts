@@ -8,6 +8,7 @@ import { logRefused, recordAction } from "@/server/events";
 import { completeOnboardingIfReady, onboardingState, parseTargetUrl } from "@/server/onboarding";
 import { isOwnHost, OWN_HOST_ERROR, ownHosts } from "@/server/own-hosts";
 import { connectStripe } from "@/server/stripe/connect";
+import { guarded } from "@/server/route-guard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -16,7 +17,7 @@ const PAGE = "/onboarding";
 
 // Form posts from /onboarding: purchase source and default target URL. The
 // YouTube and GoHighLevel steps run through their OAuth routes.
-export async function POST(request: Request): Promise<Response> {
+async function postHandler(request: Request): Promise<Response> {
   if (!isSameOrigin(request)) return new Response("Forbidden", { status: 403 });
   const session = await currentSession();
   if (!session) return redirectTo("/login");
@@ -73,3 +74,5 @@ export async function POST(request: Request): Promise<Response> {
   if (done) await recordAction(db, who, "onboarding.completed");
   return redirectTo(done ? "/app?welcome=1" : PAGE);
 }
+
+export const POST = guarded("/api/onboarding", postHandler);

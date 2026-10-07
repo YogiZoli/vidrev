@@ -4,6 +4,7 @@ import { RateLimiter } from "@/lib/ratelimit";
 import { ACCESS_ERROR_TEXT, redeemCoupon, startTrial } from "@/server/access";
 import { currentSession } from "@/server/auth/current";
 import { isSameOrigin, redirectTo } from "@/server/http";
+import { guarded } from "@/server/route-guard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -12,7 +13,7 @@ export const runtime = "nodejs";
 const codeTries = new RateLimiter(10, 60 * 60 * 1000);
 
 // /activate: start the free trial or redeem a coupon code (DECISIONS A-20).
-export async function POST(request: Request): Promise<Response> {
+async function postHandler(request: Request): Promise<Response> {
   if (!isSameOrigin(request)) return new Response("Forbidden", { status: 403 });
   const session = await currentSession();
   if (!session) return redirectTo("/login");
@@ -30,3 +31,5 @@ export async function POST(request: Request): Promise<Response> {
   log("info", "coupon tried", { accountId: session.account.id, ok: result.ok, error: result.ok ? undefined : result.error });
   return result.ok ? redirectTo("/onboarding") : redirectTo(`/activate?error=${encodeURIComponent(ACCESS_ERROR_TEXT[result.error])}`);
 }
+
+export const POST = guarded("/api/access", postHandler);

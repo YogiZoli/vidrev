@@ -13,6 +13,7 @@ import {
 } from "@/server/campaigns";
 import { isSameOrigin, redirectTo } from "@/server/http";
 import { logRefused, recordAction } from "@/server/events";
+import { guarded } from "@/server/route-guard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -21,7 +22,7 @@ const ok: Result = { ok: true };
 const notFound: Result = { ok: false, error: "Not found." };
 
 // Form posts from /app/campaigns. Plain forms, no client JavaScript needed.
-export async function POST(request: Request): Promise<Response> {
+async function postHandler(request: Request): Promise<Response> {
   if (!isSameOrigin(request)) return new Response("Forbidden", { status: 403 });
   const session = await currentSession();
   if (!session) return redirectTo("/login");
@@ -83,3 +84,5 @@ export async function POST(request: Request): Promise<Response> {
   const back = field("back") === "/app/settings/replies" ? "/app/settings/replies" : "/app/campaigns";
   return redirectTo(result.ok ? `${back}?saved=1` : `${back}?error=${encodeURIComponent(result.error)}`);
 }
+
+export const POST = guarded("/api/campaigns", postHandler);

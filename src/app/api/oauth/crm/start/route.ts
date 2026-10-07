@@ -7,6 +7,7 @@ import { ghlClient, ghlConfigured, GHL_COOKIE, GHL_COOKIE_PATH, GHL_COOKIE_TTL_M
 import { buildInstallUrl } from "@/server/ghl/oauth";
 import { clientIsSecure, redirectTo } from "@/server/http";
 import { returnPath } from "@/server/onboarding";
+import { guarded } from "@/server/route-guard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -15,7 +16,7 @@ const PAGE = "/app/settings/gohighlevel";
 
 // "Connect GoHighLevel": HighLevel asks the creator to pick the sub-account
 // (location) and approve the scopes, then calls back.
-export async function GET(): Promise<Response> {
+async function getHandler(): Promise<Response> {
   const session = await currentSession();
   if (!session) return redirectTo("/login");
   if (!ghlConfigured()) return redirectTo(returnPath(session.account, `${PAGE}?error=${encodeURIComponent("Connecting GoHighLevel is not available yet.")}`));
@@ -33,3 +34,5 @@ export async function GET(): Promise<Response> {
   });
   return redirectTo(buildInstallUrl(ghlClient(), ghlScopes(), state), 302);
 }
+
+export const GET = guarded("/api/oauth/crm/start", getHandler);

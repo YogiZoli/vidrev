@@ -7,12 +7,13 @@ import { addDomain, removeDomain, reservedDomains, restartDomainCheck } from "@/
 import { isSameOrigin, redirectTo } from "@/server/http";
 import { logRefused, recordAction } from "@/server/events";
 import { alertOwners } from "@/server/notify";
+import { guarded } from "@/server/route-guard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 // Form posts from /app/settings/domain. DNS and Cloudflare calls happen in the worker.
-export async function POST(request: Request): Promise<Response> {
+async function postHandler(request: Request): Promise<Response> {
   if (!isSameOrigin(request)) return new Response("Forbidden", { status: 403 });
   const session = await currentSession();
   if (!session) return redirectTo("/login");
@@ -66,3 +67,5 @@ export async function POST(request: Request): Promise<Response> {
       return redirectTo("/app/settings/domain");
   }
 }
+
+export const POST = guarded("/api/domain", postHandler);

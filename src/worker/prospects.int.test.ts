@@ -5,8 +5,8 @@ import { closeDb, getDb } from "@/db/client";
 import { contacts, crmProspectBackups, crmProspects, integrations } from "@/db/schema";
 import { runMigrations } from "@/scripts/migrate";
 import type { GhlContact } from "@/server/ghl/api";
-import { DAY, rig } from "./beast.fixture";
-import { cleanupProspects, createProspect, mergeProspects, PROSPECT_TTL_MS, proveOwnProspect, restoreProspect, STALE_CREATING_MS, sweepProspects } from "./prospects";
+import { rig } from "./beast.fixture";
+import { cleanupProspects, createProspect, mergeProspects, MAX_AGE_MS, PROSPECT_TTL_MS, proveOwnProspect, restoreProspect, STALE_CREATING_MS, sweepProspects } from "./prospects";
 
 const hasDb = Boolean(process.env.DATABASE_URL);
 const db = () => getDb();
@@ -98,7 +98,8 @@ describe.skipIf(!hasDb)("Beast Mode prospects (integration)", () => {
     const prospect = await r.prospectOf(c.contactId);
     expect(prospect?.status).toBe("deleted");
     const [backup] = await db().select().from(crmProspectBackups).where(eq(crmProspectBackups.prospectId, prospect!.id));
-    expect(backup?.expiresAt.getTime()).toBeLessThanOrEqual(Date.now() + 30 * DAY + 23 * 3_600_000 + 60_000);
+    // Never past day 29 of the prospect, even when deleted late.
+    expect(backup?.expiresAt.getTime()).toBeLessThanOrEqual(prospect!.createdAt.getTime() + MAX_AGE_MS);
 
     expect(await restoreProspect(r.deps, backup!.id)).toBe("restored");
     const restored = [...r.crm.contacts.values()].at(-1)!;
@@ -177,9 +178,9 @@ describe.skipIf(!hasDb)("Beast Mode prospects (integration)", () => {
     await createProspect(r.deps, c.replyId);
     await db().update(integrations).set({ status: "error" }).where(eq(integrations.id, r.integrationId));
     // The sweep sees every account in this database: count this row only.
-    expect((await sweepProspects(r.later(30), "on")).retry).toBeGreaterThanOrEqual(1);
+    expect((await sweepProspects(r.later(28.5), "on")).retry).toBeGreaterThanOrEqual(1);
     expect((await r.prospectOf(c.contactId))?.deleteAttempts).toBe(1);
-    await sweepProspects(r.later(33), "on");
+    await sweepProspects(r.later(29.01), "on");
     expect((await r.prospectOf(c.contactId))?.status).toBe("abandoned");
   });
 
@@ -202,5 +203,42 @@ describe.skipIf(!hasDb)("Beast Mode prospects (integration)", () => {
     expect((await r.prospectOf(first.contactId))?.status).toBe("unconfirmed");
     expect(await createProspect(later, second.replyId)).toBe("pending");
     expect(r.crm.creates).toBe(0);
+  });
+
+  it("29 day rule: the delete starts on day 28 and an unconfirmed create is found in the CRM and deleted by day 29", async () => {
+    const r = await rig();
+    const c = await r.comment();
+    r.crm.failCreate = "timeout";
+    expect(await createProspect(r.deps, c.replyId)).toBe("unconfirmed");
+    r.crm.failCreate = "none";
+    const made = [...r.crm.contacts.keys()].at(-1)!;
+    expect((await r.prospectOf(c.contactId))?.ghlContactId).toBeNull();
+
+    await sweepProspects(r.later(27.9), "on");
+    expect(r.crm.contacts.has(made)).toBe(true);
+    await sweepProspects(r.later(28.01), "on");
+    expect(r.crm.deletes).toContain(made);
+    expect(await r.prospectOf(c.contactId)).toMatchObject({ status: "deleted", ghlContactId: made });
+  });
+
+  it("an unconfirmed create that never reached the CRM is closed without a delete", async () => {
+    const r = await rig();
+    const c = await r.comment();
+    r.crm.failCreate = "timeout";
+    await createProspect(r.deps, c.replyId);
+    r.crm.contacts.clear();
+    await sweepProspects(r.later(28.01), "on");
+    expect((await r.prospectOf(c.contactId))?.status).toBe("abandoned");
+    expect(r.crm.deletes).toEqual([]);
+  });
+
+  it("cleanup before disconnect also finds and deletes unconfirmed creates", async () => {
+    const r = await rig();
+    const c = await r.comment();
+    r.crm.failCreate = "timeout";
+    await createProspect(r.deps, c.replyId);
+    const made = [...r.crm.contacts.keys()].at(-1)!;
+    expect(await cleanupProspects(r.deps, r.integrationId, "on")).toEqual({ deleted: 1, kept: 0 });
+    expect(r.crm.deletes).toEqual([made]);
   });
 });

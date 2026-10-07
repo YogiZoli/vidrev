@@ -1,5 +1,5 @@
-import { and, eq, inArray, lte, sql } from "drizzle-orm";
-import { comments, contacts, crmProspectBackups, crmProspects, integrations, replies } from "@/db/schema";
+import { and, eq, gt, inArray, isNotNull, isNull, lt, lte, notExists, sql } from "drizzle-orm";
+import { accounts, comments, contacts, crmProspectBackups, crmProspects, integrations, replies } from "@/db/schema";
 import { env } from "@/lib/env";
 import { errorFields, log } from "@/lib/log";
 import { TAG_PROSPECT, TEMPERATURES, temperatureTag, vidrevTags } from "@/lib/tags";
@@ -182,6 +182,44 @@ export async function createProspect(deps: GhlWorkerDeps & { beastAllowlist?: st
   }
   log("info", "prospect contact created", { accountId: reply.accountId, prospectId: claimed.id });
   return "created";
+}
+
+// The draft step queues ghl.prospect; if that queueing failed, or the job
+// failed on every retry (the claim is released then), the commenter never
+// reached the CRM. Hourly, a Beast Mode reply from the last 2 days whose
+// person has no prospect row at all is queued again. createProspect checks
+// the mode, the allowlist and the claim itself, so a repeat is harmless.
+export const LOST_PROSPECT_AFTER_MS = 15 * 60_000;
+export const LOST_PROSPECT_WINDOW_MS = 2 * 86_400_000;
+
+export async function requeueLostProspects(deps: Pick<GhlWorkerDeps, "db" | "enqueue" | "now">): Promise<number> {
+  const now = deps.now?.() ?? new Date();
+  const rows = await deps.db
+    .select({ id: replies.id })
+    .from(replies)
+    .innerJoin(accounts, eq(accounts.id, replies.accountId))
+    // Only people still at the commenter stage: a lead belongs to the opt-in path.
+    .innerJoin(contacts, eq(contacts.id, replies.contactId))
+    .where(
+      and(
+        eq(accounts.crmSyncMode, "beast"),
+        eq(contacts.stage, "commenter"),
+        isNull(contacts.mergedIntoId),
+        isNotNull(replies.contactId),
+        lt(replies.createdAt, new Date(now.getTime() - LOST_PROSPECT_AFTER_MS)),
+        gt(replies.createdAt, new Date(now.getTime() - LOST_PROSPECT_WINDOW_MS)),
+        notExists(
+          deps.db
+            .select({ one: sql`1` })
+            .from(crmProspects)
+            .where(and(eq(crmProspects.accountId, replies.accountId), eq(crmProspects.contactId, replies.contactId))),
+        ),
+      ),
+    )
+    .limit(500);
+  for (const { id } of rows) await deps.enqueue("ghl.prospect", { replyId: id }, { singletonKey: `prospect:${id}` });
+  if (rows.length > 0) log("warn", "beast mode replies without a prospect, queued again", { count: rows.length });
+  return rows.length;
 }
 
 export type OwnershipCheck = { ok: true; contact: GhlContact } | { ok: false; reason: string } | { ok: "gone" };

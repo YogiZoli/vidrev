@@ -17,7 +17,7 @@ import { createDraft, requeueUndraftedComments } from "./drafts";
 import { checkDomain, type DomainDeps, queueDomainChecks, removeDomainHostname } from "./domains";
 import { runJob, runSteps } from "./jobs";
 import { runRetention } from "./retention";
-import { cleanupProspects, createProspect, mergeProspects, restoreProspect, sweepProspects } from "./prospects";
+import { cleanupProspects, createProspect, mergeProspects, requeueLostProspects, restoreProspect, sweepProspects } from "./prospects";
 import { handleOutbound, pushToThread, syncThreadStatuses } from "./threads";
 import { recoverUnconfirmedSends, requeueOrphanedApproved, sendReply } from "./sending";
 import { checkRss, type EngineDeps, engineTick, pollChannel, renewWebsub } from "./polling";
@@ -304,6 +304,7 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
     ["expire trials", () => expireTrials(getDb())],
     // 29 day rule for Beast Mode prospects, hourly so a delete lands within the 30 days.
     ["beast mode prospects", () => sweepProspects(ghlDeps(boss))],
+    ["lost beast mode prospects", () => requeueLostProspects(ghlDeps(boss))],
   ]);
   // Contacts for rows older than the Contact model (DECISIONS section 13.10):
   // once at start, so a deploy does not wait for the hourly pass.

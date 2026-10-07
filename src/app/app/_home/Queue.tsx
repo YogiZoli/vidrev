@@ -60,6 +60,8 @@ export async function ApprovalQueue() {
         body: row.reply.body,
         link: trackedLinks.get(row.reply.id) ?? ((row.reply.campaignId && destinations.get(row.reply.campaignId)) || "(link)"),
         commentText: row.comment?.text ?? null,
+        authorName: row.comment?.authorName ?? null,
+        at: row.reply.sentAt ?? row.reply.updatedAt,
         videoTitle: row.videoTitle,
         commentUrl: row.comment ? commentUrl(row.reply.youtubeVideoId, row.comment.youtubeCommentId) : null,
         repliedBefore: row.repliedBefore,
@@ -118,8 +120,29 @@ export async function ApprovalQueue() {
                       <Keyword temperature={card.intent}>{card.keyword}</Keyword>
                     </Td>
                     <Td>
-                      {card.status.replace("_", " ")}
-                      {card.statusReason ? ` (${REPLY_REASONS[card.statusReason] ?? card.statusReason})` : ""}
+                      <div className="grid gap-0.5">
+                        <span>
+                          <strong>{card.authorName ?? "A viewer"}</strong>
+                          {card.commentText ? `: ${card.commentText.length > 80 ? `${card.commentText.slice(0, 80)}...` : card.commentText}` : ""}
+                        </span>
+                        <Meta>{card.videoTitle ?? "Comment no longer stored (30 day rule)"}</Meta>
+                      </div>
+                    </Td>
+                    <Td>
+                      <div className="grid gap-0.5">
+                        <span>
+                          {card.status.replace("_", " ")}
+                          {card.statusReason ? ` (${REPLY_REASONS[card.statusReason] ?? card.statusReason})` : ""}
+                        </span>
+                        <Meta>{formatUtcMinute(card.at)}</Meta>
+                      </div>
+                    </Td>
+                    <Td>
+                      {card.commentUrl ? (
+                        <a href={card.commentUrl} target="_blank" rel="noopener">
+                          Open on YouTube
+                        </a>
+                      ) : null}
                     </Td>
                   </tr>
                 ))}

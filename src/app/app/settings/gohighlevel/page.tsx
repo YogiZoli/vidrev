@@ -15,6 +15,8 @@ import { hasPendingInstall } from "@/server/ghl/install";
 import { readGhlConfig } from "@/server/ghl/tokens";
 import { Notice } from "../../../ui";
 import { ActionForm, when } from "../_integrations";
+import { CrmSyncModeForm } from "@/components/forms/CrmSyncModeForm";
+import { crmSyncModeState } from "@/server/crm-sync-mode";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +33,7 @@ export default async function GoHighLevelSettingsPage({ searchParams }: { search
   // A Marketplace install that waits for this browser's account (Phase 10).
   const claim = verifySignedValue<{ token: string }>((await cookies()).get(GHL_CLAIM_COOKIE)?.value, requireEnv("AUTH_SECRET"));
   const pendingInstall = !ghl && claim ? await hasPendingInstall(db, claim.token) : false;
+  const syncMode = ghl ? await crmSyncModeState(db, account.id) : null;
   const pulseGhl = (!ghl || ghl.status === "error") && ghlConfigured();
 
   const ghlState = ghl
@@ -56,6 +59,7 @@ export default async function GoHighLevelSettingsPage({ searchParams }: { search
       {params.ghl_disconnected ? <Notice tone="info">GoHighLevel disconnected. Remove the app in GoHighLevel too if you no longer want it there.</Notice> : null}
       {params.ghl_sync ? <Notice tone="info">Sync queued. It runs within a minute.</Notice> : null}
       {params.ghl_saved ? <Notice tone="info">Saved.</Notice> : null}
+      {params.mode_saved ? <Notice tone="info">CRM sync mode saved.</Notice> : null}
       <Card className="grid gap-3">
         <SectionTitle>GoHighLevel</SectionTitle>
         {!ghl ? (
@@ -116,6 +120,16 @@ export default async function GoHighLevelSettingsPage({ searchParams }: { search
           </>
         )}
       </Card>
+      {syncMode ? (
+        <Card className="grid gap-3">
+          <SectionTitle>CRM sync mode</SectionTitle>
+          <Meta className="text-[15px]">When does a commenter enter your CRM?</Meta>
+          <CrmSyncModeForm state={syncMode} returnTo="settings" />
+          {syncMode.saved === "beast" ? (
+            <Meta>Switching back to Clean Mode stops new contacts; the ones already created still follow the 29 day rule.</Meta>
+          ) : null}
+        </Card>
+      ) : null}
     </Page>
   );
 }

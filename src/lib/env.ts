@@ -26,6 +26,9 @@ const envSchema = z.object({
   GHL_SSO_KEY: z.string().trim().min(8).optional(),
   // "1" adds the page, survey and calendar scopes once the Marketplace app has them.
   GHL_DESTINATION_SCOPES: optional,
+  // Comma separated account ids or emails that may choose Beast Mode, until
+  // the LLC and the Google OAuth review (DECISIONS A-25).
+  BEAST_MODE_ACCOUNTS: optional,
   ENCRYPTION_KEY: optional,
   AUTH_SECRET: optional,
   PROVISIONING_SECRET: optional,

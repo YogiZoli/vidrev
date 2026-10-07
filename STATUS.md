@@ -26,7 +26,9 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 - Next: owner builds the GoHighLevel checkout for Founding 100 and sends the link (`FOUNDING_CHECKOUT_URL`); then move the landing into GoHighLevel on `vidrev.app` as Custom Code sections; then campaign drafts (L-03).
 - Next: owner brainstorm on the landing page and funnel, then a phase plan (not started).
 
-## Next: CRM sync mode, Clean Mode and Beast Mode (A-25), not started
+## CRM sync mode, Clean Mode and Beast Mode (A-25, A-27), in progress
+
+- PR1: setting `accounts.crm_sync_mode` (Clean default), choice in onboarding under the connected CRM step and in Settings, GoHighLevel; Beast Mode only for `BEAST_MODE_ACCOUNTS` (others see Coming soon), warning must be ticked. Nothing in the worker uses it yet (PR2).
 
 - Decided 2026-10-07, to build next (about 4 to 5 PRs): setting + onboarding choice; Beast Mode contact at comment time; Conversations thread (custom conversation provider) with reply from the CRM to YouTube; 29 day deletion of non-opted-in prospects; merge on opt-in; allowlist `BEAST_MODE_ACCOUNTS` until the Google review.
 - Custom page in the Marketplace app saved and working: left menu "vidrev" (chart-line icon) opens https://app.vidrev.app/crm and signs in by SSO (verified by the owner 2026-10-07).

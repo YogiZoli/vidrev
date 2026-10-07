@@ -16,6 +16,8 @@ import { readGhlConfig } from "@/server/ghl/tokens";
 import { completeOnboardingIfReady, type OnboardingStep, onboardingState, parseTargetUrl } from "@/server/onboarding";
 import { Notice } from "../ui";
 import { CHANNEL_CONNECT_ERRORS, CHANNEL_REASONS } from "@/lib/status-text";
+import { CrmSyncModeForm } from "@/components/forms/CrmSyncModeForm";
+import { crmSyncModeState } from "@/server/crm-sync-mode";
 
 export const dynamic = "force-dynamic";
 
@@ -83,6 +85,8 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
   const ghlConnection = state.done.crm
     ? (await db.select({ id: integrations.id, label: integrations.label }).from(integrations).where(and(eq(integrations.accountId, account.id), eq(integrations.type, "ghl"), eq(integrations.status, "active"))))[0]
     : undefined;
+  // CRM sync mode is chosen right after the CRM is connected (A-25); Clean Mode until then.
+  const syncMode = ghlConnection ? await crmSyncModeState(db, account.id) : null;
   const stateOf = (key: OnboardingStep) => (state.done[key] ? "done" : state.current === key ? "current" : "later");
 
   return (
@@ -102,6 +106,7 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
         <Notice tone="error">{CHANNEL_REASONS[state.channelProblem] ?? "The channel could not be connected. Connect again."}</Notice>
       ) : null}
       {params.ghl_connected ? <Notice tone="info">GoHighLevel connected.</Notice> : null}
+      {params.mode_saved ? <Notice tone="info">CRM sync mode saved.</Notice> : null}
       {params.disconnected ? <Notice tone="info">Channel disconnected. Connect the channel you want to use.</Notice> : null}
       {params.ghl_disconnected ? <Notice tone="info">GoHighLevel disconnected. Connect the Sub-account you want to use.</Notice> : null}
 
@@ -143,14 +148,23 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
           state={stateOf("crm")}
           change={
             ghlConnection ? (
-              <form method="post" action="/api/integrations" className="flex flex-wrap items-center gap-3">
-                <input type="hidden" name="action" value="ghl_disconnect" />
-                <input type="hidden" name="id" value={ghlConnection.id} />
-                <Meta className="text-[15px]">Connected: {ghlConnection.label ?? "GoHighLevel"}.</Meta>
-                <Button type="submit" variant="outline" size="sm">
-                  Disconnect
-                </Button>
-              </form>
+              <>
+                <form method="post" action="/api/integrations" className="flex flex-wrap items-center gap-3">
+                  <input type="hidden" name="action" value="ghl_disconnect" />
+                  <input type="hidden" name="id" value={ghlConnection.id} />
+                  <Meta className="text-[15px]">Connected: {ghlConnection.label ?? "GoHighLevel"}.</Meta>
+                  <Button type="submit" variant="outline" size="sm">
+                    Disconnect
+                  </Button>
+                </form>
+                {syncMode ? (
+                  <div className="grid gap-2">
+                    <strong className="text-[15px]">When does a commenter enter your CRM?</strong>
+                    <CrmSyncModeForm state={syncMode} returnTo="onboarding" />
+                    <Meta>You can change this later in Settings, GoHighLevel.</Meta>
+                  </div>
+                ) : null}
+              </>
             ) : null
           }
         >

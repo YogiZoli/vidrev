@@ -5,10 +5,10 @@ import { useEffect, useState } from "react";
 type State = "waiting" | "outside" | "not_connected" | "no_location" | "error";
 
 const TEXT: Record<Exclude<State, "waiting">, string> = {
-  outside: "Open vidrev from the menu inside GoHighLevel to sign in automatically.",
+  outside: "Open vidrev from the menu inside your CRM to sign in automatically.",
   not_connected: "This sub-account is not connected to vidrev yet.",
-  no_location: "Open a sub-account in GoHighLevel first, then vidrev again.",
-  error: "Signing in from GoHighLevel did not work. Reload the page, or log in directly.",
+  no_location: "Open a sub-account first, then vidrev again.",
+  error: "Signing in did not work. Reload the page, or log in directly.",
 };
 
 // Asks GoHighLevel (the parent frame) for the signed-in user, hands the
@@ -27,7 +27,7 @@ export function GhlHandshake() {
       if (!data || data.message !== "REQUEST_USER_DATA_RESPONSE" || !data.payload) return;
       window.clearTimeout(timer);
       try {
-        const response = await fetch("/api/ghl/sso", {
+        const response = await fetch("/api/crm/sso", {
           method: "POST",
           headers: { "content-type": "application/json" },
           credentials: "same-origin",
@@ -48,7 +48,7 @@ export function GhlHandshake() {
     };
   }, []);
 
-  if (state === "waiting") return <p className="m-0 text-base text-label">Signing you in from GoHighLevel...</p>;
+  if (state === "waiting") return <p className="m-0 text-base text-label">Signing you in...</p>;
   return (
     <div className="grid gap-3">
       <p className="m-0 text-base">{TEXT[state]}</p>
@@ -65,7 +65,7 @@ export function GhlHandshake() {
       ) : null}
       {state === "not_connected" ? (
         <p className="m-0 text-[15px] text-label">
-          Then, in vidrev, connect this GoHighLevel sub-account (Settings, GoHighLevel). Come back here and reload: you are in.
+          Then, in vidrev, connect this sub-account under Settings. Come back here and reload: you are in.
         </p>
       ) : null}
     </div>

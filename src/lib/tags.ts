@@ -11,6 +11,9 @@
 export const TAG_ROOT = "vidrev";
 export const TAG_SOURCE = "vidrev-source-youtube";
 export const TAG_BUYER = "vidrev-buyer";
+// Beast Mode contact made at comment time, no email yet (A-25). Also one of
+// the ownership proofs checked before the 29 day delete (A-27).
+export const TAG_PROSPECT = "vidrev-prospect";
 
 export const TEMPERATURES = ["cold", "warm", "hot"] as const;
 export type Temperature = (typeof TEMPERATURES)[number];

@@ -2,7 +2,7 @@ import type { JobWithMetadata, PgBoss } from "pg-boss";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { users } from "@/db/schema";
-import { type AccountJob, type AuditJob, type ChannelJob, type CommentJob, type DeliveryJob, type DomainJob, type GhlEventJob, type GhlIntegrationJob, type GhlNoteJob, type ReplyJob, QUEUES, QUEUE_OPTIONS, type SendEmailJob } from "@/jobs/queues";
+import { type AccountJob, type AuditJob, type ChannelJob, type CommentJob, type DeliveryJob, type DomainJob, type GhlEventJob, type GhlIntegrationJob, type GhlNoteJob, type ProspectJob, type ProspectRestoreJob, type ReplyJob, QUEUES, QUEUE_OPTIONS, type SendEmailJob } from "@/jobs/queues";
 import { ghlReconnectEmail, stripeReconnectEmail } from "@/server/email/templates";
 import { postJson } from "@/server/integrations/http-post";
 import { pruneDeliveries } from "@/server/integrations/outbound";
@@ -17,6 +17,7 @@ import { createDraft, requeueUndraftedComments } from "./drafts";
 import { checkDomain, type DomainDeps, queueDomainChecks, removeDomainHostname } from "./domains";
 import { runJob, runSteps } from "./jobs";
 import { runRetention } from "./retention";
+import { createProspect, restoreProspect, sweepProspects } from "./prospects";
 import { recoverUnconfirmedSends, requeueOrphanedApproved, sendReply } from "./sending";
 import { checkRss, type EngineDeps, engineTick, pollChannel, renewWebsub } from "./polling";
 import { deliver, deliverDue, type WebhookDeps } from "./webhooks";
@@ -264,6 +265,15 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
   // Stripe (Phase 8): the read-only sync with the creator's restricted key.
   await work<GhlIntegrationJob>(QUEUES.stripeSync, (job) => syncStripe(stripeDeps(boss), job.data.integrationId));
   await work<GhlEventJob>(QUEUES.ghlEvent, (job) => handleGhlEvent(ghlDeps(boss), job.data.integrationId, job.data.payload));
+  // Beast Mode (A-25, A-27): prospect contact at comment time, owner restore.
+  await work<ProspectJob>(QUEUES.ghlProspect, async (job) => {
+    const outcome = await createProspect(ghlDeps(boss), job.data.replyId);
+    log("info", "prospect job", { replyId: job.data.replyId, outcome });
+  });
+  await work<ProspectRestoreJob>(QUEUES.ghlProspectRestore, async (job) => {
+    const outcome = await restoreProspect(ghlDeps(boss), job.data.backupId);
+    log("info", "prospect restore job", { backupId: job.data.backupId, outcome });
+  });
   await work<GhlNoteJob>(QUEUES.ghlNote, (job) => addContactNote(ghlDeps(boss), job.data.integrationId, job.data.ghlContactId, job.data.text));
   // Attribution and reports (Phase 7): refresh per dirty account; hourly,
   // every account is marked so periods roll over.
@@ -273,6 +283,8 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
     ["undrafted comments", () => requeueUndraftedComments({ db: getDb(), enqueue: sendVia(boss) })],
     ["mark reports dirty", () => markAllReportsDirty(getDb())],
     ["expire trials", () => expireTrials(getDb())],
+    // 29 day rule for Beast Mode prospects, hourly so a delete lands within the 30 days.
+    ["beast mode prospects", () => sweepProspects(ghlDeps(boss))],
   ]);
   // Contacts for rows older than the Contact model (DECISIONS section 13.10):
   // once at start, so a deploy does not wait for the hourly pass.

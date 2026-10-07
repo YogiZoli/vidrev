@@ -29,6 +29,7 @@ export class GhlApiError extends Error {
 export interface GhlContact {
   id: string;
   email?: string | null;
+  phone?: string | null;
   firstName?: string | null;
   lastName?: string | null;
   contactName?: string | null;
@@ -180,6 +181,23 @@ export function createGhlApi(fetchImpl: FetchLike, accessToken: string) {
       });
       if (!json.contact?.id) throw new GhlApiError(502, "upsert response had no contact id", "contacts/upsert");
       return json.contact.id;
+    },
+
+    // Beast Mode prospect (A-25): a plain create, never an upsert, so it can
+    // never land on someone's existing contact. No email, no phone.
+    async createContact(locationId: string, input: { name: string; tags: string[]; customFields: { id: string; value: string }[] }): Promise<string> {
+      const json = await call<{ contact?: { id?: string } }>(`/contacts/`, {
+        method: "POST",
+        body: { locationId, name: input.name, tags: input.tags, customFields: input.customFields },
+      });
+      if (!json.contact?.id) throw new GhlApiError(502, "create response had no contact id", "contacts");
+      return json.contact.id;
+    },
+
+    // Only ever called by deleteOwnProspect (src/worker/prospects.ts), which
+    // proves the contact is ours first. Never call it from anywhere else.
+    async deleteContact(contactId: string): Promise<void> {
+      await call(`/contacts/${contactId}`, { method: "DELETE" });
     },
 
     // Additive: existing tags stay (upsert itself may replace them).

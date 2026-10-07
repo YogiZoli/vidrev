@@ -897,3 +897,78 @@ export const ghlInstalls = pgTable(
   },
   (t) => [uniqueIndex("ghl_installs_claim_uq").on(t.claimHash), index("ghl_installs_location_idx").on(t.locationId), index("ghl_installs_expires_idx").on(t.expiresAt)],
 );
+
+export type CrmProspectStatus =
+  // Our row is claimed, the CRM create call has not answered yet.
+  | "creating"
+  // The contact exists in the CRM; ghlContactId is what our create call returned.
+  | "created"
+  // Opted in: merged into the email contact (PR4); never deleted by the 29 day rule.
+  | "opted_in"
+  // A create call that never confirmed: not retried (a second create could duplicate).
+  | "unconfirmed"
+  // Deleted from the CRM by the 29 day rule.
+  | "deleted"
+  // The live re-read failed an ownership proof: left in the CRM, never touched again.
+  | "kept"
+  // The CRM delete did not work within the grace days: our side scrubbed anyway.
+  | "abandoned";
+
+// Beast Mode prospect contacts (DECISIONS A-25, A-27): one row per Contact
+// that vidrev itself created in the CRM. The row is the first proof that a CRM
+// contact is ours; the "vidrev prospect id" field on the contact (this row's
+// id) is the second, checked live before any delete. No YouTube data is kept
+// here: the display name goes to the CRM only.
+export const crmProspects = pgTable(
+  "crm_prospects",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    contactId: uuid("contact_id").notNull(),
+    integrationId: uuid("integration_id").references(() => integrations.id, { onDelete: "set null" }),
+    ghlLocationId: text("ghl_location_id"),
+    ghlContactId: text("ghl_contact_id"),
+    status: text("status").$type<CrmProspectStatus>().notNull().default("creating"),
+    // 29 days after the first comment unless they opt in.
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    deleteAttempts: integer("delete_attempts").notNull().default(0),
+    lastError: text("last_error"),
+    // Dry run: when the sweep last found it due (would have deleted it).
+    wouldDeleteAt: timestamp("would_delete_at", { withTimezone: true }),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    // One live prospect per person; a deleted one may be followed by a new one.
+    uniqueIndex("crm_prospects_live_uq")
+      .on(t.accountId, t.contactId)
+      .where(sql`status in ('creating', 'created', 'unconfirmed')`),
+    uniqueIndex("crm_prospects_ghl_contact_uq").on(t.ghlLocationId, t.ghlContactId),
+    index("crm_prospects_due_idx").on(t.status, t.expiresAt),
+  ],
+);
+
+// The CRM copy of a deleted prospect, kept 24 hours for an owner restore
+// (A-27 safety belt). Deleted on the 29th day, so with these 24 hours the
+// YouTube display name inside never outlives 30 days.
+export const crmProspectBackups = pgTable(
+  "crm_prospect_backups",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    prospectId: uuid("prospect_id")
+      .notNull()
+      .references(() => crmProspects.id, { onDelete: "cascade" }),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    contact: jsonb("contact").$type<Record<string, unknown>>().notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    restoredAt: timestamp("restored_at", { withTimezone: true }),
+    restoredGhlContactId: text("restored_ghl_contact_id"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("crm_prospect_backups_expires_idx").on(t.expiresAt)],
+);

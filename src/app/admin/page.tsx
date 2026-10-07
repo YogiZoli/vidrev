@@ -11,6 +11,7 @@ import { auditOverview, listAccountsForAdmin, listPlans } from "@/server/admin";
 import { requireAdmin } from "@/server/auth/current";
 import { auditUnitsLeft } from "@/server/quota";
 import { systemHealth } from "@/server/system-health";
+import { prospectOverview } from "@/server/prospects-admin";
 import { Notice } from "../ui";
 import { SystemHealthCard } from "./SystemHealthCard";
 
@@ -30,14 +31,16 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const { msg } = await searchParams;
   const db = getDb();
   const auditLimit = env().AUDIT_DAILY_LIMIT;
-  const [accountRows, planRows, audit, auditLeft, health, couponRows] = await Promise.all([
+  const [accountRows, planRows, audit, auditLeft, health, couponRows, prospects] = await Promise.all([
     listAccountsForAdmin(db),
     listPlans(db),
     auditOverview(db),
     auditUnitsLeft(db, auditLimit),
     systemHealth(db),
     listCoupons(db),
+    prospectOverview(db),
   ]);
+  const backupOf = new Map(prospects.backups.map((b) => [b.prospectId, b]));
   const founding = accountRows.filter((a) => a.planCode === "founding").length;
   const foundingCap = planRows.find((p) => p.code === "founding")?.seatsCap ?? 100;
 
@@ -113,6 +116,60 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                     <Td>{c.note ?? ""}</Td>
                   </tr>
                 ))}
+              </tbody>
+            </Table>
+          </TableWrap>
+        ) : null}
+      </Card>
+
+      <Card className="grid gap-3">
+        <SectionTitle>Beast Mode deletions</SectionTitle>
+        <Meta className="text-[15px]">
+          BEAST_DELETE is <strong>{env().BEAST_DELETE}</strong> (dry_run lists only, on deletes, off stops everything). Prospects by status:{" "}
+          {prospects.counts.length > 0 ? prospects.counts.map((c) => `${c.status} ${c.n}`).join(", ") : "none yet"}. A deleted contact can be
+          restored for 23 hours.
+        </Meta>
+        {prospects.rows.length > 0 ? (
+          <TableWrap>
+            <Table>
+              <thead>
+                <tr>
+                  <Th>Account</Th>
+                  <Th>Status</Th>
+                  <Th>Due</Th>
+                  <Th>Note</Th>
+                  <Th>Restore</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {prospects.rows.map((p) => {
+                  const backup = backupOf.get(p.id);
+                  return (
+                    <tr key={p.id}>
+                      <Td>{p.account ?? p.accountId}</Td>
+                      <Td>
+                        <Badge tone={p.status === "kept" || p.status === "abandoned" ? "warning" : p.status === "deleted" ? "neutral" : "primary"}>
+                          {p.status === "created" && p.wouldDeleteAt ? "would delete" : p.status}
+                        </Badge>
+                      </Td>
+                      <Td>{p.expiresAt.toISOString().slice(0, 16).replace("T", " ")}</Td>
+                      <Td>{p.lastError ?? ""}</Td>
+                      <Td>
+                        {backup && !backup.restoredAt ? (
+                          <form method="post" action="/api/admin">
+                            <input type="hidden" name="kind" value="restore_prospect" />
+                            <input type="hidden" name="backupId" value={backup.id} />
+                            <Button type="submit" variant="outline" size="sm">
+                              Restore
+                            </Button>
+                          </form>
+                        ) : backup?.restoredAt ? (
+                          "restored"
+                        ) : null}
+                      </Td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </Table>
           </TableWrap>

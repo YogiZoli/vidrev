@@ -26,6 +26,14 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 - Next: owner builds the GoHighLevel checkout for Founding 100 and sends the link (`FOUNDING_CHECKOUT_URL`); then move the landing into GoHighLevel on `vidrev.app` as Custom Code sections; then campaign drafts (L-03).
 - Next: owner brainstorm on the landing page and funnel, then a phase plan (not started).
 
+## 2026-10-07: trial, GoHighLevel partner access, coupons
+
+- `/activate` offers: 14 day free trial; Free with GoHighLevel (partner link, or connect GoHighLevel to unlock); a code; Founding 97 USD/year with a 14 day money-back guarantee (A-20).
+- Partner access proof: snapshot marker field `vidrev_partner_<VIDREV_PARTNER_MARKER>` read on every GoHighLevel connect; Grant on `/admin`; partner coupons.
+- `/admin`: Coupon codes card (partner or trial, max uses, expiry, note); account status shows how access came (checkout, trial, coupon, GHL affiliate snapshot, owner grant).
+- Landing FAQ: "Is there a free trial?" answered yes; Pricing says 14 day money-back guarantee. GHL kit regenerated (`design/landing/ghl-kit.html`).
+- Standard price proposal A-21 (29 USD/month, 290 USD/year) waits for the owner.
+
 ## 2026-10-07: landing, standard log-in, audit page
 
 - `app.vidrev.app/` is the approved landing with Get started and Log in (A-18). vidrev.app stays in GoHighLevel.

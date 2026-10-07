@@ -125,6 +125,7 @@ async function activate(tx: Tx, payload: ProvisioningPayload, trialEndsAt: Date 
       billingRef: payload.subscription_id ?? null,
     });
     accountId = created.account.id;
+    await tx.update(accounts).set({ accessSource: "checkout" }).where(eq(accounts.id, accountId));
     result = trialEndsAt ? "trial_started" : "activated";
     loginLink = { userId: created.user.id, email: created.user.email, welcome: true };
   } else {
@@ -140,6 +141,7 @@ async function activate(tx: Tx, payload: ProvisioningPayload, trialEndsAt: Date 
         status: "active",
         planCode,
         trialEndsAt,
+        accessSource: "checkout",
         suspendedAt: null,
         billingRef: payload.subscription_id ?? existing.account.billingRef,
         updatedAt: new Date(),

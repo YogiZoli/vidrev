@@ -1,9 +1,10 @@
 import { and, count, desc, eq, gt, inArray, isNotNull } from "drizzle-orm";
 import type { Db } from "@/db/client";
-import { accounts, audits, channels, plans, users } from "@/db/schema";
+import { accounts, audits, channels, type CouponKind, plans, users } from "@/db/schema";
 import { normalizeEmail } from "@/lib/email";
 import { createAccountWithUser, findUserByEmail, writeAudit } from "./accounts";
 import { LIVE_STATUSES } from "./channels";
+import { createCoupon, PARTNER_PLAN } from "./access";
 
 export async function listAccountsForAdmin(db: Db) {
   const rows = await db
@@ -13,6 +14,7 @@ export async function listAccountsForAdmin(db: Db) {
       status: accounts.status,
       planCode: accounts.planCode,
       trialEndsAt: accounts.trialEndsAt,
+      accessSource: accounts.accessSource,
       fallbackLinksBlocked: accounts.fallbackLinksBlocked,
       createdAt: accounts.createdAt,
     })
@@ -68,11 +70,17 @@ export type AdminAction =
   | { kind: "set_plan"; accountId: string; planCode: string }
   | { kind: "suspend"; accountId: string }
   | { kind: "unsuspend"; accountId: string }
-  | { kind: "block_links"; accountId: string; blocked: boolean };
+  | { kind: "block_links"; accountId: string; blocked: boolean }
+  | { kind: "create_coupon"; code: string; couponKind: CouponKind; days: number | null; maxUses: number | null; expiresAt: Date | null; note: string | null };
 
 export type AdminResult =
   | { ok: true; message: string; loginLink?: { userId: string; email: string; welcome: boolean } }
   | { ok: false; message: string };
+
+// An owner grant of Partner access is recorded as such and ends any trial (A-20).
+function partnerFields(planCode: string) {
+  return planCode === PARTNER_PLAN ? { accessSource: "partner_admin" as const, trialEndsAt: null } : {};
+}
 
 async function planExists(db: Db, code: string): Promise<boolean> {
   const [row] = await db.select({ code: plans.code }).from(plans).where(eq(plans.code, code)).limit(1);
@@ -91,12 +99,13 @@ export async function runAdminAction(db: Db, actor: string, action: AdminAction)
       if (existing) {
         await db
           .update(accounts)
-          .set({ planCode: action.planCode, status: "active", suspendedAt: null, updatedAt: new Date() })
+          .set({ planCode: action.planCode, status: "active", suspendedAt: null, ...partnerFields(action.planCode), updatedAt: new Date() })
           .where(eq(accounts.id, existing.account.id));
         await writeAudit(db, { actor, accountId: existing.account.id, action: "admin.grant", details: { plan: action.planCode } });
         return { ok: true, message: `Updated ${email} to ${action.planCode}.` };
       }
       const created = await createAccountWithUser(db, { email, planCode: action.planCode });
+      if (action.planCode === PARTNER_PLAN) await db.update(accounts).set(partnerFields(action.planCode)).where(eq(accounts.id, created.account.id));
       await writeAudit(db, { actor, accountId: created.account.id, action: "admin.grant", details: { plan: action.planCode } });
       return {
         ok: true,
@@ -105,7 +114,7 @@ export async function runAdminAction(db: Db, actor: string, action: AdminAction)
       };
     }
     case "set_plan":
-      await db.update(accounts).set({ planCode: action.planCode, updatedAt: new Date() }).where(eq(accounts.id, action.accountId));
+      await db.update(accounts).set({ planCode: action.planCode, ...partnerFields(action.planCode), updatedAt: new Date() }).where(eq(accounts.id, action.accountId));
       await writeAudit(db, { actor, accountId: action.accountId, action: "admin.set_plan", details: { plan: action.planCode } });
       return { ok: true, message: "Plan changed." };
     case "suspend":
@@ -128,5 +137,9 @@ export async function runAdminAction(db: Db, actor: string, action: AdminAction)
       await db.update(accounts).set({ fallbackLinksBlocked: action.blocked, updatedAt: new Date() }).where(eq(accounts.id, action.accountId));
       await writeAudit(db, { actor, accountId: action.accountId, action: action.blocked ? "admin.block_fallback_links" : "admin.unblock_fallback_links" });
       return { ok: true, message: action.blocked ? "Fallback links blocked." : "Fallback links allowed." };
+    case "create_coupon": {
+      const made = await createCoupon(db, actor, { code: action.code, kind: action.couponKind, days: action.days, maxUses: action.maxUses, expiresAt: action.expiresAt, note: action.note });
+      return made.ok ? { ok: true, message: `Code ${made.code} created.` } : { ok: false, message: made.message };
+    }
   }
 }

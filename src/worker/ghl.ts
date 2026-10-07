@@ -1,5 +1,7 @@
 import { and, eq, lte, sql } from "drizzle-orm";
-import { integrations, purchases } from "@/db/schema";
+import { accounts, integrations, purchases } from "@/db/schema";
+import { env } from "@/lib/env";
+import { grantPartner, PARTNER_PLAN } from "@/server/access";
 import { readTid } from "@/lib/inbound";
 import { errorFields, log } from "@/lib/log";
 import { normalizeCurrency, toMinorUnits } from "@/lib/money";
@@ -52,6 +54,29 @@ async function ensureTrackingField(api: GhlApi, locationId: string): Promise<str
   return (existing ?? (await api.createContactField(locationId, TRACKING_FIELD_NAME))).id;
 }
 
+// GoHighLevel affiliate proof (DECISIONS A-20): the owner's affiliate snapshot
+// carries the contact field "vidrev_partner_<token>". Seen on connect, the
+// account gets Partner access for good. Runs on every (re)connect.
+export function partnerMarkerName(): string | null {
+  const token = env().VIDREV_PARTNER_MARKER;
+  return token ? `vidrev_partner_${token}`.toLowerCase() : null;
+}
+
+async function checkPartnerMarker(deps: GhlWorkerDeps, integrationId: string, fields: { name?: string | null; fieldKey?: string | null }[]): Promise<void> {
+  const marker = partnerMarkerName();
+  if (!marker) return;
+  const found = fields.some((f) => f.name?.trim().toLowerCase() === marker || f.fieldKey?.split(".").pop()?.toLowerCase() === marker);
+  if (!found) return;
+  const [account] = await deps.db
+    .select({ id: accounts.id, planCode: accounts.planCode })
+    .from(integrations)
+    .innerJoin(accounts, eq(accounts.id, integrations.accountId))
+    .where(eq(integrations.id, integrationId));
+  if (!account || account.planCode === PARTNER_PLAN) return;
+  await grantPartner(deps.db, account.id, "partner_snapshot", "system");
+  log("info", "partner access from snapshot marker", { accountId: account.id });
+}
+
 // Once after connecting: the tracking id contact field (created, or found if the
 // creator already made one), the location name; then the first sync.
 export async function setupGhl(deps: GhlWorkerDeps, integrationId: string): Promise<void> {
@@ -69,6 +94,7 @@ export async function setupGhl(deps: GhlWorkerDeps, integrationId: string): Prom
     const locationWebsite = location.website;
     name = locationName;
     const customFieldId = await ensureTrackingField(api, config.locationId);
+    await checkPartnerMarker(deps, integrationId, await api.listContactFields(config.locationId));
     await updateGhlConfig(deps, integrationId, { customFieldId, locationName, locationWebsite });
   });
   await deps.db

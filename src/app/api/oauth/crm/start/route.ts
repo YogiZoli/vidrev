@@ -19,7 +19,7 @@ export async function GET(): Promise<Response> {
   const session = await currentSession();
   if (!session) return redirectTo("/login");
   if (!ghlConfigured()) return redirectTo(returnPath(session.account, `${PAGE}?error=${encodeURIComponent("Connecting GoHighLevel is not available yet.")}`));
-  if (session.account.status !== "active") return redirectTo(returnPath(session.account, `${PAGE}?error=${encodeURIComponent("Your account is suspended.")}`));
+  if (session.account.status === "suspended") return redirectTo(returnPath(session.account, `${PAGE}?error=${encodeURIComponent("Your account is suspended.")}`));
 
   const state = randomToken(24);
   (await cookies()).set({

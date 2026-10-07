@@ -91,9 +91,45 @@ export const accounts = pgTable("accounts", {
   // recomputes attribution and report snapshots and clears it.
   reportDirtyAt: timestamp("report_dirty_at", { withTimezone: true }),
   reportsComputedAt: timestamp("reports_computed_at", { withTimezone: true }),
+  // How the account got access (DECISIONS A-20): checkout, trial, coupon,
+  // partner_snapshot (GHL affiliate snapshot marker) or partner_admin.
+  accessSource: text("access_source").$type<AccessSource>(),
+  // One free trial per account, by trial button or trial coupon.
+  trialUsedAt: timestamp("trial_used_at", { withTimezone: true }),
   createdAt: createdAt(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export type AccessSource = "checkout" | "trial" | "coupon" | "partner_snapshot" | "partner_admin";
+export type CouponKind = "partner" | "trial";
+
+// Owner-made codes (admin): "partner" gives Partner access for good, "trial"
+// gives `days` of full access. Stored upper case.
+export const coupons = pgTable("coupons", {
+  code: text("code").primaryKey(),
+  kind: text("kind").$type<CouponKind>().notNull(),
+  days: integer("days"),
+  maxUses: integer("max_uses"),
+  uses: integer("uses").notNull().default(0),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  note: text("note"),
+  createdBy: text("created_by").notNull(),
+  createdAt: createdAt(),
+});
+
+export const couponRedemptions = pgTable(
+  "coupon_redemptions",
+  {
+    code: text("code")
+      .notNull()
+      .references(() => coupons.code, { onDelete: "cascade" }),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    redeemedAt: timestamp("redeemed_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("coupon_redemptions_uq").on(t.code, t.accountId)],
+);
 
 // One user per account for the MVP (SPEC-REVIEW R-06).
 export const users = pgTable(

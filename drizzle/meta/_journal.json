@@ -99,6 +99,13 @@
       "when": 1791356525077,
       "tag": "0013_auth_password_google",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1791358076812,
+      "tag": "0014_access_trial_coupons",
+      "breakpoints": true
     }
   ]
 }

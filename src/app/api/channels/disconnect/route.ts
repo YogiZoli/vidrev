@@ -6,13 +6,14 @@ import { markDisconnecting } from "@/server/channels";
 import { isSameOrigin, redirectTo } from "@/server/http";
 import { returnPath } from "@/server/onboarding";
 import { logRefused, recordAction } from "@/server/events";
+import { guarded } from "@/server/route-guard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 // The worker revokes the Google grant and deletes the channel's YouTube data
 // (DECISIONS Q-17 c: within 7 days; done right away).
-export async function POST(request: Request): Promise<Response> {
+async function postHandler(request: Request): Promise<Response> {
   if (!isSameOrigin(request)) return new Response("Forbidden", { status: 403 });
   const session = await currentSession();
   if (!session) return redirectTo("/login");
@@ -25,3 +26,5 @@ export async function POST(request: Request): Promise<Response> {
   await recordAction(getDb(), { userId: session.user.id, accountId: session.account.id }, "channel.disconnect", { channelId });
   return redirectTo(returnPath(session.account, "/app/settings/youtube?disconnected=1"));
 }
+
+export const POST = guarded("/api/channels/disconnect", postHandler);

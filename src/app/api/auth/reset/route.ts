@@ -6,11 +6,12 @@ import { sessionCookie } from "@/server/auth/current";
 import { setPassword } from "@/server/auth/sign-in";
 import { consumeMagicLink, createSession } from "@/server/auth/tokens";
 import { isSameOrigin, redirectTo } from "@/server/http";
+import { guarded } from "@/server/route-guard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export async function POST(request: Request): Promise<Response> {
+async function postHandler(request: Request): Promise<Response> {
   if (!isSameOrigin(request)) return new Response("Forbidden", { status: 403 });
   const form = await request.formData();
   const token = String(form.get("token") ?? "");
@@ -26,3 +27,5 @@ export async function POST(request: Request): Promise<Response> {
   log("info", "password set", { userId });
   return redirectTo("/app");
 }
+
+export const POST = guarded("/api/auth/reset", postHandler);

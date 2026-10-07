@@ -6,6 +6,7 @@ import { isSameOrigin, redirectTo } from "@/server/http";
 import { log } from "@/lib/log";
 import { sendLoginLink } from "@/server/notify";
 import { enqueue } from "@/jobs/enqueue";
+import { guarded } from "@/server/route-guard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -36,7 +37,7 @@ function parseAction(form: FormData): AdminAction | null {
   }
 }
 
-export async function POST(request: Request): Promise<Response> {
+async function postHandler(request: Request): Promise<Response> {
   if (!isSameOrigin(request)) return new Response("Forbidden", { status: 403 });
   const session = await currentSession();
   if (!session || !isAdminEmail(session.user.email)) {
@@ -62,3 +63,5 @@ export async function POST(request: Request): Promise<Response> {
   if (result.ok && result.loginLink) await sendLoginLink(db, result.loginLink);
   return redirectTo(`/admin?msg=${encodeURIComponent(result.message)}`);
 }
+
+export const POST = guarded("/api/admin", postHandler);

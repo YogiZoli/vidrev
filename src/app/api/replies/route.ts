@@ -6,6 +6,7 @@ import { type ApprovalError, approveReply, dismissReply, markSentManually, resto
 import { currentSession } from "@/server/auth/current";
 import { isSameOrigin } from "@/server/http";
 import { logRefused, recordAction } from "@/server/events";
+import { guarded } from "@/server/route-guard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -24,7 +25,7 @@ function errorText(error: ApprovalError): string {
 
 // JSON endpoint for the approval queue (optimistic UI). One reply per call:
 // there is no batch approval (Q-12).
-export async function POST(request: Request): Promise<Response> {
+async function postHandler(request: Request): Promise<Response> {
   if (!isSameOrigin(request)) return Response.json({ error: "Forbidden" }, { status: 403 });
   const session = await currentSession();
   if (!session) return Response.json({ error: "Sign in again." }, { status: 401 });
@@ -63,3 +64,5 @@ export async function POST(request: Request): Promise<Response> {
       return refused("unknown_action", 400);
   }
 }
+
+export const POST = guarded("/api/replies", postHandler);

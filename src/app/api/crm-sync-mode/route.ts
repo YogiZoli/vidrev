@@ -4,12 +4,13 @@ import { currentSession } from "@/server/auth/current";
 import { setCrmSyncMode } from "@/server/crm-sync-mode";
 import { logRefused, recordAction } from "@/server/events";
 import { isSameOrigin, redirectTo } from "@/server/http";
+import { guarded } from "@/server/route-guard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 // CRM sync mode form (DECISIONS A-25), posted from onboarding and Settings.
-export async function POST(request: Request): Promise<Response> {
+async function postHandler(request: Request): Promise<Response> {
   if (!isSameOrigin(request)) return new Response("Forbidden", { status: 403 });
   const session = await currentSession();
   if (!session) return redirectTo("/login");
@@ -35,3 +36,5 @@ export async function POST(request: Request): Promise<Response> {
   await recordAction(db, { userId: session.user.id, accountId }, "crm_sync_mode.set", { mode });
   return redirectTo(`${page}?mode_saved=1`);
 }
+
+export const POST = guarded("/api/crm-sync-mode", postHandler);

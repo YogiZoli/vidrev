@@ -8,12 +8,13 @@ import { isValidTimeZone } from "@/lib/time";
 import { markReportDirty } from "@/server/attribution";
 import { currentSession } from "@/server/auth/current";
 import { isSameOrigin, redirectTo } from "@/server/http";
+import { guarded } from "@/server/route-guard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 // Form posts from /app/reports. The worker rebuilds the snapshots.
-export async function POST(request: Request): Promise<Response> {
+async function postHandler(request: Request): Promise<Response> {
   if (!isSameOrigin(request)) return new Response("Forbidden", { status: 403 });
   const session = await currentSession();
   if (!session) return redirectTo("/login");
@@ -43,3 +44,5 @@ export async function POST(request: Request): Promise<Response> {
   await enqueue(QUEUES.reportRefresh, { accountId }, { singletonKey: accountId });
   return redirectTo("/app/reports?saved=1");
 }
+
+export const POST = guarded("/api/reports", postHandler);

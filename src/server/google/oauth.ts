@@ -46,6 +46,39 @@ export function buildAuthUrl(client: Pick<GoogleClient, "clientId" | "redirectUr
   return `${AUTH_ENDPOINT}?${params.toString()}`;
 }
 
+// "Continue with Google": identity only. No YouTube scope here; the channel is
+// connected later in onboarding with its own consent (buildAuthUrl).
+export const SIGN_IN_SCOPES = ["openid", "email", "profile"] as const;
+const USERINFO_ENDPOINT = "https://openidconnect.googleapis.com/v1/userinfo";
+
+export function buildSignInUrl(client: Pick<GoogleClient, "clientId" | "redirectUri">, state: string, codeChallenge: string): string {
+  const params = new URLSearchParams({
+    client_id: client.clientId,
+    redirect_uri: client.redirectUri,
+    response_type: "code",
+    scope: SIGN_IN_SCOPES.join(" "),
+    prompt: "select_account",
+    state,
+    code_challenge: codeChallenge,
+    code_challenge_method: "S256",
+  });
+  return `${AUTH_ENDPOINT}?${params.toString()}`;
+}
+
+export interface GoogleProfile {
+  sub: string;
+  email: string;
+  emailVerified: boolean;
+  name: string | null;
+}
+
+export async function fetchProfile(accessToken: string, fetchImpl: FetchLike = defaultFetch): Promise<GoogleProfile> {
+  const response = await fetchImpl(USERINFO_ENDPOINT, { headers: { authorization: `Bearer ${accessToken}` } });
+  const json = (await response.json().catch(() => ({}))) as { sub?: string; email?: string; email_verified?: boolean; name?: string };
+  if (!response.ok || !json.sub || !json.email) throw new GoogleOAuthError(`http_${response.status}`, "userinfo request failed");
+  return { sub: json.sub, email: json.email, emailVerified: json.email_verified === true, name: json.name ?? null };
+}
+
 export interface TokenResponse {
   access_token: string;
   expires_in: number;

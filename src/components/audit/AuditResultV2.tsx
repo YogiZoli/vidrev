@@ -52,7 +52,7 @@ export function AuditResultV2({
             from the first comment.
           </p>
           <Button asChild pulse>
-            <Link href="/audit/sample">
+            <Link href="/where-i-lose-money-on-youtube/sample">
               See what this looks like on a channel with more comments
             </Link>
           </Button>

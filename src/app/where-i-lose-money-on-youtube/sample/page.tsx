@@ -19,7 +19,7 @@ export default function SampleAuditPage() {
   const report = auditReportEmail({
     to: "you@example.com",
     productName: env().PRODUCT_NAME,
-    auditUrl: "/audit/sample",
+    auditUrl: "/where-i-lose-money-on-youtube/sample",
     learnMoreUrl: env().BRAND_BASE_URL ?? null,
     channelLabel: channelTitle,
     auditedAt: new Date(),

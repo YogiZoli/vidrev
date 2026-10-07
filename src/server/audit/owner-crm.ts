@@ -34,7 +34,7 @@ export async function buildAuditLead(db: Db, auditId: string): Promise<AuditLead
     { key: "audit_channel", field_value: audit.channelInput },
     {
       key: "audit_report_url",
-      field_value: `${appBaseUrl()}/audit/${audit.id}`,
+      field_value: `${appBaseUrl()}/where-i-lose-money-on-youtube/${audit.id}`,
     },
     {
       key: "audit_unanswered_buying_signals",

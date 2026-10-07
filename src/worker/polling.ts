@@ -4,7 +4,9 @@ import { accounts, campaigns, channels, comments, videos } from "@/db/schema";
 import type { JobPayloads } from "@/jobs/queues";
 import { matchComment } from "@/lib/keywords";
 import { errorFields, log } from "@/lib/log";
-import { nextPollAt, pollTier, readBudget, stretchFactor } from "@/lib/quota";
+import { FAST_POLL_MS, nextPollAt, pollTier, readBudget, stretchFactor } from "@/lib/quota";
+import { env } from "@/lib/env";
+import { accountOnList } from "@/server/crm-sync-mode";
 import { reserveUnits } from "@/server/quota";
 import { getNumberSetting } from "@/server/settings";
 import { type CommentThread, listChannelThreads, listVideos, YoutubeApiError } from "@/server/youtube/api";
@@ -18,6 +20,8 @@ export type Enqueue = <Q extends keyof JobPayloads>(queue: Q, data: JobPayloads[
 export interface EngineDeps extends ChannelDeps {
   quotaLimit: number;
   enqueue: Enqueue;
+  // FAST_POLL_ACCOUNTS override for tests; undefined reads the env.
+  fastPollAccounts?: string;
 }
 
 // Bounds one poll: 5 pages of 100 comments. A channel that gets more new
@@ -137,10 +141,11 @@ export async function pollChannel(deps: EngineDeps, channelId: string): Promise<
   if (channelCampaigns.length === 0) return;
 
   const factor = await currentStretch(deps.db, deps.quotaLimit, now);
+  const fast = await accountOnList(deps.db, channel.accountId, deps.fastPollAccounts === undefined ? env().FAST_POLL_ACCOUNTS : deps.fastPollAccounts);
   const schedule = async (values: Partial<typeof channels.$inferInsert>) => {
     await deps.db
       .update(channels)
-      .set({ nextPollAt: nextPollAt(pollTier(channel, now), factor, now), ...values })
+      .set({ nextPollAt: fast ? new Date(now.getTime() + FAST_POLL_MS) : nextPollAt(pollTier(channel, now), factor, now), ...values })
       .where(eq(channels.id, channel.id));
   };
 

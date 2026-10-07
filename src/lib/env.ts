@@ -29,6 +29,9 @@ const envSchema = z.object({
   // Comma separated account ids or emails that may choose Beast Mode, until
   // the LLC and the Google OAuth review (DECISIONS A-25).
   BEAST_MODE_ACCOUNTS: optional,
+  // Owner testing: account ids or emails whose channel is polled every minute
+  // (instead of 2, 15 or 60), outside the budget stretch. Keep it short.
+  FAST_POLL_ACCOUNTS: optional,
   // The 29 day prospect delete (A-27): "dry_run" (default) only lists what it
   // would delete on /admin, "on" deletes, "off" is the emergency brake.
   // Conversation Provider id of the Marketplace app (Beast Mode thread, A-25).

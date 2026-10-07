@@ -140,6 +140,14 @@ describe.skipIf(!hasDb)("channel polling (integration)", () => {
     expect(again.sent).toEqual([]);
   });
 
+  it("polls an account on FAST_POLL_ACCOUNTS again after one minute", async () => {
+    const { account, channel } = await setup();
+    const { deps } = engine([[]]);
+    await pollChannel({ ...deps, fastPollAccounts: `other@example.com, ${account.id}` }, channel.id);
+    const [row] = await getDb().select().from(channels).where(eq(channels.id, channel.id));
+    expect(row!.nextPollAt).toEqual(new Date(now.getTime() + 60_000));
+  });
+
   it("pages until it reaches the cursor", async () => {
     const { channel } = await setup();
     const { deps, sent, urls } = engine([

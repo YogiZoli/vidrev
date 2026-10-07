@@ -5,14 +5,19 @@ import { beastModeAllowed, effectiveCrmSyncMode, parseBeastAllowlist } from "@/l
 import { env } from "@/lib/env";
 import type { DbOrTx } from "./accounts";
 
-// Whether this account may use Beast Mode (DECISIONS A-25): its id or any of
-// its users' emails is on BEAST_MODE_ACCOUNTS.
-// `list` defaults to the env value; tests pass their own.
-export async function beastModeAllowedFor(db: DbOrTx, accountId: string, list = env().BEAST_MODE_ACCOUNTS): Promise<boolean> {
+// Whether an account is on a comma separated list of account ids or user emails.
+export async function accountOnList(db: DbOrTx, accountId: string, list: string | undefined): Promise<boolean> {
   const allowlist = parseBeastAllowlist(list);
   if (allowlist.size === 0) return false;
   const rows = await db.select({ email: users.email }).from(users).where(eq(users.accountId, accountId));
   return beastModeAllowed(allowlist, { id: accountId, emails: rows.map((r) => r.email) });
+}
+
+// Whether this account may use Beast Mode (DECISIONS A-25): its id or any of
+// its users' emails is on BEAST_MODE_ACCOUNTS.
+// `list` defaults to the env value; tests pass their own.
+export async function beastModeAllowedFor(db: DbOrTx, accountId: string, list = env().BEAST_MODE_ACCOUNTS): Promise<boolean> {
+  return accountOnList(db, accountId, list);
 }
 
 export interface CrmSyncModeState {

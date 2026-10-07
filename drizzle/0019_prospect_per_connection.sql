@@ -1,0 +1,2 @@
+DROP INDEX "crm_prospects_live_uq";--> statement-breakpoint
+CREATE UNIQUE INDEX "crm_prospects_live_uq" ON "crm_prospects" USING btree ("account_id","contact_id","integration_id") WHERE status in ('creating', 'created', 'unconfirmed');

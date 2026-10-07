@@ -134,6 +134,13 @@
       "when": 1791371175185,
       "tag": "0018_crm_threads",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791376042840,
+      "tag": "0019_prospect_per_connection",
+      "breakpoints": true
     }
   ]
 }

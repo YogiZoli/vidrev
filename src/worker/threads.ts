@@ -47,10 +47,20 @@ export async function pushToThread(deps: GhlWorkerDeps & { providerId?: string |
   const [reply] = await deps.db.select().from(replies).where(eq(replies.id, replyId));
   if (!reply?.contactId) return "no_prospect";
   if (reply.crmThreadedAt) return "done";
-  const [prospect] = await deps.db
+  if (reply.status !== "pending_approval") return "done";
+  const [joined] = await deps.db
     .select()
     .from(crmProspects)
-    .where(and(eq(crmProspects.accountId, reply.accountId), eq(crmProspects.contactId, reply.contactId), eq(crmProspects.status, "created")));
+    .innerJoin(integrations, eq(integrations.id, crmProspects.integrationId))
+    .where(
+      and(
+        eq(crmProspects.accountId, reply.accountId),
+        eq(crmProspects.contactId, reply.contactId),
+        eq(crmProspects.status, "created"),
+        eq(integrations.status, "active"),
+      ),
+    );
+  const prospect = joined?.crm_prospects;
   if (!prospect?.ghlContactId || !prospect.integrationId) return "no_prospect";
   const [comment] = reply.commentId ? await deps.db.select({ text: comments.text }).from(comments).where(eq(comments.id, reply.commentId)) : [];
   if (!comment) return "no_comment";

@@ -1,10 +1,12 @@
+// Values are trimmed like env() does (a pasted value once carried a BOM,
+// which made the fallback host null and the card API answer 503).
 // Which link host a request is for. Link traffic reaches the web service
 // through Cloudflare, which rewrites Host to the Railway domain and passes the
 // original host in X-Original-Host (SPEC-REVIEW R-03). The fallback host may
 // also arrive directly. Null means the request is for the app itself.
 export function fallbackHost(): string | null {
   try {
-    return process.env.LINK_FALLBACK_BASE_URL ? new URL(process.env.LINK_FALLBACK_BASE_URL).hostname.toLowerCase() : null;
+    return process.env.LINK_FALLBACK_BASE_URL?.trim() ? new URL(process.env.LINK_FALLBACK_BASE_URL.trim()).hostname.toLowerCase() : null;
   } catch {
     return null;
   }
@@ -12,7 +14,7 @@ export function fallbackHost(): string | null {
 
 export function appHost(): string | null {
   try {
-    return process.env.APP_BASE_URL ? new URL(process.env.APP_BASE_URL).hostname.toLowerCase() : null;
+    return process.env.APP_BASE_URL?.trim() ? new URL(process.env.APP_BASE_URL.trim()).hostname.toLowerCase() : null;
   } catch {
     return null;
   }

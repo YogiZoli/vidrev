@@ -324,6 +324,8 @@ export const campaigns = pgTable(
     destinationUrl: text("destination_url").notNull(),
     videoIds: text("video_ids").array(),
     active: boolean("active").notNull().default(true),
+    // Set when a Video Publishing Card armed this rule (DECISIONS A-30).
+    publishingCardId: uuid("publishing_card_id"),
     createdAt: createdAt(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -570,7 +572,9 @@ export const customDomains = pgTable(
   ],
 );
 
-export type LinkKind = "reply" | "static";
+// "card": issued for a Video Publishing Card keyword before the video exists
+// (DECISIONS A-30); it behaves like a static link and is tied to the video on publish.
+export type LinkKind = "reply" | "static" | "card";
 
 // A tracked link (SPEC-REVIEW R-07). Slugs are globally unique, so any link
 // host resolves them. `host` is the host the link was published on and never
@@ -983,4 +987,98 @@ export const crmProspectBackups = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("crm_prospect_backups_expires_idx").on(t.expiresAt)],
+);
+
+// Publishing Dream Team (PDT) connection (DECISIONS A-30 to A-36). A creator
+// allows PDT on /connect/pdt; PDT trades the one-time code for a token. Only
+// hashes are stored. One live connection per account.
+export const pdtConnectCodes = pgTable(
+  "pdt_connect_codes",
+  {
+    codeHash: text("code_hash").primaryKey(),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    redirectOrigin: text("redirect_origin").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("pdt_connect_codes_account_idx").on(t.accountId)],
+);
+
+export const pdtConnections = pgTable(
+  "pdt_connections",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    tokenHash: text("token_hash").notNull(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("pdt_connections_token_uq").on(t.tokenHash),
+    uniqueIndex("pdt_connections_live_account_uq").on(t.accountId).where(sql`revoked_at is null`),
+  ],
+);
+
+// A Video Publishing Card (video-publishing-card/1) as PDT sent it, stored
+// verbatim (timestamps and all) by its cardId. First-party data: nothing in it
+// was read from YouTube. `youtubeVideoId` is set once PDT reports the publish.
+export const publishingCards = pgTable(
+  "publishing_cards",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    cardId: uuid("card_id").notNull(),
+    card: jsonb("card").$type<Record<string, unknown>>().notNull(),
+    youtubeVideoId: text("youtube_video_id"),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("publishing_cards_account_card_uq").on(t.accountId, t.cardId), index("publishing_cards_video_idx").on(t.accountId, t.youtubeVideoId)],
+);
+
+export type CardKeywordState = "pending" | "armed" | "already_live" | "not_armed";
+
+// One keyword of a card: its tracked link from the start, and what happened
+// on publish. "pending" is the waiting automation: no campaign exists yet, so
+// nothing is polled, drafted or spent for it.
+export const publishingCardKeywords = pgTable(
+  "publishing_card_keywords",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    cardRowId: uuid("card_row_id")
+      .notNull()
+      .references(() => publishingCards.id, { onDelete: "cascade" }),
+    keyword: text("keyword").notNull(),
+    intent: text("intent").$type<Intent>().notNull(),
+    // The card's offer for this keyword ("gets"); data for the AI draft, never an instruction.
+    gets: text("gets"),
+    linkId: uuid("link_id").notNull(),
+    state: text("state").$type<CardKeywordState>().notNull().default("pending"),
+    stateReason: text("state_reason"),
+    campaignId: uuid("campaign_id").references(() => campaigns.id, { onDelete: "set null" }),
+    youtubeVideoId: text("youtube_video_id"),
+    armedAt: timestamp("armed_at", { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("publishing_card_keywords_uq").on(t.cardRowId, t.keyword),
+    index("publishing_card_keywords_video_idx").on(t.accountId, t.youtubeVideoId, t.keyword),
+  ],
 );

@@ -3,7 +3,9 @@ import { getDb } from "@/db/client";
 import { clientIp } from "@/lib/client-ip";
 import { errorFields, log } from "@/lib/log";
 import { RateLimiter } from "@/lib/ratelimit";
+import { requireEnv } from "@/lib/env";
 import { sessionCookie } from "@/server/auth/current";
+import { takeReturnPath } from "@/server/auth/return-to";
 import { signInWithPassword } from "@/server/auth/sign-in";
 import { createSession } from "@/server/auth/tokens";
 import { isSameOrigin, redirectTo } from "@/server/http";
@@ -28,9 +30,10 @@ export async function POST(request: Request): Promise<Response> {
     const userId = await signInWithPassword(db, email, password);
     if (!userId) return redirectTo("/login?error=invalid");
     const session = await createSession(db, userId);
-    (await cookies()).set(sessionCookie(session.token));
+    const store = await cookies();
+    store.set(sessionCookie(session.token));
     log("info", "user signed in", { userId, method: "password" });
-    return redirectTo("/app");
+    return redirectTo(takeReturnPath(store, requireEnv("AUTH_SECRET")));
   } catch (error) {
     log("error", "password sign-in failed", errorFields(error));
     return redirectTo("/login?error=server");

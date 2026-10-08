@@ -1,6 +1,6 @@
 # STATUS
 
-Last updated: 2026-10-08 (suite member through Publishing Dream Team: PR #149)
+Last updated: 2026-10-08 (suite member through Publishing Dream Team: PRs #149, #150)
 
 ## End goal
 
@@ -26,7 +26,7 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 - Next: owner builds the GoHighLevel checkout for Founding 100 and sends the link (`FOUNDING_CHECKOUT_URL`); then move the landing into GoHighLevel on `vidrev.app` as Custom Code sections; then campaign drafts (L-03).
 - Next: owner brainstorm on the landing page and funnel, then a phase plan (not started).
 
-## 2026-10-08: vidrev joins the suite through Publishing Dream Team (#149)
+## 2026-10-08: vidrev joins the suite through Publishing Dream Team (#149, #150)
 
 The chain: IdeaToVideo (production), Video Publishing Card, PDT (publishing), vidrev. vidrev works fully without it; the connection is a convenience layer. DECISIONS A-30 to A-36, SPEC section 14a, guide docs/SETUP-PDT.md.
 
@@ -34,7 +34,7 @@ The chain: IdeaToVideo (production), Video Publishing Card, PDT (publishing), vi
 - `POST /api/v1/cards`: the card is validated like PDT (same 2 MiB limit), stored verbatim by cardId, one tracked link per keyword back. It waits as an automation without a campaign: no polling, no drafts, no quota.
 - `POST /api/v1/cards/{cardId}/published`: each keyword goes live on the video (new rule for that video only, or reported as already live when an existing rule covers it, RR-07); the links stay the same and point to the target: live "All my videos" automation, else the card landingUrl, else the default target URL (own hosts refused). The creator gets an email naming what went live.
 - `GET /api/v1/videos/{videoId}/outcomes`: commenters, email subscribers, buyers, revenue per keyword; counts only, no consumer yet.
-- AI draft: the card's offer (`gets`) reaches the prompt as data only. Freestyle videos run exactly as before. No existing UI changed; the only new page is the Connect page.
+- AI draft unchanged (owner, 2026-10-08, #150): the card's offer (`gets`) is stored with the card and never reaches the AI; freestyle and card videos draft exactly as before. No existing UI changed; the only new page is the Connect page.
 - Quota request sized from the production ledger: 105,000 units a day for the Founding 100 (docs/compliance/QUOTA-EXTENSION.md, with the English text for the Google form).
 - Owner step: none required. Optional on `web`: `PDT_REDIRECT_ORIGINS` (default `https://dreamteam.commentclient.com`), `CARD_MAX_BYTES` (keep equal to PDT).
 - PDT side: PDT gets the same contract (SPEC 14a); the publish answer adds `alreadyLive` and `notArmed` next to `armed`.

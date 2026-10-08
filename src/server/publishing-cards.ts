@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull, notInArray, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, notInArray, sql } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import { accounts, campaigns, channels, type CardKeywordState, links, publishingCardKeywords, publishingCards, users } from "@/db/schema";
 import { catalogKeyword, misspellings } from "@/lib/keyword-catalog";
@@ -289,23 +289,4 @@ async function notifyArmed(deps: PublishDeps, accountId: string, card: Record<st
       log("warn", "card armed email not queued", { accountId, ...errorFields(error) });
     }
   }
-}
-
-// The card's offer ("gets") for a keyword on a published video, for the AI
-// draft. Data only: the prompt marks it as such.
-export async function cardOffer(db: Db, accountId: string, videoId: string, keyword: string): Promise<string | null> {
-  const [row] = await db
-    .select({ gets: publishingCardKeywords.gets })
-    .from(publishingCardKeywords)
-    .where(
-      and(
-        eq(publishingCardKeywords.accountId, accountId),
-        eq(publishingCardKeywords.youtubeVideoId, videoId),
-        eq(publishingCardKeywords.keyword, keyword.trim().toUpperCase()),
-        inArray(publishingCardKeywords.state, ["armed", "already_live"]),
-      ),
-    )
-    .orderBy(sql`${publishingCardKeywords.updatedAt} desc`)
-    .limit(1);
-  return row?.gets?.trim() || null;
 }

@@ -1066,7 +1066,7 @@ export const publishingCardKeywords = pgTable(
       .references(() => publishingCards.id, { onDelete: "cascade" }),
     keyword: text("keyword").notNull(),
     intent: text("intent").$type<Intent>().notNull(),
-    // The card's offer for this keyword ("gets"); data for the AI draft, never an instruction.
+    // The card's offer for this keyword ("gets"), kept with the card; not used (A-34).
     gets: text("gets"),
     linkId: uuid("link_id").notNull(),
     state: text("state").$type<CardKeywordState>().notNull().default("pending"),

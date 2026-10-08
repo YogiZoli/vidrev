@@ -151,7 +151,7 @@ describe.skipIf(!hasDb)("drafts (integration)", () => {
     expect(await replyFor(comment.id)).toMatchObject({ status: "skipped", statusReason: "monthly_cap" });
     expect(sent).toEqual([]);
   });
-  it("gives the AI the card's offer for this video as data, and nothing without a card", async () => {
+  it("never gives the AI the offer of a publishing card (A-34): drafts work as before", async () => {
     const { account, comment } = await setup("GUIDE please");
     const db = getDb();
     const [card] = await db.insert(publishingCards).values({ accountId: account.id, cardId: randomUUID(), card: {}, youtubeVideoId: "VID1" }).returning();
@@ -159,11 +159,8 @@ describe.skipIf(!hasDb)("drafts (integration)", () => {
     await db.insert(publishingCardKeywords).values({ accountId: account.id, cardRowId: card!.id, keyword: "GUIDE", intent: "cold", gets: "the 5 step planning guide", linkId: link!.id, state: "armed", youtubeVideoId: "VID1" });
     const { d, prompts } = deps({ apiKey: "k" });
     await createDraft(d, comment.id);
-    expect(prompts.join("")).toContain(JSON.stringify(JSON.stringify("the 5 step planning guide")).slice(1, -1));
-
-    const plain = await setup("GUIDE please");
-    const other = deps({ apiKey: "k" });
-    await createDraft(other.d, plain.comment.id);
-    expect(other.prompts.join("")).not.toContain("offer");
+    expect(prompts).toHaveLength(1);
+    expect(prompts[0]).not.toContain("planning guide");
+    expect(prompts[0]).not.toContain("offer");
   });
 });

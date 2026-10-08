@@ -9,7 +9,6 @@ import { runMigrations } from "@/scripts/migrate";
 import { createAccountWithUser } from "./accounts";
 import { exchangeConnectCode, issueConnectCode } from "./pdt";
 import { cardsRoute, outcomesRoute, type PdtApiDeps, publishedRoute, revokeRoute, tokenRoute } from "./pdt-api";
-import { cardOffer } from "./publishing-cards";
 
 const hasDb = Boolean(process.env.DATABASE_URL);
 const VIDEO = "dQw4w9WgXcQ";
@@ -171,10 +170,9 @@ describe.skipIf(!hasDb)("PDT connection (integration)", () => {
     const resend = (await (await cardsRoute(deps(), req("/api/v1/cards", token, sent))).json()) as { links: unknown };
     expect(resend.links).toEqual(linksBody.links);
 
-    // The AI draft gets the card's offer for this video and keyword.
-    expect(await cardOffer(db, account.id, VIDEO, "guide")).toBe("the weekly planning guide");
-    expect(await cardOffer(db, account.id, VIDEO, "CALL")).toBeNull();
-    expect(await cardOffer(db, account.id, "otherVideo1", "GUIDE")).toBeNull();
+    // The card's offer is stored with the card only; the AI draft never gets it (A-34).
+    const [guideRow] = await db.select().from(publishingCardKeywords).where(and(eq(publishingCardKeywords.accountId, account.id), eq(publishingCardKeywords.keyword, "GUIDE")));
+    expect(guideRow?.gets).toBe("the weekly planning guide");
 
     // Another video for the same card is refused.
     const other = await publishedRoute(deps(), req(`/api/v1/cards/${sent.cardId}/published`, token, { videoId: "abcdefghijk" }), sent.cardId);

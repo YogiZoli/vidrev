@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closeDb, getDb } from "@/db/client";
-import { accounts, campaigns, channels, comments, replies, templates } from "@/db/schema";
+import { accounts, campaigns, channels, comments, links, publishingCardKeywords, publishingCards, replies, templates } from "@/db/schema";
 import { runMigrations } from "@/scripts/migrate";
 import { createAccountWithUser } from "@/server/accounts";
 import { createDraft, type DraftDeps, requeueUndraftedComments, UNDRAFTED_AFTER_MS } from "./drafts";
@@ -150,5 +150,20 @@ describe.skipIf(!hasDb)("drafts (integration)", () => {
     await createDraft(d, comment.id);
     expect(await replyFor(comment.id)).toMatchObject({ status: "skipped", statusReason: "monthly_cap" });
     expect(sent).toEqual([]);
+  });
+  it("gives the AI the card's offer for this video as data, and nothing without a card", async () => {
+    const { account, comment } = await setup("GUIDE please");
+    const db = getDb();
+    const [card] = await db.insert(publishingCards).values({ accountId: account.id, cardId: randomUUID(), card: {}, youtubeVideoId: "VID1" }).returning();
+    const [link] = await db.insert(links).values({ accountId: account.id, kind: "card", slug: "Card123", host: "go.example.com", keyword: "GUIDE", destinationUrl: "https://e.com" }).returning();
+    await db.insert(publishingCardKeywords).values({ accountId: account.id, cardRowId: card!.id, keyword: "GUIDE", intent: "cold", gets: "the 5 step planning guide", linkId: link!.id, state: "armed", youtubeVideoId: "VID1" });
+    const { d, prompts } = deps({ apiKey: "k" });
+    await createDraft(d, comment.id);
+    expect(prompts.join("")).toContain(JSON.stringify(JSON.stringify("the 5 step planning guide")).slice(1, -1));
+
+    const plain = await setup("GUIDE please");
+    const other = deps({ apiKey: "k" });
+    await createDraft(other.d, plain.comment.id);
+    expect(other.prompts.join("")).not.toContain("offer");
   });
 });

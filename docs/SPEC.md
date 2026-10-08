@@ -107,6 +107,7 @@ Environment variables (see `.env.example`): `PRODUCT_NAME`, `BRAND_BASE_URL`, `A
 | purchases | id, account_id, email_norm, amount_cents, currency, source (ghl, stripe, webhook), external_id, refunded_cents, occurred_at, attributed_subscriber_id |
 | integrations | id, account_id, type (ghl, stripe, outbound_webhook), config_enc, status |
 | outbound_deliveries | id, integration_id, event, payload, attempt, status, next_attempt_at |
+| publishing_cards, publishing_card_keywords | A Video Publishing Card from PDT, stored verbatim by (account, cardId), its keywords with link, state (pending, armed, already_live, not_armed) and the campaign that runs it; plus pdt_connect_codes and pdt_connections (hashes only). Section 14a |
 | quota_ledger | id, gcp_project (app, audit), date_pt, method, units, account_id, created_at |
 | audits | id (uuid, the result URL token), channel_key, channel_input, status (queued, running, done, failed), failure_reason, youtube_channel_id, result (jsonb, counts only), examples (jsonb, API-derived, wiped after 30 days), fetched_at, api_data_scrubbed_at, requester_email, consent_marketing, consent_at, report_sent_at, created_at. Built in Phase 9 |
 
@@ -238,6 +239,18 @@ Each opt-in emits outbound `opt_in` and applies tags where the connector support
 - A free GHL Marketplace app (location-level OAuth, D-22). Created as Private in Phase 6 (cap: 5 agencies), switched to Public with "Start Public review" in Phase 10 (Q-17 b). Billing stays in the owner's GHL checkout. On install: store tokens in `integrations`, map the location to an account (existing or invite), create the `vidrev_tid` custom field and tags.
 - Capabilities: write contacts and tags; read contacts with `vidrev_tid`; read won opportunities and buyer tags; optional workflow trigger ("vidrev subscriber created") and action ("Add note: vidrev source").
 - The connector does not handle billing.
+
+## 14a. Suite: Publishing Dream Team (PDT)
+
+The suite chain is IdeaToVideo (production), the Video Publishing Card, PDT (publishing), then vidrev. vidrev works fully without it; the connection is a convenience layer. Decisions A-30 to A-36; owner and PDT guide: [SETUP-PDT.md](SETUP-PDT.md).
+
+- Connect: `GET /connect/pdt?redirect_uri=&state=` (signed in, else log in and come back; `redirect_uri` origin from `PDT_REDIRECT_ORIGINS`). Allow sends `code` (one time, 10 minutes, stored hashed) and `state`; Cancel sends `error=denied` and `state`. `POST /api/v1/connect/token {"code"}` answers `{"token": "vidrev_pat_...", "accountName"}`; the token is stored hashed (`pdt_connections`), one live connection per account, a new connect revokes the old one. `POST /api/v1/connect/revoke` ends it.
+- Every other call carries `Authorization: Bearer <token>`. Errors are `{"error": "<sentence>"}`, 401 for a wrong or revoked token, 429 over 120 calls a minute per token.
+- `POST /api/v1/cards`: the card (`video-publishing-card/1`, validated like PDT, at most `CARD_MAX_BYTES`, default 2 MiB, 413 above) is stored verbatim by `cardId` (`publishing_cards`; a resend updates it). Answer 201 (new) or 200: `{"cardId", "links": [{"keyword", "url"}]}`, one tracked link (kind `card`) per keyword on the account's live domain or the fallback link host. The card is a waiting automation (`publishing_card_keywords`, state `pending`): no campaign row exists, so nothing is polled, drafted or spent.
+- `POST /api/v1/cards/{cardId}/published {"videoId"}`: each keyword goes live on that video: a new campaign for that video only (`campaigns.publishing_card_id`), or, when a live rule already covers the keyword on the video (RR-07), no new rule. The card's links stay the same and are tied to the video. Target per keyword: the live "All my videos" automation of the keyword, else the card `landingUrl`, else `accounts.default_target_url`; never one of our own hosts. Answer `{"armed": [...], "alreadyLive": [...], "notArmed": [{"keyword", "reason"}]}`; idempotent; the creator gets an email when something changed. No YouTube call, no quota.
+- `GET /api/v1/videos/{videoId}/outcomes`: `{"videoId", "currency", "keywords": [{"keyword", "commenters", "emailSubscribers", "buyers", "revenue"}]}`, counts only (people counted once; revenue is the net of canonical payments in the reporting currency, never converted).
+- AI draft: when the card names an offer (`commentCalls[].gets`) for the keyword and video, the prompt gets it as a JSON data value, never as an instruction. Without a card nothing changes.
+- Not built: reading descriptions, keyword filtering, timestamp reports, playlist targets, UI changes. The card's other fields (timestamps and all) are stored and not used.
 
 ## 15. Security and compliance
 

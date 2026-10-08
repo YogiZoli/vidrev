@@ -1,6 +1,6 @@
 # STATUS
 
-Last updated: 2026-10-07 (reliability review: PRs #139 to #143)
+Last updated: 2026-10-08 (suite member through Publishing Dream Team: PR #149)
 
 ## End goal
 
@@ -25,6 +25,19 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 - App restructure (onboarding wizard, Video > Keyword > Target URL, Settings) runs in a separate session with its own prompt.
 - Next: owner builds the GoHighLevel checkout for Founding 100 and sends the link (`FOUNDING_CHECKOUT_URL`); then move the landing into GoHighLevel on `vidrev.app` as Custom Code sections; then campaign drafts (L-03).
 - Next: owner brainstorm on the landing page and funnel, then a phase plan (not started).
+
+## 2026-10-08: vidrev joins the suite through Publishing Dream Team (#149)
+
+The chain: IdeaToVideo (production), Video Publishing Card, PDT (publishing), vidrev. vidrev works fully without it; the connection is a convenience layer. DECISIONS A-30 to A-36, SPEC section 14a, guide docs/SETUP-PDT.md.
+
+- Connect: `app.vidrev.app/connect/pdt` (Allow or Cancel, login first and back), one-time 10 minute code, `POST /api/v1/connect/token` gives a `vidrev_pat_` token (stored hashed, one per account), `POST /api/v1/connect/revoke`.
+- `POST /api/v1/cards`: the card is validated like PDT (same 2 MiB limit), stored verbatim by cardId, one tracked link per keyword back. It waits as an automation without a campaign: no polling, no drafts, no quota.
+- `POST /api/v1/cards/{cardId}/published`: each keyword goes live on the video (new rule for that video only, or reported as already live when an existing rule covers it, RR-07); the links stay the same and point to the target: live "All my videos" automation, else the card landingUrl, else the default target URL (own hosts refused). The creator gets an email naming what went live.
+- `GET /api/v1/videos/{videoId}/outcomes`: commenters, email subscribers, buyers, revenue per keyword; counts only, no consumer yet.
+- AI draft: the card's offer (`gets`) reaches the prompt as data only. Freestyle videos run exactly as before. No existing UI changed; the only new page is the Connect page.
+- Quota request sized from the production ledger: 105,000 units a day for the Founding 100 (docs/compliance/QUOTA-EXTENSION.md, with the English text for the Google form).
+- Owner step: none required. Optional on `web`: `PDT_REDIRECT_ORIGINS` (default `https://dreamteam.commentclient.com`), `CARD_MAX_BYTES` (keep equal to PDT).
+- PDT side: PDT gets the same contract (SPEC 14a); the publish answer adds `alreadyLive` and `notArmed` next to `armed`.
 
 ## Reliability review 2026-10-07 (PRs #139 to #143)
 
@@ -121,6 +134,7 @@ Phase plan changes (all accepted): compliance pack and quota extension request r
 
 ## Next (proposed order)
 
+0. Owner: submit the YouTube quota extension request (105,000 units a day, docs/compliance/QUOTA-EXTENSION.md section 1, English text ready) after the Google verification. Zoltan submits it.
 1. Owner: send the LLC details; then Privacy and Terms are finalised, built as a GoHighLevel copy kit, published on vidrev.app, and only after that the Google review (A-13, LAUNCH-CHECKLIST section B).
 2. Owner items: checkout "Works with GoHighLevel" block waits until the checkout exists (Stripe not connected yet); replace the temporary affiliate link once the LLC and own GoHighLevel exist (A-08); the LLC, then Privacy, Terms, Google verification and Marketplace Public review (C2C's passed pack is the template).
 4. Later: GoHighLevel Conversations provider (reply from inside GHL), running inside GHL with SSO, affiliate snapshot marker.

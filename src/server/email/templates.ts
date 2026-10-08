@@ -211,3 +211,30 @@ export function auditReportEmail(input: AuditReportInput): SendEmailJob {
   const html = `<div style="font-family:system-ui,sans-serif;font-size:15px;line-height:1.5;color:#111;max-width:560px"><p style="margin:0 0 16px">${escapeHtml(intro)}</p>${body}<p style="margin:24px 0 16px">${escapeHtml(outro)}</p>${cta}<p style="color:#666;font-size:13px">${escapeHtml(footer)}</p></div>`;
   return { to: input.to, subject: `Your channel audit: ${input.channelLabel} - ${productName}`, text: `${text}\n`, html };
 }
+
+// A Video Publishing Card went live on a published video (DECISIONS A-33):
+// which keywords now run on which video.
+export function cardArmedEmail(input: {
+  to: string;
+  videoUrl: string;
+  title: string | null;
+  armed: string[];
+  alreadyLive: string[];
+  notArmed: { keyword: string; reason: string }[];
+  url: string;
+  productName: string;
+}): SendEmailJob {
+  const video = input.title ? `"${input.title}"` : "your new video";
+  const lines = [
+    `Publishing Dream Team published ${video}: ${input.videoUrl}`,
+    ...(input.armed.length ? [`Now live on this video: ${input.armed.join(", ")}. Replies wait for your approval as always.`] : []),
+    ...(input.alreadyLive.length ? [`Already watched by one of your automations, not duplicated: ${input.alreadyLive.join(", ")}.`] : []),
+    ...input.notArmed.map((n) => `Not live: ${n.keyword}. ${n.reason}`),
+  ];
+  return {
+    to: input.to,
+    subject: `${input.productName}: ${input.armed.length ? `live on ${input.title ?? "your new video"}: ${input.armed.join(", ")}` : `card checked for ${input.title ?? "your new video"}`}`,
+    text: `${lines.join("\n")}\n\nOpen ${input.productName}: ${input.url}\n`,
+    html: layout(input.productName, lines, { label: "Open automations", url: input.url }),
+  };
+}

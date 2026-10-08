@@ -4,6 +4,7 @@ import { requireEnv } from "@/lib/env";
 import { errorFields, log } from "@/lib/log";
 import { verifySignedValue } from "@/lib/signed";
 import { sessionCookie } from "@/server/auth/current";
+import { takeReturnPath } from "@/server/auth/return-to";
 import { signInWithGoogle } from "@/server/auth/sign-in";
 import { createSession } from "@/server/auth/tokens";
 import { googleConfigured, SIGNIN_COOKIE, SIGNIN_COOKIE_PATH, signInGoogleClient } from "@/server/google/config";
@@ -40,7 +41,7 @@ export async function GET(request: Request): Promise<Response> {
     const session = await createSession(db, result.userId);
     store.set(sessionCookie(session.token));
     log("info", result.created ? "account signed up" : "user signed in", { userId: result.userId, method: "google" });
-    return redirectTo("/app");
+    return redirectTo(takeReturnPath(store, requireEnv("AUTH_SECRET")));
   } catch (error) {
     log("error", "google sign-in failed", errorFields(error));
     return redirectTo(`${back}?error=google`);

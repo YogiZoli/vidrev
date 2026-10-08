@@ -12,6 +12,7 @@ import { draftsWaitingEmail } from "@/server/email/templates";
 import { resolveContact } from "@/server/contacts";
 import { emitEventSafely, kickWith } from "@/server/integrations/events";
 import type { FetchLike } from "@/server/google/oauth";
+import { cardOffer } from "@/server/publishing-cards";
 import { replyUsage } from "@/server/replies";
 import type { Enqueue } from "./polling";
 
@@ -104,6 +105,8 @@ export async function createDraft(deps: DraftDeps, commentId: string): Promise<v
         commentText: comment.text,
         language,
         examples: inLanguage.slice(0, 3).map((t) => t.body),
+        // The card's offer for this keyword and video, when PDT sent one.
+        offer: await cardOffer(deps.db, account.id, comment.youtubeVideoId, campaign.keyword),
       });
       body = cleanDraft(await generateText(config, prompt, deps.fetch));
     } catch (error) {

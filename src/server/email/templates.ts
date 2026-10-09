@@ -70,6 +70,21 @@ export function ghlReconnectEmail(input: { to: string; url: string; productName:
   };
 }
 
+export function accountDeletedEmail(input: { to: string; productName: string; supportEmail: string }): SendEmailJob {
+  const paragraphs = [
+    `Your ${input.productName} account has been closed and its data deleted, as you asked.`,
+    "Your YouTube access was revoked and the YouTube data we held was deleted. Contacts that vidrev created in your CRM in Beast Mode were removed; contacts and tags of people who opted in or bought stay in your CRM, they are yours.",
+    "If you pay through a subscription, cancelling it is a separate step: use the manage link in your purchase receipt email.",
+    `Questions: ${input.supportEmail}. You do not need to do anything else.`,
+  ];
+  return {
+    to: input.to,
+    subject: `Your account is deleted - ${input.productName}`,
+    text: `${paragraphs.join("\n")}\n`,
+    html: layout(input.productName, paragraphs),
+  };
+}
+
 export function stripeReconnectEmail(input: { to: string; url: string; productName: string }): SendEmailJob {
   const paragraphs = [
     "Stripe refused the key you connected, so new payments are no longer read.",

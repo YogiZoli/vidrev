@@ -30,6 +30,7 @@ export const QUEUES = {
   reportHourly: "report.hourly",
   auditRun: "audit.run",
   auditLead: "audit.lead",
+  accountDelete: "account.delete",
 } as const;
 
 export interface SendEmailJob {
@@ -130,6 +131,7 @@ export interface JobPayloads {
   [QUEUES.reportRefresh]: AccountJob;
   [QUEUES.auditRun]: AuditJob;
   [QUEUES.auditLead]: AuditJob;
+  [QUEUES.accountDelete]: AccountJob;
 }
 
 // Email jobs carry magic links, so they are removed soon after completion.
@@ -137,6 +139,8 @@ export const QUEUE_OPTIONS = {
   [QUEUES.sendEmail]: { retryLimit: 5, retryDelay: 30, retryBackoff: true, deleteAfterSeconds: 3600 },
   [QUEUES.channelSync]: { retryLimit: 5, retryDelay: 30, retryBackoff: true },
   [QUEUES.channelDisconnect]: { retryLimit: 10, retryDelay: 60, retryBackoff: true },
+  // One per account; the hourly pass queues a lost one again (server/account-deletion.ts).
+  [QUEUES.accountDelete]: { policy: "stately", retryLimit: 10, retryDelay: 60, retryBackoff: true },
   // One queued plus one running job per channel (singletonKey = channel id).
   [QUEUES.channelPoll]: { policy: "stately", retryLimit: 2, retryDelay: 30, expireInSeconds: 300 },
   [QUEUES.channelRss]: { policy: "stately", retryLimit: 2, retryDelay: 60 },

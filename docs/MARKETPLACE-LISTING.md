@@ -46,7 +46,7 @@ Google's review does not cover this: it checks only data from the Google (YouTub
 
 ## 3. Scope justification (least privilege)
 
-These are the scopes the app requests (`DEFAULT_GHL_SCOPES`). Each answer is what to write in the review form.
+These are the scopes the app requests (`DEFAULT_GHL_SCOPES`, 11 scopes). **The current, complete list with the reason for each is on https://app.vidrev.app/trust#permissions (source `src/app/trust/content.ts`); copy from there.** The table below is the original four.
 
 | Scope | Why it is needed |
 | --- | --- |

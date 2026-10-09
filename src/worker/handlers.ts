@@ -3,7 +3,8 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { users } from "@/db/schema";
 import { type AccountJob, type AuditJob, type ChannelJob, type CommentJob, type DeliveryJob, type DomainJob, type GhlEventJob, type GhlIntegrationJob, type GhlNoteJob, type GhlMergeJob, type GhlOutboundJob, type ProspectJob, type ProspectRestoreJob, type ReplyJob, QUEUES, QUEUE_OPTIONS, type SendEmailJob } from "@/jobs/queues";
-import { ghlReconnectEmail, stripeReconnectEmail } from "@/server/email/templates";
+import { accountDeletedEmail, ghlReconnectEmail, stripeReconnectEmail } from "@/server/email/templates";
+import { pendingDeletions } from "@/server/account-deletion";
 import { postJson } from "@/server/integrations/http-post";
 import { pruneDeliveries } from "@/server/integrations/outbound";
 import { parseEmailList } from "@/lib/email";
@@ -11,6 +12,7 @@ import { appBaseUrl, domainConnectConfig, env } from "@/lib/env";
 import { timedFetch } from "@/lib/http";
 import { errorFields, log } from "@/lib/log";
 import { type Alerter, createAlerter } from "./alerts";
+import { deleteAccount } from "./account-deletion";
 import { type ChannelDeps, disconnectChannel, expireStuckConnects, requeueStuckDisconnects, syncChannel } from "./channels";
 import { EmailSendError, senderAddress, sendWithResend } from "./email";
 import { createDraft, requeueUndraftedComments } from "./drafts";
@@ -215,6 +217,20 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
   await work<SendEmailJob>(QUEUES.sendEmail, (job) => sendEmail(job.data));
   await work<ChannelJob>(QUEUES.channelSync, (job) => syncChannel(channelDeps(), job.data.channelId));
   await work<ChannelJob>(QUEUES.channelDisconnect, (job) => disconnectChannel(channelDeps(), job.data.channelId));
+  await work<AccountJob>(QUEUES.accountDelete, async (job) => {
+    const outcome = await deleteAccount(
+      {
+        channels: channelDeps(),
+        ghl: ghlDeps(boss),
+        sendConfirmation: async (to) => {
+          const { PRODUCT_NAME, LEGAL_CONTACT_EMAIL } = env();
+          await boss.send(QUEUES.sendEmail, accountDeletedEmail({ to, productName: PRODUCT_NAME, supportEmail: LEGAL_CONTACT_EMAIL }) as object, {});
+        },
+      },
+      job.data.accountId,
+    );
+    log("info", "account deletion job", { accountId: job.data.accountId, outcome });
+  });
 
   // Comment engine (SPEC section 7). The tick queues due polls and RSS
   // checks every minute; push leases are renewed hourly.
@@ -302,6 +318,12 @@ export async function registerHandlers(boss: PgBoss): Promise<void> {
     ["undrafted comments", () => requeueUndraftedComments({ db: getDb(), enqueue: sendVia(boss) })],
     ["mark reports dirty", () => markAllReportsDirty(getDb())],
     ["expire trials", () => expireTrials(getDb())],
+    [
+      "lost account deletions",
+      async () => {
+        for (const accountId of await pendingDeletions(getDb())) await boss.send(QUEUES.accountDelete, { accountId }, { singletonKey: accountId });
+      },
+    ],
     // 29 day rule for Beast Mode prospects, hourly so a delete lands within the 30 days.
     ["beast mode prospects", () => sweepProspects(ghlDeps(boss))],
     ["lost beast mode prospects", () => requeueLostProspects(ghlDeps(boss))],

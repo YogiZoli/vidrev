@@ -15,6 +15,10 @@ export const UNIT_COSTS = {
 export type QuotaMethod = keyof typeof UNIT_COSTS;
 
 export const REPLY_METHOD: QuotaMethod = "comments.insert";
+// Zero-unit ledger rows: sources that replace quota calls (measured for the
+// quota extension request, never counted against the budget).
+export const FREE_RSS = "free:rss.feed";
+export const FREE_WEBSUB = "free:websub.push";
 
 export interface DayUsage {
   // Units already spent today on reads (everything except comments.insert).

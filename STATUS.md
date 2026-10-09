@@ -26,6 +26,10 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 - Next: owner builds the GoHighLevel checkout for Founding 100 and sends the link (`FOUNDING_CHECKOUT_URL`); then move the landing into GoHighLevel on `vidrev.app` as Custom Code sections; then campaign drafts (L-03).
 - Next: owner brainstorm on the landing page and funnel, then a phase plan (not started).
 
+## 2026-10-09: quota measurement for the extension request
+
+`quota:report` now shows calls and cost per call per method, units per account per active day, the projection for 100, 1,000 and 10,000 channels, and the free sources: RSS checks and WebSub pushes are recorded as zero-unit ledger rows. How the use is kept low is written for the form in docs/compliance/QUOTA-EXTENSION.md section 0. Re-run over 30 days before submitting.
+
 ## 2026-10-09: Marketplace review readiness (GHL technical check)
 
 Checked against the review: install and uninstall webhook, data on uninstall, token refresh, sub-account and agency installs, error texts.

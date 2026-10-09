@@ -10,7 +10,7 @@ async function main() {
   const db = getDb();
   const since = new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
   const rows = await db
-    .select({ datePt: sql<string>`${quotaLedger.datePt}::text`, method: quotaLedger.method, units: quotaLedger.units })
+    .select({ datePt: sql<string>`${quotaLedger.datePt}::text`, method: quotaLedger.method, units: quotaLedger.units, accountId: quotaLedger.accountId })
     .from(quotaLedger)
     .where(and(eq(quotaLedger.gcpProject, "app"), gte(quotaLedger.datePt, since)));
   const [active] = await db.select({ n: sql<number>`count(*)::int` }).from(channels).where(eq(channels.status, "connected"));
@@ -18,7 +18,16 @@ async function main() {
 
   console.log(`Quota ledger, project "app", last ${days} days (${sizing.days} days with calls), ${sizing.activeChannels} connected channels`);
   console.log(`Total ${sizing.totalUnits} units, average ${sizing.averageDayUnits} a day, peak ${sizing.peakDayUnits} a day`);
-  for (const m of sizing.byMethod) console.log(`  ${m.method.padEnd(24)} ${String(m.units).padStart(8)} units  ${(m.share * 100).toFixed(1)}%`);
+  for (const m of sizing.byMethod) {
+    console.log(`  ${m.method.padEnd(24)} ${String(m.units).padStart(8)} units  ${String(m.calls).padStart(7)} calls  ${(m.units / m.calls).toFixed(1)} per call  ${(m.share * 100).toFixed(1)}%`);
+  }
+  if (sizing.free.length > 0) {
+    console.log("Free sources (0 units, each one replaces a quota read):");
+    for (const f of sizing.free) console.log(`  ${f.method.padEnd(24)} ${String(f.calls).padStart(8)} calls`);
+  }
+  if (sizing.perAccount) {
+    console.log(`Per account per active day: median ${sizing.perAccount.median} units, max ${sizing.perAccount.max} units (${sizing.perAccount.accounts} accounts)`);
+  }
   if (sizing.unitsPerChannelPerDay === null) {
     console.log("Not enough data: connect a channel and let it run for a few days, then run this again.");
   } else {

@@ -4,6 +4,25 @@
 
 The quota extension is an upside, never a dependency (D-27): until approved, the app shares 10,000 units a day and offers the zero-quota manual fallback.
 
+## 0. What is measured, from 2026-10-09
+
+`npm run quota:report -- <days>` (inside the Railway `web` service, see the memory note on `railway ssh`) prints, from the production `quota_ledger`:
+
+- units **and calls** per method, so the cost per call is measured, not assumed;
+- units per **account** per active day (median and max), the per-user figure Google asks for;
+- the projection for **100, 1,000 and 10,000** channels and the suggested request (100 channels, 30% headroom);
+- the **free sources** that replace quota reads: every RSS feed check (`free:rss.feed`) and every WebSub push (`free:websub.push`) is a zero-unit ledger row. They never count against the budget.
+
+Re-run it before submitting, over 30 days, once paying channels run; replace the tables below with that output.
+
+### How we keep the use low (for the form)
+
+- **Push and feed before API:** new uploads come from WebSub push, with the public RSS feed as fallback every 15 minutes; both cost 0 units (counted above).
+- **Tiered polling:** comments are polled every 2 minutes only in the 48 hours after an upload, every 15 minutes otherwise; one poll is one `commentThreads.list` page, at most 5 pages a run.
+- **Batching:** `videos.list` and `comments.list` take up to 50 ids in one call (1 unit), `commentThreads.list` reads 100 comments per page.
+- **Replies are capped and approved one by one:** at most 300 a month per plan and 30 per channel per day; nothing is posted without the creator's approval.
+- **Budget guard:** units are charged in the ledger before each call, reads never use the reply reserve, and when the day's budget is used up the app stops calling and offers the zero-quota manual path.
+
 ## 1. Sizing (measured, 2026-10-08)
 
 Costs: `commentThreads.list` 1 unit per page, `comments.insert` 50 units, `videos.list`, `playlistItems.list` and `channels.list` 1 unit each.

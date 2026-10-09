@@ -3,6 +3,8 @@ import { getDb } from "@/db/client";
 import { channels } from "@/db/schema";
 import { env } from "@/lib/env";
 import { log } from "@/lib/log";
+import { FREE_WEBSUB } from "@/lib/quota";
+import { recordQuota } from "@/server/channels";
 import { feedTopic, parseFeed, verifyHubSignature, websubSecret } from "@/server/youtube/feed";
 import { applyFeedEntries } from "@/server/uploads";
 
@@ -50,6 +52,9 @@ export async function POST(request: Request): Promise<Response> {
     log("warn", "websub notification with a bad signature", { channelId: channel.id });
     return new Response(null, { status: 202 });
   }
-  await applyFeedEntries(getDb(), channel, parseFeed(body), new Date());
+  const now = new Date();
+  // Zero units, recorded so the quota request can show what push saves.
+  await recordQuota(getDb(), { gcpProject: "app", method: FREE_WEBSUB, units: 0, accountId: channel.accountId }, now);
+  await applyFeedEntries(getDb(), channel, parseFeed(body), now);
   return new Response(null, { status: 204 });
 }

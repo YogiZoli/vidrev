@@ -8,7 +8,7 @@ process.env.GHL_WEBHOOK_PUBLIC_KEY = publicKey.export({ type: "spki", format: "p
 
 import { POST as ghlWebhook } from "@/app/api/hooks/crm/route";
 import { closeDb, getDb } from "@/db/client";
-import { campaigns, channels, clicks, integrations, links, outboundDeliveries, purchases, subscribers } from "@/db/schema";
+import { campaigns, channels, clicks, ghlInstalls, integrations, links, outboundDeliveries, purchases, subscribers } from "@/db/schema";
 import { newTid } from "@/lib/links";
 import { runMigrations } from "@/scripts/migrate";
 import { createAccountWithUser } from "@/server/accounts";
@@ -405,6 +405,14 @@ describe.skipIf(!hasDb)("GoHighLevel connector (integration)", () => {
       expect((await post({ type: "UNINSTALL", locationId: location })).status).toBe(200);
       const [gone] = await db().select().from(integrations).where(eq(integrations.id, r.integrationId));
       expect(gone).toMatchObject({ status: "removed", configEnc: null, statusReason: "uninstalled" });
+    });
+
+    it("drops a waiting install of the location on uninstall, even when no account owns it", async () => {
+      const location = `loc_wait_${randomUUID()}`;
+      const now = new Date();
+      await db().insert(ghlInstalls).values({ locationId: location, claimHash: randomUUID(), configEnc: "sealed", createdAt: now, expiresAt: new Date(now.getTime() + 3_600_000) });
+      expect(await (await post({ type: "UNINSTALL", locationId: location })).json()).toEqual({ ok: true, ignored: "unknown_location" });
+      expect(await db().select().from(ghlInstalls).where(eq(ghlInstalls.locationId, location))).toHaveLength(0);
     });
   });
 });

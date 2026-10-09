@@ -27,7 +27,10 @@ const fail = (message: string, account?: { onboardedAt: Date | null }) => {
   const path = `${PAGE}?error=${encodeURIComponent(message)}`;
   return redirectTo(account ? returnPath(account, path) : path);
 };
+// The Marketplace install path ends on the claim page, which never names the
+// platform (DECISIONS A-24), signed in or not.
 const failPublic = (reason: string) => redirectTo(`${GHL_CLAIM_PAGE}?error=${reason}`);
+const donePublic = () => redirectTo(`${GHL_CLAIM_PAGE}?connected=1`);
 
 // HighLevel redirects here after the creator picked a location. The code has to
 // be exchanged now (it is short-lived); the field setup and first sync run in the worker.
@@ -80,10 +83,10 @@ async function marketplaceInstall(session: Awaited<ReturnType<typeof currentSess
     // Signed in already: connect straight away, exactly as the button would.
     if (session && session.account.status !== "suspended") {
       const result = await connectGhl(db, key, session.account.id, tokens);
-      if (!result.ok) return fail(CONNECT_ERRORS[result.error], session?.account);
+      if (!result.ok) return failPublic(result.error);
       await enqueue(QUEUES.ghlSetup, { integrationId: result.id }, { singletonKey: result.id });
       log("info", "ghl marketplace install connected", { accountId: session.account.id, integrationId: result.id });
-      return redirectTo(returnPath(session.account, `${PAGE}?ghl_connected=1`));
+      return donePublic();
     }
 
     const install = await receiveMarketplaceInstall(db, key, tokens);
@@ -91,7 +94,7 @@ async function marketplaceInstall(session: Awaited<ReturnType<typeof currentSess
     if (install.kind === "reconnected") {
       await enqueue(QUEUES.ghlSetup, { integrationId: install.integrationId }, { singletonKey: install.integrationId });
       log("info", "ghl marketplace reinstall", { accountId: install.accountId, integrationId: install.integrationId });
-      return redirectTo(`${PAGE}?ghl_connected=1`);
+      return donePublic();
     }
 
     (await cookies()).set({

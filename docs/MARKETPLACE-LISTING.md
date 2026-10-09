@@ -9,13 +9,21 @@ Nothing here can be finished before the Wyoming LLC exists: the listing and the 
 | Reviewer will check | Where it is built |
 | --- | --- |
 | Install from the listing works, with or without a session in our app | `/api/oauth/crm/callback`, DECISIONS P10-01 to P10-03 |
-| Uninstall removes our copy of the tokens | webhook `/api/hooks/crm`, `wipeGhl` |
-| Clear error states | `/connect/crm` messages, reconnect email when a grant is refused |
+| Uninstall removes our copy of the tokens, and a grant still waiting for a claim | webhook `/api/hooks/crm`, `wipeGhl`, `ghl_installs` row of the location |
+| Clear error states, no platform name on any page the install shows (A-24) | `/connect/crm`: every outcome of an install (connected, waiting, each error) ends there, each error says what to do next; reconnect email when a grant is refused |
 | Least privilege scopes, each justified | table in section 3 |
 | Webhook signature verified | Ed25519 `X-GHL-Signature`, `src/server/ghl/oauth.ts` |
 | Optional workflow action | docs/SETUP-GHL.md section 6 |
 
 Test the two install paths once on the owner's own sub-account before submitting: (a) signed in to the app in the same browser, install from the listing page, the connection appears at once; (b) signed out (private window), install, then sign in with the emailed link in the same browser, and press "Connect to this account" on the dashboard banner.
+
+### Reviewer answer: what happens to the data on uninstall
+
+Owner choice 2026-10-09: the attributed results stay, the answer below explains why. Use it as it is if the reviewer asks.
+
+> When the app is uninstalled, HighLevel sends the uninstall webhook and we delete our copy of the access and refresh tokens at once, together with any install that was still waiting to be claimed; every sync and queued write for that sub-account stops. Contacts, tags and the tracking field we wrote stay in the sub-account, because they belong to the customer. On our side we keep only the results the customer's own campaigns produced (which video and keyword brought an opt-in or a sale), as part of their vidrev account, so their reports stay complete. Nothing from the sub-account is read again after the uninstall. Closing the vidrev account deletes all of it.
+
+Google's review does not cover this: it checks only data from the Google (YouTube) grant, and that has its own rule (deleted when YouTube is disconnected, refreshed or deleted within 30 days otherwise; docs/compliance/OAUTH-VERIFICATION.md). No CRM data reaches Google and no YouTube comment data reaches the CRM.
 
 ## 2. Listing content (draft, edit freely)
 

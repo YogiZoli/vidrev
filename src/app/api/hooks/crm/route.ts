@@ -1,6 +1,6 @@
 import { and, eq, ne } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { integrations } from "@/db/schema";
+import { ghlInstalls, integrations } from "@/db/schema";
 import { enqueue } from "@/jobs/enqueue";
 import { QUEUES } from "@/jobs/queues";
 import { errorFields, log } from "@/lib/log";
@@ -48,6 +48,11 @@ export async function POST(request: Request): Promise<Response> {
   }
   try {
     const db = getDb();
+    if (UNINSTALL_EVENTS.has(type)) {
+      // A grant installed but never claimed is useless once the app is removed.
+      const dropped = await db.delete(ghlInstalls).where(eq(ghlInstalls.locationId, locationId)).returning({ id: ghlInstalls.id });
+      if (dropped.length > 0) log("info", "ghl waiting install dropped on uninstall", { locationId });
+    }
     const [integration] = await db
       .select({ id: integrations.id })
       .from(integrations)

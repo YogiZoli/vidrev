@@ -22,7 +22,7 @@ It prints the names of missing settings, never values, and exits with 1 until ev
 
 Strict order (owner, 2026-09-29, DECISIONS A-13): nothing goes to Google before step 3 is live.
 
-1. The owner sends the LLC details; fill `[LEGAL ENTITY]`, `[ADDRESS]`, `[SUPPORT EMAIL]`, `[EFFECTIVE DATE]`, `[GOVERNING LAW]` in PRIVACY-POLICY.md and TERMS.md; legal review (B-09); remove the DRAFT line.
+1. The owner sends the LLC details; fill docs/compliance/legal-entity.json and rebuild design/legal/legal-kit.html; legal review (B-09); remove the DRAFT line.
 2. Build both pages as a GoHighLevel copy kit (one Custom Code block per section, like `design/landing/ghl-kit.html`), so the owner only pastes, saves and publishes.
 3. The owner publishes them on vidrev.app at `/privacy` and `/terms`; check both live, with the home page linking the policy.
 4. Only then: record the demo video (OAUTH-VERIFICATION.md section 4) and submit Google OAuth verification (section 5).

@@ -1,14 +1,16 @@
 # vidrev Privacy Policy
 
-**DRAFT - needs legal review.** Not published. Placeholders: `[LEGAL ENTITY]` (e.g. vidrev LLC, a Wyoming limited liability company), `[ADDRESS]`, `[EFFECTIVE DATE]`, `[SUPPORT EMAIL]` (e.g. support@vidrev.app). To be published at `https://vidrev.app/privacy` once the LLC exists.
+<!-- DRAFT, needs legal review. Not published. The {{TOKENS}} are filled from docs/compliance/legal-entity.json by design/legal/build-legal-kit.py; the text is the same for any company form. To be published at https://vidrev.app/privacy. -->
 
-Effective date: [EFFECTIVE DATE]
+Effective date: {{EFFECTIVE_DATE}}
 
-This policy explains how [LEGAL ENTITY] ("vidrev", "we") handles data when you use vidrev at vidrev.app and app.vidrev.app, and when someone clicks a vidrev tracked link.
+This policy explains how {{OPERATOR_NAME}} ("vidrev", "we") handles data when you use vidrev at vidrev.app and app.vidrev.app, and when someone clicks a vidrev tracked link.
 
 ## 1. Who we are
 
-vidrev helps YouTube creators reply to keyword comments with approved replies and measure which videos and keywords bring subscribers, buyers and revenue. Operator: [LEGAL ENTITY], [ADDRESS]. Contact: [SUPPORT EMAIL].
+vidrev helps YouTube creators reply to keyword comments with approved replies and measure which videos and keywords bring subscribers, buyers and revenue. Operator: {{OPERATOR}}. Contact for anything in this policy, including data protection requests: {{CONTACT_EMAIL}}.
+
+**Roles.** For your account data we are the controller. For data about the people who comment on your videos, click your links, opt in or buy (your viewers and contacts), you are the controller and we process it on your behalf, as your processor, only to provide vidrev. A data processing agreement is available on request.
 
 ## 2. YouTube API Services
 
@@ -32,6 +34,7 @@ You can revoke vidrev's access to your Google account at any time at https://mya
 - Clicks on your tracked links: time, link, keyword, video id, a daily-changing one-way hash of the IP address (the IP itself is not stored), browser type, country, referring site. Automated clicks (bots) are marked.
 - If you connect Stripe: a restricted read-only key you create (stored encrypted, deleted when you disconnect), and, read from your Stripe account, each payment's id, amount, currency, refunds, time, the buyer's email and name, the Stripe customer id and any tracking id you put in the metadata. We do not store card details, and the key cannot change anything in your Stripe account.
 - If you use the free channel audit (no account needed): the channel handle you typed, and public YouTube data read with an API key: the channel and video titles, the last five videos' descriptions and links, and the last comments on those videos. Comment text is analysed and not stored. What we keep is counts and a score; video titles, comment ids and description links are deleted 30 days after they were read. If you ask for the full report by email, we keep the email address you entered, whether you ticked the separate box for occasional tips (and when), and we send the report to that address only.
+- Phone numbers and messaging handles: if you give us your phone number, WhatsApp number or Telegram username (for example for support or account notices), we keep it with your account. If your own opt-in pages or CRM send us a contact's phone number, we store it with that contact like an email address, only to attribute the opt-in or purchase.
 - Opt-ins and purchases your own systems send us (through our inbound webhooks or a connected GoHighLevel account): email address, name if you send it, the tracking id, order id, amount, currency, refunds and time. We use them only to show you which video and keyword brought them. If you connect GoHighLevel we also store its access tokens, encrypted, and read the contacts, won opportunities and payments of the one sub-account you connect.
 
 ## 4. Data retention (YouTube API data: 30 days)
@@ -56,6 +59,13 @@ We never sell data, never use it for advertising, and never use Google user data
 vidrev's use and transfer of information received from Google APIs to any other app will adhere to the Google API Services User Data Policy (https://developers.google.com/terms/api-services-user-data-policy), including the Limited Use requirements.
 
 In particular: we use Google user data only to provide the features you see in vidrev; we transfer it only as needed for those features, for security, or to comply with law; we do not use it for advertising; humans do not read it unless you ask us to (support), it is needed for security or by law, or it is aggregated and anonymized.
+
+## 6a. How we communicate (email, phone, SMS, WhatsApp, Telegram)
+
+- **With you (account holders):** we send sign-in links, receipts, reports and service notices by email. If you give us a phone number, WhatsApp number or Telegram username, we may use it for support and important account notices. We send marketing messages on any channel only with your consent, and you can stop them at any time (unsubscribe link, reply STOP to an SMS, tell us on WhatsApp or Telegram, or write to {{CONTACT_EMAIL}}). Messages your account needs (sign-in, billing, security) are not marketing.
+- **Support:** if you contact us by email, phone, WhatsApp or Telegram, we keep the conversation as long as needed to help you and at most 2 years, then delete it. WhatsApp is run by Meta (https://www.whatsapp.com/legal/privacy-policy) and Telegram by Telegram Messenger (https://telegram.org/privacy); their own policies apply to what passes through their apps.
+- **With your contacts:** vidrev does not send SMS, WhatsApp or Telegram messages to your viewers or contacts. If you message them through your own CRM or tools, you are the sender and you are responsible for their consent and opt-out under the rules that apply to you (for example GDPR, ePrivacy, TCPA, CAN-SPAM).
+- We never sell or share phone numbers or messaging handles, and never use them for advertising.
 
 ## 7. AI drafting
 
@@ -99,11 +109,26 @@ Except in Beast Mode (above), data we read through the YouTube API Services abou
 
 ## 10. Viewers who click links or comment
 
-If you commented on a creator's video or clicked a creator's link, the creator decides why the data is used; we process it on their behalf. A comment alone puts you in the creator's CRM only if the creator turned on Beast Mode (section 9): then your YouTube display name, the keyword and the comment appear there for at most 29 days, and are deleted unless you opt in. Otherwise you enter the creator's CRM only when you give your email on the creator's own page. Contact the creator, or write to [SUPPORT EMAIL] and we forward your request.
+If you commented on a creator's video or clicked a creator's link, the creator decides why the data is used; we process it on their behalf. A comment alone puts you in the creator's CRM only if the creator turned on Beast Mode (section 9): then your YouTube display name, the keyword and the comment appear there for at most 29 days, and are deleted unless you opt in. Otherwise you enter the creator's CRM only when you give your email on the creator's own page. Contact the creator, or write to {{CONTACT_EMAIL}} and we forward your request.
 
-## 11. Your rights
+## 11. Legal bases (EU and UK GDPR)
 
-You can access, export, correct or delete your data from your account or by writing to [SUPPORT EMAIL]. Depending on where you live (EU/UK GDPR, California CCPA and others) you may have further rights, including a complaint to your data protection authority.
+- **Contract:** to run your account and the features you use (sections 3 to 5).
+- **Legitimate interests:** security, abuse prevention, fixing errors and improving the service, balanced against your rights.
+- **Consent:** optional marketing messages on any channel, and the audit tips box. You can withdraw consent at any time; this does not affect what happened before.
+- **Legal obligation:** records we must keep by law, such as invoices.
+
+## 11a. International transfers
+
+Our providers (section 9) are mostly in the United States. Where data from the EU, the UK or Switzerland is transferred, we rely on an adequacy decision (including the EU-US Data Privacy Framework where the provider is certified) or on the European Commission's Standard Contractual Clauses with the UK Addendum.
+
+## 11b. Your rights
+
+You can access, export, correct or delete your data from your account, or by writing to {{CONTACT_EMAIL}} or through any channel in section 6a. We answer within 30 days (45 days where US state law allows).
+
+- **EU and UK (GDPR):** access, rectification, erasure, restriction, portability, objection (to direct marketing at any time), withdrawal of consent, and a complaint to your data protection authority.
+- **US states (California CCPA/CPRA and other state privacy laws):** the right to know what personal information we collect, use and disclose, to delete it, to correct it, and to opt out of its sale, of sharing for cross-context behavioural advertising and of profiling. We do not sell or share personal information and do not use it for targeted advertising or profiling. We will not treat you differently for using these rights. Categories we collect: identifiers (email, name, phone number, messaging handle, account id), commercial information (plan, purchases), internet activity (sign-ins, link clicks), approximate location (country from the IP address; the IP is not stored) and content you create (replies, settings). Sources and purposes are in sections 3 to 5, recipients in section 9. You may use an authorised agent; we may verify a request through your account email.
+- **Viewers and contacts of a creator:** send your request to the creator, or to {{CONTACT_EMAIL}} and we pass it on and help the creator answer it.
 
 ## 12. Security
 

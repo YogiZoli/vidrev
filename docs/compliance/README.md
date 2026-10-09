@@ -14,7 +14,7 @@ Owner decision (2026-09-25): submit after the LLC is formed, so every document n
 
 ## When the LLC exists
 
-1. Replace `[LEGAL ENTITY]`, `[ADDRESS]`, `[SUPPORT EMAIL]`, `[EFFECTIVE DATE]`, `[GOVERNING LAW]` in the two drafts.
+1. Fill docs/compliance/legal-entity.json (the only place of the legal data, any company form), run `python design/legal/build-legal-kit.py`, paste the two blocks of design/legal/legal-kit.html into vidrev.app/privacy and vidrev.app/terms.
 2. Legal review of both drafts (B-09); then remove the DRAFT line.
 3. Work through OAUTH-VERIFICATION.md section 1, record the demo video, submit.
 4. Submit QUOTA-EXTENSION.md with real ledger numbers.

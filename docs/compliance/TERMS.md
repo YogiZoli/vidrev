@@ -1,10 +1,10 @@
 # vidrev Terms of Service
 
-**DRAFT - needs legal review.** Not published. Placeholders: `[LEGAL ENTITY]`, `[ADDRESS]`, `[EFFECTIVE DATE]`, `[SUPPORT EMAIL]`, `[GOVERNING LAW]` (e.g. Wyoming). To be published at `https://vidrev.app/terms`.
+<!-- DRAFT, needs legal review. Not published. The {{TOKENS}} are filled from docs/compliance/legal-entity.json by design/legal/build-legal-kit.py; the text is the same for any company form. To be published at https://vidrev.app/terms. -->
 
-Effective date: [EFFECTIVE DATE]
+Effective date: {{EFFECTIVE_DATE}}
 
-These terms are an agreement between you and [LEGAL ENTITY] ("vidrev", "we") for the use of vidrev.
+These terms are an agreement between you and {{OPERATOR}} ("vidrev", "we") for the use of vidrev.
 
 ## 1. The service
 
@@ -45,6 +45,12 @@ You own your content and data. You give us permission to process it only to prov
 
 No spam, no misleading or unlawful content, no attempts to break, overload or reverse engineer the service, no use of vidrev on channels or domains without permission. We may suspend accounts that break these rules or put the shared link domain or YouTube access at risk.
 
+## 8a. Messages and communication channels
+
+- We contact you by email and, if you give us a phone number, WhatsApp number or Telegram username, through that channel for support and account notices. Marketing messages need your consent and you can stop them at any time (unsubscribe link, reply STOP, tell us on the channel, or write to {{CONTACT_EMAIL}}). Your carrier's message and data rates may apply.
+- Notices we send to your account email, or through a channel you gave us, count as written notice.
+- If you use data from vidrev (emails, phone numbers) to send email, SMS, WhatsApp, Telegram or other messages to your own contacts, you are the sender. You must have their consent where the law requires it, honour opt-outs, and follow the rules of each channel and the laws that apply to you (for example GDPR, ePrivacy, TCPA, CAN-SPAM). vidrev does not send such messages for you.
+
 ## 9. Availability and changes
 
 We work to keep vidrev available but do not promise uninterrupted service. We may change features; material changes are announced by email.
@@ -59,4 +65,6 @@ You may stop using vidrev and close your account at any time. We may end these t
 
 ## 12. Law
 
-These terms are governed by the laws of [GOVERNING LAW]. Contact: [SUPPORT EMAIL], [ADDRESS].
+These terms are governed by the laws of {{GOVERNING_LAW}}, without regard to its conflict of law rules. If you are a consumer, this does not take away the protection of the mandatory laws of the country where you live, and you may also bring a claim in the courts there.
+
+Contact: {{CONTACT_EMAIL}}. Operator: {{OPERATOR}}.

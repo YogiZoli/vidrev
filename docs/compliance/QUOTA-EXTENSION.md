@@ -58,7 +58,7 @@ Zoltan submits the request after the Google OAuth verification (A-13, LAUNCH-CHE
 ## 2. Answers for the form
 
 - **Project number / API client:** from GCP `c2c-app`.
-- **Organization:** [LEGAL ENTITY], website `https://vidrev.app`.
+- **Organization:** the `name` in docs/compliance/legal-entity.json, website `https://vidrev.app`.
 - **What does your client do:** vidrev helps YouTube creators answer viewers who ask for a resource in the comments. It reads top-level comments on the creator's own channel, finds comments containing the creator's keywords, drafts a reply and posts it only after the creator approves that single reply. Links in replies point to the creator's own website.
 - **How do you use YouTube data:** comment text and commenter names are shown only to the channel owner in the approval queue; they are deleted within 30 days; nothing is shared or sold; no data is used for AI training.
 - **Why more quota:** each approved reply costs 50 units and all customers share one project. With 10,000 units a day we can serve about 12 channels; the founding cohort is 100 channels (section 1: 796 units per channel per day, 105,000 requested).

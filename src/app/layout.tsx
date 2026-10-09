@@ -16,6 +16,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en" className={`${openSans.variable} ${geistMono.variable}`}>
       <body>
         <ToastProvider>{children}</ToastProvider>
+        <footer className="flex flex-wrap justify-center gap-x-4 gap-y-1 px-4 pb-6 text-sm text-muted-foreground">
+          <a href="/trust" className="text-muted-foreground">
+            Trust and data
+          </a>
+          <a href="/data-deletion" className="text-muted-foreground">
+            Data deletion
+          </a>
+        </footer>
       </body>
     </html>
   );

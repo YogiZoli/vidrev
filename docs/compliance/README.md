@@ -9,6 +9,7 @@ Owner decision (2026-09-25): submit after the LLC is formed, so every document n
 | [PRIVACY-POLICY.md](PRIVACY-POLICY.md) | Draft for vidrev.app/privacy: YouTube API Services disclosure, Google Privacy Policy link, revocation, Limited Use, 30-day rule (Q-17 c) |
 | [TERMS.md](TERMS.md) | Draft for vidrev.app/terms, incl. the YouTube Terms of Service binding |
 | [OAUTH-VERIFICATION.md](OAUTH-VERIFICATION.md) | Prerequisites checklist, consent screen values, scope justification, demo video script, submission steps |
+| [REVIEW-PACK.md](REVIEW-PACK.md) | Both reviews field by field, and where each answer is on the public pages /trust and /data-deletion |
 | [LAUNCH-CHECKLIST.md](LAUNCH-CHECKLIST.md) | One ordered list of everything left before launch, with the commands |
 | [QUOTA-EXTENSION.md](QUOTA-EXTENSION.md) | Sizing (about 780 units per channel per day, request 100,000) and form answers |
 

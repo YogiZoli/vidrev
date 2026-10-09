@@ -26,6 +26,14 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 - Next: owner builds the GoHighLevel checkout for Founding 100 and sends the link (`FOUNDING_CHECKOUT_URL`); then move the landing into GoHighLevel on `vidrev.app` as Custom Code sections; then campaign drafts (L-03).
 - Next: owner brainstorm on the landing page and funnel, then a phase plan (not started).
 
+## 2026-10-09: Trust page, Data deletion page, self-service account deletion
+
+- `app.vidrev.app/trust` (public): permissions with the reason for each (Google, all 11 CRM scopes, Stripe), the YouTube policy rules and how vidrev meets each, security, questions. The same text answers the Google and Marketplace reviewers (docs/compliance/REVIEW-PACK.md). Text in `src/app/trust/content.ts`; no platform name on it (A-24).
+- `app.vidrev.app/data-deletion` (public): how to delete, what is deleted and when, partial deletion, viewers' requests.
+- Settings > Account > Delete my account (type the email): the account is suspended and channels set to disconnect at once; the `account.delete` job cleans the Beast Mode contacts in the CRM, revokes the Google grants, wipes YouTube data, emails a confirmation and deletes the account row (everything cascades). The audit trail keeps no email. A lost job is queued again by the hourly pass after 15 minutes. Before this there was no way to close an account, although the Privacy draft promised it.
+- Footer on every app page: Trust and data, Data deletion. New env `LEGAL_CONTACT_EMAIL` (default me@vidrev.app).
+- Owner: nothing required. The security contact promises an answer within 2 working days (on /trust); change it if that is too tight.
+
 ## 2026-10-09: quota measurement for the extension request
 
 `quota:report` now shows calls and cost per call per method, units per account per active day, the projection for 100, 1,000 and 10,000 channels, and the free sources: RSS checks and WebSub pushes are recorded as zero-unit ledger rows. How the use is kept low is written for the form in docs/compliance/QUOTA-EXTENSION.md section 0. Re-run over 30 days before submitting.

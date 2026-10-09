@@ -1,6 +1,6 @@
 # STATUS
 
-Last updated: 2026-10-08 (suite member through Publishing Dream Team: PRs #149, #150)
+Last updated: 2026-10-09 (Marketplace review readiness: white-label install pages, uninstall clears waiting grants)
 
 ## End goal
 
@@ -25,6 +25,17 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 - App restructure (onboarding wizard, Video > Keyword > Target URL, Settings) runs in a separate session with its own prompt.
 - Next: owner builds the GoHighLevel checkout for Founding 100 and sends the link (`FOUNDING_CHECKOUT_URL`); then move the landing into GoHighLevel on `vidrev.app` as Custom Code sections; then campaign drafts (L-03).
 - Next: owner brainstorm on the landing page and funnel, then a phase plan (not started).
+
+## 2026-10-09: Marketplace review readiness (GHL technical check)
+
+Checked against the review: install and uninstall webhook, data on uninstall, token refresh, sub-account and agency installs, error texts.
+
+- Every outcome of a Marketplace install (connected, reinstalled, waiting for a claim, claimed, each error) now ends on `/connect/crm`, and no text there names the platform (A-24). Before, a signed-in install or a claim landed on `/app/settings/gohighlevel` and the page said HighLevel seven times. Our own Connect button inside the app still uses the GoHighLevel settings page (outside the platform, A-24 allows it).
+- `already_connected` is no longer a dead end: one account connects one sub-account, so a second sub-account needs a different account, or the current one is disconnected first.
+- Uninstall also deletes a grant that was installed but never claimed (before, it waited out its 24 hours).
+- Data on uninstall: owner choice (a), tokens go, attributed results stay with the account; the reviewer answer is in docs/MARKETPLACE-LISTING.md section 1. Not a Google review topic.
+- Token refresh: no change needed (rotating refresh under a row lock, one forced retry on 401, reconnect state and one email when refused).
+- Owner, later: live test on several sub-accounts (two sub-accounts on two accounts, the same one on a second account is refused, reinstall, agency install refused, uninstall then install again).
 
 ## 2026-10-08: vidrev joins the suite through Publishing Dream Team (#149, #150)
 

@@ -8,7 +8,7 @@ GCP project: `c2c-app` (customer replies only, D-31, D-34).
 
 | # | Item | Status |
 | --- | --- | --- |
-| 1 | LLC formed; replace `[LEGAL ENTITY]` and `[ADDRESS]` in PRIVACY-POLICY.md and TERMS.md | waiting (Northwest, WY) |
+| 1 | LLC formed; fill docs/compliance/legal-entity.json, rebuild the legal kit | waiting (Northwest, WY) |
 | 2 | Privacy Policy and Terms published on `https://vidrev.app/privacy` and `/terms` (GHL pages), linked from the home page | waiting for 1 |
 | 3 | `https://vidrev.app` home page describes the app (what it does, that it uses YouTube data, link to privacy) | todo, GHL |
 | 4 | App on `https://app.vidrev.app` (Railway custom domain, DNS only record), `APP_BASE_URL` changed, OAuth redirect URI `https://app.vidrev.app/api/oauth/google/callback` added in GCP | todo, before the demo video |
@@ -21,7 +21,7 @@ GCP project: `c2c-app` (customer replies only, D-31, D-34).
 ## 2. OAuth consent screen (Google Auth Platform > Branding)
 
 - App name: `vidrev`
-- User support email: [SUPPORT EMAIL]
+- User support email: Google only offers the owner's Google account or a Google Group here, not a forwarded address; the developer contact can be me@vidrev.app (Cloudflare Email Routing to the owner's inbox).
 - App logo: the 120x120 logo
 - App home page: `https://vidrev.app`
 - Privacy policy: `https://vidrev.app/privacy`

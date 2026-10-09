@@ -1,0 +1,10 @@
+{
+  "_note": "The only place the operator's legal data lives. Fill it when the company exists, then run: python design/legal/build-legal-kit.py and paste the blocks. Empty fields are left out of the pages; the kit says DRAFT until name, address and governing_law are set. Any company form works (US LLC, UK Ltd, HK Ltd, Kft): only these fields change.",
+  "name": "",
+  "type": "",
+  "reg_number": "",
+  "address": "",
+  "governing_law": "",
+  "contact_email": "me@vidrev.app",
+  "effective_date": ""
+}

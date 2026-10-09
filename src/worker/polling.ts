@@ -4,7 +4,7 @@ import { accounts, campaigns, channels, comments, videos } from "@/db/schema";
 import type { JobPayloads } from "@/jobs/queues";
 import { matchComment } from "@/lib/keywords";
 import { errorFields, log } from "@/lib/log";
-import { FAST_POLL_MS, nextPollAt, pollTier, readBudget, stretchFactor } from "@/lib/quota";
+import { FAST_POLL_MS, FREE_RSS, nextPollAt, pollTier, readBudget, stretchFactor } from "@/lib/quota";
 import { env } from "@/lib/env";
 import { accountOnList } from "@/server/crm-sync-mode";
 import { reserveUnits } from "@/server/quota";
@@ -14,6 +14,7 @@ import { applyFeedEntries } from "@/server/uploads";
 import { feedTopic, HUB_URL, LEASE_SECONDS, parseFeed, rssUrl, websubSecret } from "@/server/youtube/feed";
 import { releaseQueued } from "./sending";
 import { ChannelRevokedError, type ChannelDeps, getAccessToken } from "./channels";
+import { recordQuota } from "@/server/channels";
 
 export type Enqueue = <Q extends keyof JobPayloads>(queue: Q, data: JobPayloads[Q], options?: { singletonKey?: string; startAfter?: number }) => Promise<void>;
 
@@ -87,6 +88,8 @@ export async function checkRss(deps: EngineDeps, channelId: string): Promise<voi
   if (!account?.onboardedAt) return;
   const response = await deps.fetch(rssUrl(channel.youtubeChannelId));
   await deps.db.update(channels).set({ rssCheckedAt: now }).where(eq(channels.id, channel.id));
+  // Zero units, recorded so the quota request can show what the free feed saves.
+  await recordQuota(deps.db, { gcpProject: "app", method: FREE_RSS, units: 0, accountId: channel.accountId }, now);
   if (!response.ok) {
     log("warn", "rss feed failed", { channelId, status: response.status });
     return;

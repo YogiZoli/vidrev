@@ -26,6 +26,10 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 - Next: owner builds the GoHighLevel checkout for Founding 100 and sends the link (`FOUNDING_CHECKOUT_URL`); then move the landing into GoHighLevel on `vidrev.app` as Custom Code sections; then campaign drafts (L-03).
 - Next: owner brainstorm on the landing page and funnel, then a phase plan (not started).
 
+## 2026-10-09: Help page
+
+`app.vidrev.app/help` (public): setup step by step (YouTube, automations, approvals, CRM incl. the Marketplace install, links and domain, reports, disconnect and delete) and what every error message means. Text in `src/app/help/content.ts`, no platform name (A-24); the Marketplace documentation URL. Footer: Help, Trust and data, Data deletion.
+
 ## 2026-10-09: Trust page, Data deletion page, self-service account deletion
 
 - `app.vidrev.app/trust` (public): permissions with the reason for each (Google, all 11 CRM scopes, Stripe), the YouTube policy rules and how vidrev meets each, security, questions. The same text answers the Google and Marketplace reviewers (docs/compliance/REVIEW-PACK.md). Text in `src/app/trust/content.ts`; no platform name on it (A-24).

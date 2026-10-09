@@ -13,6 +13,7 @@ Legal data (company name, address, governing law) comes only from `docs/complian
 | Terms of Service | https://vidrev.app/terms (legal kit, waits for the company) |
 | Trust, permissions, security, FAQ | https://app.vidrev.app/trust |
 | Data deletion instructions | https://app.vidrev.app/data-deletion |
+| Help (setup, every message explained) | https://app.vidrev.app/help |
 | Support and security contact | me@vidrev.app |
 
 ## 2. Google Auth Platform (consent screen and verification)
@@ -42,7 +43,7 @@ Questions Google asks and where the answer is: Limited Use, retention, revocatio
 | Short and long description | MARKETPLACE-LISTING.md section 2 (no platform name, A-24) |
 | Scopes and justification | /trust#permissions, list "CRM sub-account" (all 11 scopes of `DEFAULT_GHL_SCOPES`) |
 | Support email | me@vidrev.app |
-| Support / documentation URL | https://app.vidrev.app/trust |
+| Support / documentation URL | https://app.vidrev.app/help (setup and messages), https://app.vidrev.app/trust (data) |
 | Privacy Policy, Terms | as in section 1 |
 | Data usage summary | /trust#faq, "What goes into my CRM?" and "What happens when I uninstall" |
 | Uninstall behaviour | /trust#faq, and MARKETPLACE-LISTING.md section 1 |

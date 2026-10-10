@@ -40,6 +40,10 @@ for title, body in blocks:
     items.append((title, code))
 # The checkout is a GoHighLevel order form, not part of the landing: its one
 # block (Works with GoHighLevel, R-02) goes into a Custom Code element there.
+# A stand-alone strip with the Help, Trust and Data deletion links (styles
+# inline), for any page whose footer does not carry them. Use it OR the
+# updated Footer block above, not both.
+items.append(("Extra: Help, Trust and Data deletion links (own Custom Code element, only if the Footer block above is not re-pasted)", (HERE / "footer-links.html").read_text(encoding="utf-8").strip()))
 items.append(("Checkout page: Works with GoHighLevel (one Custom Code element under the order form)", (HERE / "checkout-ghl-badge.html").read_text(encoding="utf-8").strip()))
 
 cards = []

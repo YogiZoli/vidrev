@@ -1,6 +1,6 @@
 # STATUS
 
-Last updated: 2026-10-09 (Marketplace review readiness: white-label install pages, uninstall clears waiting grants)
+Last updated: 2026-10-11 (review preparation without a company: done on our side; owner steps listed below)
 
 ## End goal
 
@@ -25,6 +25,23 @@ A production SaaS that turns keyword comments into subscribers, buyers and reven
 - App restructure (onboarding wizard, Video > Keyword > Target URL, Settings) runs in a separate session with its own prompt.
 - Next: owner builds the GoHighLevel checkout for Founding 100 and sends the link (`FOUNDING_CHECKOUT_URL`); then move the landing into GoHighLevel on `vidrev.app` as Custom Code sections; then campaign drafts (L-03).
 - Next: owner brainstorm on the landing page and funnel, then a phase plan (not started).
+
+## 2026-10-11: where the two reviews stand (Marketplace Public review, Google verification, quota)
+
+Everything that can be done without a company is done in code and docs (PRs #152 to #157). Nothing is submitted. The legal data of the future company lives only in docs/compliance/legal-entity.json; any company form works.
+
+Done and live: white-label install pages and uninstall cleanup (#152), entity-agnostic Privacy and Terms with the paste kit (#153, drafts, not published), quota measurement (#154), /trust, /data-deletion and self-service account deletion (#155), /help (#156), landing footer links in the kit (#157, not pasted yet). The CRM connection survived the HighLevel billing hold (checked 2026-10-10, active, syncing).
+
+Owner steps, in order. Step by step in the Drive doc "vidrev: Email Routing és Google Cloud Organization, lépések" (https://docs.google.com/document/d/17d0p29UbSMXQs_JhkDyfQdtpQKFJGr4a3ZMmis_J9_8/edit):
+
+1. Now: Cloudflare Email Routing, me@vidrev.app to the owner's inbox (doc part A).
+2. Now, after 1: Marketplace developer portal: 11 scopes, Documentation URL https://app.vidrev.app/help, support email (doc part C). Nothing here is redone later; the company only adds the company name, address and the Privacy and Terms URLs.
+3. Whenever: Search Console for vidrev.app with the Google account that owns the GCP project, then the consent screen fields of REVIEW-PACK.md section 2. Not redone later: the company account is added as a second owner.
+4. Later, owner's choice: live test on several sub-accounts (6 cases, in the 2026-10-09 Marketplace entry below); the two demo videos, no narration needed.
+5. Postponed by the owner until the company exists: pasting the landing footer (kit block "14. Footer", or the stand-alone "Extra" links block), the beta with the private install link (dropped for now).
+6. When the company exists: fill legal-entity.json, rebuild and paste the legal kit (Privacy, Terms), Cloud Identity and the Organization (doc part B), then the three submissions; run `npm run quota:report -- 30` first.
+
+The Drive mirror of this file is not updated yet (owner: can wait).
 
 ## 2026-10-09: Help page
 

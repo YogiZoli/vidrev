@@ -48,12 +48,12 @@ In Testing mode Google expires refresh tokens after 7 days, so a connected chann
 
 1. Open https://console.cloud.google.com/auth/clients and click **Create client**.
 2. Application type: **Web application**. Name: `c2c-saas web`.
-3. Authorized redirect URIs, add both:
-   - `https://web-production-7b0e1f.up.railway.app/api/oauth/google/callback`
-   - `http://localhost:3000/api/oauth/google/callback`
+3. Authorized redirect URIs:
+   - `https://app.vidrev.app/api/oauth/google/callback` (production, must stay)
+   - `http://localhost:3000/api/oauth/google/callback` (local development only)
 4. **Create**. Copy the Client ID and the Client secret right away (download the JSON as a backup and keep it out of the repo).
 
-When the brand domain exists, add `https://app.<brand domain>/api/oauth/google/callback` here and set `APP_BASE_URL` to match.
+`APP_BASE_URL` on Railway must match the production URI (`https://app.vidrev.app`). The client was first created with the Railway address `https://web-production-7b0e1f.up.railway.app/api/oauth/google/callback`: before the Google verification is submitted, remove that one and the localhost one from the production client (the reviewer accepts only the verified domain, vidrev.app); see docs/compliance/REVIEW-PACK.md section 5.
 
 "Continue with Google" on /login and /signup (DECISIONS A-18) uses the same client with its own redirect URI. Add it next to the others, or Google answers `redirect_uri_mismatch`:
 
@@ -75,6 +75,6 @@ The script sets `ENCRYPTION_KEY`, `AUTH_SECRET` and `PROVISIONING_SECRET` if the
 
 ## 8. Check
 
-1. Sign in at `https://web-production-7b0e1f.up.railway.app/login` with the owner email.
+1. Sign in at `https://app.vidrev.app/login` with the owner email.
 2. On `/app`, click **Connect your channel**, choose the channel's Google account, keep every box ticked, allow.
 3. The channel shows "Connecting..." for a few seconds, then its title and "connected". One `channels.list` call (1 unit) is written to `quota_ledger`.

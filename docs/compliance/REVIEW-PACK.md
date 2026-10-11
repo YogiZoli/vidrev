@@ -69,3 +69,7 @@ All on /trust#faq and /data-deletion, in the same words:
 2. Re-run `npm run quota:report -- 30` (QUOTA-EXTENSION.md).
 3. Demo videos recorded and uploaded unlisted.
 4. Read /trust and /data-deletion once more against what the app does that day.
+5. No Railway address left anywhere a reviewer or a customer sees (the app answers on both hosts, so nothing breaks, but only vidrev.app is the verified domain):
+   - Google OAuth client, Authorized redirect URIs: keep `https://app.vidrev.app/api/oauth/google/callback`, remove `https://web-production-7b0e1f.up.railway.app/...` and `http://localhost:3000/...`. Connect a channel once afterwards to prove it still works.
+   - Marketplace app: webhook `https://app.vidrev.app/api/hooks/crm` (changed by the owner 2026-10-11), redirect `https://app.vidrev.app/api/oauth/crm/callback`, workflow action `https://app.vidrev.app/api/hooks/crm/action`, custom page `https://app.vidrev.app/crm`, conversation provider `https://app.vidrev.app/api/hooks/crm/provider`.
+   - Checkout workflow webhook that creates the account: `https://app.vidrev.app/api/provisioning/ghl`.

@@ -64,5 +64,5 @@ Responses: `200 {"result": ...}` (including `duplicate` for a resend), `401` wro
 ```powershell
 $secret = Read-Host "PROVISIONING_SECRET"
 $body = '{"event":"purchase","external_id":"test-001","email":"you@example.com","plan_code":"standard_monthly"}'
-Invoke-RestMethod -Method Post -Uri "https://web-production-7b0e1f.up.railway.app/api/provisioning/ghl" -Headers @{ Authorization = "Bearer $secret" } -ContentType "application/json" -Body $body
+Invoke-RestMethod -Method Post -Uri "https://app.vidrev.app/api/provisioning/ghl" -Headers @{ Authorization = "Bearer $secret" } -ContentType "application/json" -Body $body
 ```

@@ -20,6 +20,28 @@ export function appHost(): string | null {
   }
 }
 
+// The marketing host: BRAND_BASE_URL without "www.", e.g. vidrev.app. Null
+// when unset, unparsable, or the same host as the app.
+export function brandHost(app = appHost()): string | null {
+  try {
+    const raw = process.env.BRAND_BASE_URL?.trim();
+    if (!raw) return null;
+    const host = new URL(raw).hostname.toLowerCase().replace(/^www\./, "");
+    return host === app ? null : host;
+  } catch {
+    return null;
+  }
+}
+
+// Which marketing host a request is for (the apex or its www), or null. The
+// marketing host shows the landing only; the app itself lives on APP_BASE_URL.
+export function brandHostOf(headers: Headers, brand = brandHost()): string | null {
+  if (!brand) return null;
+  const raw = headers.get("x-original-host") ?? headers.get("host");
+  const host = raw?.split(":")[0]?.trim().toLowerCase();
+  return host === brand || host === `www.${brand}` ? host : null;
+}
+
 export function linkHostOf(headers: Headers, fallback = fallbackHost(), app = appHost()): string | null {
   const original = headers.get("x-original-host")?.split(":")[0]?.trim().toLowerCase();
   if (original) return original === app ? null : original;

@@ -9,9 +9,9 @@ GCP project: `c2c-app` (customer replies only, D-31, D-34).
 | # | Item | Status |
 | --- | --- | --- |
 | 1 | LLC formed; fill docs/compliance/legal-entity.json, rebuild the legal kit | waiting (Northwest, WY) |
-| 2 | Privacy Policy and Terms published on `https://vidrev.app/privacy` and `/terms` (GHL pages), linked from the home page | waiting for 1 |
-| 3 | `https://vidrev.app` home page describes the app (what it does, that it uses YouTube data, link to privacy) | todo, GHL |
-| 4 | App on `https://app.vidrev.app` (Railway custom domain, DNS only record), `APP_BASE_URL` changed, OAuth redirect URI `https://app.vidrev.app/api/oauth/google/callback` added in GCP | todo, before the demo video |
+| 2 | Privacy Policy and Terms published on `https://vidrev.app/privacy` and `/terms` (app routes since A-37, built from the legal kit), linked from the home page | waiting for 1; routes not built yet |
+| 3 | `https://vidrev.app` home page describes the app (what it does, that it uses YouTube data, link to privacy) | live on Railway since 2026-10-14 (A-37); privacy link still missing |
+| 4 | App on `https://app.vidrev.app` (Railway custom domain, DNS only record), `APP_BASE_URL` changed, OAuth redirect URI `https://app.vidrev.app/api/oauth/google/callback` added in GCP | done (app live on app.vidrev.app) |
 | 5 | vidrev.app verified in Google Search Console with the Google account that owns `c2c-app` | todo |
 | 6 | Support email on vidrev.app (e.g. support@vidrev.app) receiving mail | todo |
 | 7 | Resend sending domain on vidrev.app, so sign-in mail reaches reviewers | todo |

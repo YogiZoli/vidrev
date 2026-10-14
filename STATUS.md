@@ -1,6 +1,15 @@
 # STATUS
 
-Last updated: 2026-10-11 (review preparation without a company: done on our side; owner steps listed below)
+Last updated: 2026-10-14 (vidrev.app moved off GoHighLevel onto the app on Railway, DECISIONS A-37)
+
+## 2026-10-14: vidrev.app is served by the app (off GoHighLevel)
+
+- Live and tested: `https://vidrev.app` shows the landing from the `web` service (Railway certificate valid); `/signup`, `/login` and every other path 308 to `app.vidrev.app`; `www.vidrev.app` 301s to the apex (Cloudflare rule, query kept); `app.vidrev.app` and `go.vidrev.app` unchanged. Code: #160 (`src/proxy.ts`, `brandHostOf`).
+- Railway: custom domain `vidrev.app` on `web` (target `0txnv5rk.up.railway.app`). The first certificate stuck in "polling authorizations" for 40 minutes; deleting and re-adding the domain fixed it in minutes. Hobby plan: two custom domains per service, so `www` is a Cloudflare redirect.
+- GoHighLevel vidrev sub-account: the `vidrev Landing` funnel, `vidrev.app`, `www.vidrev.app` and the old www URL redirect are removed; snapshots "vidrev v1 14-10-2026" (vidrev) and the YTC2C one exist. `mail.vidrev.app` stays until the sub-account is closed.
+- Still tied to GoHighLevel (Máté's agency): audit-lead sync to the owner's sub-account (`OWNER_GHL_*` on `worker`), `mail.vidrev.app`, the planned Founding checkout and its provisioning webhook, and the Marketplace app (developer portal account to be confirmed).
+- Open, blocks Google verification: `/privacy` and `/terms` do not exist (vidrev.app/privacy 308s to a 404 on the app host). They now have to be app routes built from `design/legal/legal-kit.html`; the GHL paste path is dropped.
+- Runbook (rollback included): Drive doc "vidrev.app off GHL: DNS switch runbook", https://docs.google.com/document/d/1i-vKlIu9tkODAr63MsVca5kybQYQWAENAjsf-ZfSQNw/edit
 
 ## End goal
 

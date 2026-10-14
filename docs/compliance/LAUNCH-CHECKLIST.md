@@ -23,8 +23,8 @@ It prints the names of missing settings, never values, and exits with 1 until ev
 Strict order (owner, 2026-09-29, DECISIONS A-13): nothing goes to Google before step 3 is live.
 
 1. The owner sends the LLC details; fill docs/compliance/legal-entity.json and rebuild design/legal/legal-kit.html; legal review (B-09); remove the DRAFT line.
-2. Build both pages as a GoHighLevel copy kit (one Custom Code block per section, like `design/landing/ghl-kit.html`), so the owner only pastes, saves and publishes.
-3. The owner publishes them on vidrev.app at `/privacy` and `/terms`; check both live, with the home page linking the policy.
+2. Build both pages as app routes `/privacy` and `/terms`, served on `vidrev.app` like the landing (A-37: vidrev.app is no longer on GoHighLevel, so the copy-kit path is dropped). Allow both paths on the brand host in `src/proxy.ts`.
+3. Check both live on `https://vidrev.app/privacy` and `/terms`, with the home page linking the policy.
 4. Only then: record the demo video (OAUTH-VERIFICATION.md section 4) and submit Google OAuth verification (section 5).
 5. Run `railway run --service web npm run quota:report -- 14`, paste the numbers into QUOTA-EXTENSION.md and submit it.
 6. Press "Start Public review" for the HighLevel app (docs/MARKETPLACE-LISTING.md).

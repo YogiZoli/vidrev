@@ -1,6 +1,14 @@
 # STATUS
 
-Last updated: 2026-10-14 (vidrev.app moved off GoHighLevel onto the app on Railway, DECISIONS A-37)
+Last updated: 2026-10-19 (replies always show the creator's own domain, DECISIONS A-38; first own link domain live)
+
+## 2026-10-19: replies always show the creator's own domain (A-38)
+
+- Live (#162): without a live link domain, reply, static and card links are the creator's own destination page plus a pre-issued `vidrev_tid` (`links.direct_tid`, migration 0022). `go.vidrev.app` is no longer shown in replies; old short links keep redirecting. The click is recorded when the tid first comes back: `/vidrev.js` visit beacon (`POST /api/v1/visit`), an opt-in or a purchase (one click row per direct link). Unposted links switch to the link domain once it is live.
+- Domain page: never suggests, and refuses, a subdomain that already serves the creator's pages (the pre-fill offered `go.commentclient.com`, which is the GoHighLevel funnel host). Click-by-click DNS guide with an "Open … DNS" button for Cloudflare, GoDaddy and Namecheap; generic steps for other providers. Onboarding copy no longer mentions go.vidrev.app.
+- First own link domain live: `link.commentclient.com` (YTC2C account), CNAME to `customers.vidrev.app`, DNS only; Cloudflare custom hostname and certificate active. Tested end to end by the owner: GUIDE comment, draft with `https://link.commentclient.com/<slug>`, approved and posted on YouTube, redirect to `go.commentclient.com/guide`.
+- commentclient.com DNS: DMARC added (`_dmarc` TXT `v=DMARC1; p=none; adkim=r; aspf=r`), clears the GoHighLevel "No DMARC record" warning.
+- Next: Domain Connect go-live (one-click "Connect automatically"): signing key and `_dck1` TXT on vidrev.app, `DOMAIN_CONNECT_*` on Railway, fix `logoUrl` in `docs/domain-connect/vidrev.app.links.json` (`/logo.png` 308s; use `/vidrev-logo.png`), template PR to Domain-Connect/Templates, then provider onboarding (Cloudflare first). See docs/domain-connect/README.md.
 
 ## 2026-10-14: vidrev.app is served by the app (off GoHighLevel)
 

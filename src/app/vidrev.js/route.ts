@@ -17,9 +17,17 @@ const SCRIPT = `(function () {
     }
     document.cookie = NAME + "=" + v + exp;
   }
+  var script = document.currentScript;
   var tid = fromUrl() || fromCookie();
   if (!tid) return;
-  if (fromUrl()) remember(tid);
+  if (fromUrl()) {
+    remember(tid);
+    // Direct branded links (A-38) have no redirect: report the visit once.
+    try {
+      var base = script && script.src ? new URL(script.src).origin : "";
+      if (base && navigator.sendBeacon) navigator.sendBeacon(base + "/api/v1/visit", JSON.stringify({ tid: tid }));
+    } catch (e) {}
+  }
   function fill(root) {
     var fields = (root.querySelectorAll ? root : document).querySelectorAll('input[name="' + NAME + '"], input[data-vidrev-tid]');
     for (var i = 0; i < fields.length; i++) if (!fields[i].value) { fields[i].value = tid; fields[i].dispatchEvent(new Event("input", { bubbles: true })); }

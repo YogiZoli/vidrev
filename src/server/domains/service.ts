@@ -1,7 +1,7 @@
 import { and, count, eq, ne } from "drizzle-orm";
 import type { Db } from "@/db/client";
-import { customDomains } from "@/db/schema";
-import { cookieDomain, isApex, normalizeHostname } from "@/lib/links";
+import { campaigns, customDomains } from "@/db/schema";
+import { cookieDomain, hostOf, isApex, normalizeHostname } from "@/lib/links";
 
 // Creator actions on the custom link domain. Every external call (DNS,
 // Cloudflare) runs in the worker (D-36); these only touch the database.
@@ -37,6 +37,12 @@ export async function addDomain(db: Db, accountId: string, input: string, reserv
   if (isApex(hostname)) return { ok: false, error: "Use a subdomain such as go." + hostname + ", not the main domain." };
   if (reserved.has(cookieDomain(hostname) ?? "")) return { ok: false, error: "That domain belongs to this product. Use your own domain." };
   if (await liveDomain(db, accountId)) return { ok: false, error: "Remove your current link domain first." };
+  // A subdomain that already serves the creator's pages (an automation
+  // destination, e.g. go.<domain> on GoHighLevel) would go down if pointed at us.
+  const destinations = await db.select({ url: campaigns.destinationUrl }).from(campaigns).where(eq(campaigns.accountId, accountId));
+  if (destinations.some((d) => hostOf(d.url) === hostname)) {
+    return { ok: false, error: `${hostname} already serves your pages, so it cannot carry links too. Use a new subdomain such as link.${cookieDomain(hostname) ?? hostname}.` };
+  }
   // Spend cap on Cloudflare custom hostnames (P5-11).
   const [{ n }] = await db.select({ n: count() }).from(customDomains).where(ne(customDomains.status, "removed"));
   if (n >= limit) {

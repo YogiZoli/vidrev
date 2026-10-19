@@ -155,6 +155,13 @@
       "when": 1791453007626,
       "tag": "0021_pdt_connect",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1792384840579,
+      "tag": "0022_direct_branded_links",
+      "breakpoints": true
     }
   ]
 }

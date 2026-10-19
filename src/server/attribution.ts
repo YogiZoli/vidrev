@@ -3,6 +3,7 @@ import type { Db } from "@/db/client";
 import { accounts, campaigns, clicks, links, purchases, replies, subscribers } from "@/db/schema";
 import { attributePurchases, type AttributionResult, type PurchaseFact, type Touch } from "@/lib/attribution";
 import type { DbOrTx } from "./accounts";
+import { claimDirectTids } from "./links";
 
 // Loads an account's purchases and touches, runs the attribution rules
 // (src/lib/attribution.ts) and writes back only the rows that changed. The
@@ -42,6 +43,7 @@ function chunks<T>(items: T[]): T[][] {
 
 async function loadTouches(db: Db, accountId: string, tids: string[], emails: string[], contactIds: string[]) {
   const clickByTid = new Map<string, Touch>();
+  for (const part of chunks(tids)) await claimDirectTids(db, accountId, part);
   for (const part of chunks(tids)) {
     const rows = await db
       .select({ click: clicks, intent: links.intent })

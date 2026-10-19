@@ -8,6 +8,7 @@ import { markReportDirty } from "../attribution";
 import { attachClickToContact, contactForTouch, resolveContact } from "../contacts";
 import { clickHistory } from "./context";
 import type { EmitInput } from "./events";
+import { claimDirectTids } from "@/server/links";
 
 // Recording of opt-ins and purchases from any source (SPEC sections 9, 10):
 // the universal inbound hooks, GHL and later Stripe all end up here.
@@ -65,6 +66,7 @@ export interface Touch {
 // The click a tracking id points at. A tid of another account, or one we never
 // issued, is treated as unknown: it never attributes and never leaks.
 export async function resolveTid(db: Db, accountId: string, tid: string): Promise<Touch | null> {
+  await claimDirectTids(db, accountId, [tid]);
   const [click] = await db
     .select()
     .from(clicks)

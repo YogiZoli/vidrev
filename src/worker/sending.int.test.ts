@@ -115,7 +115,10 @@ describe.skipIf(!hasDb)("approval and sending (integration)", () => {
 
     const { deps, posts } = engine();
     await sendReply(deps, reply.id);
-    expect(JSON.parse(posts[0]!.body)).toEqual({ snippet: { parentId: comment.youtubeCommentId, textOriginal: "Edited: https://e.com/optin" } });
+    // No link domain: the creator's own page with the tracking id (A-38).
+    const posted = JSON.parse(posts[0]!.body) as { snippet: { parentId: string; textOriginal: string } };
+    expect(posted.snippet.parentId).toBe(comment.youtubeCommentId);
+    expect(posted.snippet.textOriginal).toMatch(/^Edited: https:\/\/e\.com\/optin\?vidrev_tid=[A-Za-z0-9]{10}&utm_source=vidrev/);
     expect(await status(reply.id)).toMatchObject({ status: "sent", youtubeReplyId: "yt-reply-1" });
 
     // A duplicate job does not post twice.

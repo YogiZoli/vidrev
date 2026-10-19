@@ -9,10 +9,9 @@ import { Table, TableWrap, Td, Th } from "@/components/ui/table";
 import { getDb } from "@/db/client";
 import { campaigns } from "@/db/schema";
 import { appBaseUrl, env } from "@/lib/env";
-import { fallbackHost } from "@/lib/link-host";
-import { cookieDomain, suggestHostname } from "@/lib/links";
+import { cookieDomain, hostOf, suggestHostname } from "@/lib/links";
 import { requireSession } from "@/server/auth/current";
-import { cnameRecord, providerById } from "@/server/domains/dns";
+import { cnameRecord, guideSteps, providerById } from "@/server/domains/dns";
 import { liveDomain } from "@/server/domains/service";
 import { Notice, productName } from "../../../ui";
 
@@ -49,16 +48,16 @@ export default async function DomainPage({ searchParams }: { searchParams: Promi
   const db = getDb();
   const domain = await liveDomain(db, account.id);
   const target = env().CUSTOM_HOSTNAME_CNAME_TARGET ?? null;
-  const fallback = fallbackHost();
-  const [latest] = await db
+  const destinations = await db
     .select({ url: campaigns.destinationUrl })
     .from(campaigns)
     .where(eq(campaigns.accountId, account.id))
-    .orderBy(desc(campaigns.createdAt))
-    .limit(1);
-  const suggestion = suggestHostname(latest?.url);
+    .orderBy(desc(campaigns.createdAt));
+  // Never suggest a subdomain that already serves the creator's pages.
+  const suggestion = suggestHostname(destinations[0]?.url, destinations.map((d) => hostOf(d.url)));
   const record = domain && target ? cnameRecord(domain.hostname, cookieDomain(domain.hostname) ?? domain.hostname, target) : null;
   const provider = providerById(domain?.dnsProvider);
+  const guide = domain && record ? guideSteps(provider, { domain: cookieDomain(domain.hostname) ?? domain.hostname, name: record.name, target: record.target }) : null;
 
   return (
     <Page width="md">
@@ -74,7 +73,7 @@ export default async function DomainPage({ searchParams }: { searchParams: Promi
         }
       />
       {params.error ? <Notice tone="error">{params.error}</Notice> : null}
-      {params.removed ? <Notice tone="info">Domain removed. New replies use {fallback ?? "the default link host"}.</Notice> : null}
+      {params.removed ? <Notice tone="info">Domain removed. New replies link straight to your own page.</Notice> : null}
 
       {!domain ? (
         <Card variant="focus" className="grid gap-3">
@@ -91,8 +90,8 @@ export default async function DomainPage({ searchParams }: { searchParams: Promi
             </div>
           </form>
           <Meta>
-            Use a new subdomain (go, link or get). Your main domain and website stay as they are.
-            {fallback ? ` Until your domain is live, replies use ${fallback}.` : ""}
+            Use a new subdomain (go, link or get) that is not used yet. Your main domain and website stay as they are. Until your
+            domain is live, replies link straight to your own page with the tracking id, so they always show your domain.
           </Meta>
         </Card>
       ) : (
@@ -135,10 +134,29 @@ export default async function DomainPage({ searchParams }: { searchParams: Promi
                   </tbody>
                 </Table>
               </TableWrap>
-              {provider ? (
-                <Meta className="text-[15px]">
-                  Where: {provider.where}. {provider.note ?? ""} {provider.help ? <a href={provider.help}>Provider guide</a> : null}
-                </Meta>
+              {guide ? (
+                <div className="grid gap-3 rounded-md border p-4">
+                  <SectionTitle className="text-base">Step by step{provider ? ` in ${provider.name}` : ""}</SectionTitle>
+                  {guide.open ? (
+                    <div>
+                      <Button asChild variant="outline">
+                        <a href={guide.open} target="_blank" rel="noreferrer">
+                          Open {provider?.name ?? "your"} DNS
+                        </a>
+                      </Button>
+                    </div>
+                  ) : null}
+                  <ol className="m-0 grid gap-2 pl-5 text-base leading-relaxed">
+                    {guide.steps.map((step) => (
+                      <li key={step}>{step}</li>
+                    ))}
+                  </ol>
+                  {provider?.help ? (
+                    <Meta className="text-[15px]">
+                      Stuck? <a href={provider.help}>{provider.name} help page</a>
+                    </Meta>
+                  ) : null}
+                </div>
               ) : null}
               <Meta className="text-[15px]">
                 We check automatically and email you when it is live; this usually takes a few minutes.

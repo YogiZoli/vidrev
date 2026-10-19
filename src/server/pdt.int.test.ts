@@ -102,7 +102,8 @@ describe.skipIf(!hasDb)("PDT connection (integration)", () => {
     const body = (await first.json()) as { cardId: string; links: { keyword: string; url: string }[] };
     expect(body.cardId).toBe(sent.cardId);
     expect(body.links.map((l) => l.keyword)).toEqual(["GUIDE", "CALL"]);
-    expect(body.links[0]!.url).toMatch(/^https:\/\/go\.vidrev\.test\/[A-Za-z0-9]{7}$/);
+    // No live link domain: the link is the creator's own page with the tracking id (A-38).
+    expect(body.links[0]!.url).toMatch(/^https:\/\/zoltan\.example\.com\/guide\?vidrev_tid=[A-Za-z0-9]{10}&/);
     // Pending: no campaign exists, so the engine has nothing to poll or draft.
     expect(await db.select().from(campaigns).where(eq(campaigns.accountId, account.id))).toEqual([]);
     const cardLinks = await db.select().from(links).where(eq(links.accountId, account.id));
@@ -112,7 +113,11 @@ describe.skipIf(!hasDb)("PDT connection (integration)", () => {
     const again = await cardsRoute(deps(), req("/api/v1/cards", token, { ...sent, commentCalls: [sent.commentCalls[0]], landingUrl: "https://zoltan.example.com/v2" }));
     expect(again.status).toBe(200);
     const againBody = (await again.json()) as { links: { keyword: string; url: string }[] };
-    expect(againBody.links).toEqual([body.links[0]]);
+    // Same link and tracking id; a waiting keyword follows the new landing page.
+    const tid = new URL(body.links[0]!.url).searchParams.get("vidrev_tid");
+    expect(againBody.links).toHaveLength(1);
+    expect(againBody.links[0]!.keyword).toBe("GUIDE");
+    expect(againBody.links[0]!.url.startsWith(`https://zoltan.example.com/v2?vidrev_tid=${tid}&`)).toBe(true);
     const [guide] = await db.select().from(links).where(eq(links.accountId, account.id)).then((rows) => rows.filter((r) => r.keyword === "GUIDE"));
     expect(guide?.destinationUrl).toBe("https://zoltan.example.com/v2");
     expect(await db.select().from(publishingCardKeywords).where(eq(publishingCardKeywords.accountId, account.id))).toHaveLength(1);

@@ -1,14 +1,15 @@
-import { and, eq, isNull, ne } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import { accounts, campaigns, clicks, customDomains, links, replies } from "@/db/schema";
 import {
   classifyUserAgent,
   destinationWithTid,
   hashIp,
+  hostOf,
   isSlug,
-  linkUrl,
   newSlug,
   newTid,
+  publicLinkUrl,
   tidCookie,
 } from "@/lib/links";
 import { pacificDate } from "@/lib/time";
@@ -20,11 +21,16 @@ import type { EventContext } from "@/lib/webhooks";
 // The host new links are published on: the account's active custom domain,
 // else the fallback host, else null (no link host configured yet).
 export async function linkHostFor(db: Db, accountId: string, fallback: string | null): Promise<string | null> {
+  return (await ownLinkHost(db, accountId)) ?? fallback;
+}
+
+// The account's live link domain, or null.
+export async function ownLinkHost(db: Db, accountId: string): Promise<string | null> {
   const [domain] = await db
     .select({ hostname: customDomains.hostname })
     .from(customDomains)
     .where(and(eq(customDomains.accountId, accountId), eq(customDomains.status, "active")));
-  return domain?.hostname ?? fallback;
+  return domain?.hostname ?? null;
 }
 
 async function insertWithUniqueSlug(db: Db, values: Omit<typeof links.$inferInsert, "slug">) {
@@ -54,7 +60,7 @@ export async function ensureReplyLink(
   replyId: string,
   options: { fallbackHost: string | null },
   now = new Date(),
-): Promise<{ id: string; url: string } | null> {
+): Promise<{ id: string; url: string; slug: string } | null> {
   const [row] = await db
     .select({ reply: replies, campaign: campaigns })
     .from(replies)
@@ -63,12 +69,16 @@ export async function ensureReplyLink(
   if (!row) return null;
   const { reply, campaign } = row;
   const [existing] = reply.linkId ? await db.select().from(links).where(eq(links.id, reply.linkId)) : [];
-  if (existing?.publishedAt) return { id: existing.id, url: linkUrl(existing.host, existing.slug) };
+  if (existing?.publishedAt) return { id: existing.id, slug: existing.slug, url: publicLinkUrl(existing) };
 
-  const host = await linkHostFor(db, reply.accountId, options.fallbackHost);
-  if (!host || !campaign) return existing ? { id: existing.id, url: linkUrl(existing.host, existing.slug) } : null;
+  if (!campaign) return existing ? { id: existing.id, slug: existing.slug, url: publicLinkUrl(existing) } : null;
+  const own = await ownLinkHost(db, reply.accountId);
+  const host = own ?? options.fallbackHost ?? hostOf(campaign.destinationUrl);
+  if (!host) return existing ? { id: existing.id, slug: existing.slug, url: publicLinkUrl(existing) } : null;
   const fields = {
     host,
+    // No live link domain: the reply carries the creator's own page (A-38).
+    directTid: own ? null : (existing?.directTid ?? newTid()),
     campaignId: campaign.id,
     youtubeVideoId: reply.youtubeVideoId,
     keyword: reply.keyword,
@@ -78,11 +88,11 @@ export async function ensureReplyLink(
   };
   if (existing) {
     await db.update(links).set(fields).where(eq(links.id, existing.id));
-    return { id: existing.id, url: linkUrl(host, existing.slug) };
+    return { id: existing.id, slug: existing.slug, url: publicLinkUrl({ ...fields, slug: existing.slug }) };
   }
   const link = await insertWithUniqueSlug(db, { ...fields, accountId: reply.accountId, kind: "reply", replyId: reply.id });
   await db.update(replies).set({ linkId: link.id }).where(and(eq(replies.id, reply.id), isNull(replies.linkId)));
-  return { id: link.id, url: linkUrl(link.host, link.slug) };
+  return { id: link.id, slug: link.slug, url: publicLinkUrl(link) };
 }
 
 // Called once the reply is on YouTube (API or by hand): the link is frozen.
@@ -96,7 +106,7 @@ export async function ensureStaticLink(
   db: Db,
   input: { accountId: string; campaignId: string; youtubeVideoId: string | null; fallbackHost: string | null },
   now = new Date(),
-): Promise<{ id: string; url: string } | null> {
+): Promise<{ id: string; url: string; slug: string } | null> {
   const [campaign] = await db
     .select()
     .from(campaigns)
@@ -107,13 +117,24 @@ export async function ensureStaticLink(
     .select()
     .from(links)
     .where(and(eq(links.kind, "static"), eq(links.campaignId, campaign.id), videoMatch));
-  if (existing) return { id: existing.id, url: linkUrl(existing.host, existing.slug) };
-  const host = await linkHostFor(db, input.accountId, input.fallbackHost);
+  const own = await ownLinkHost(db, input.accountId);
+  if (existing) {
+    // A static link minted on the fallback host before A-38 is shown as the
+    // creator's own page from now on; its short link keeps redirecting.
+    if (!own && !existing.directTid && existing.host === input.fallbackHost) {
+      const directTid = newTid();
+      await db.update(links).set({ directTid, updatedAt: now }).where(eq(links.id, existing.id));
+      return { id: existing.id, slug: existing.slug, url: publicLinkUrl({ ...existing, directTid }) };
+    }
+    return { id: existing.id, slug: existing.slug, url: publicLinkUrl(existing) };
+  }
+  const host = own ?? input.fallbackHost ?? hostOf(campaign.destinationUrl);
   if (!host) return null;
   const link = await insertWithUniqueSlug(db, {
     accountId: input.accountId,
     kind: "static",
     host,
+    directTid: own ? null : newTid(),
     campaignId: campaign.id,
     youtubeVideoId: input.youtubeVideoId,
     keyword: campaign.keyword,
@@ -121,7 +142,57 @@ export async function ensureStaticLink(
     destinationUrl: campaign.destinationUrl,
     publishedAt: now,
   });
-  return { id: link.id, url: linkUrl(link.host, link.slug) };
+  return { id: link.id, slug: link.slug, url: publicLinkUrl(link) };
+}
+
+// A direct link's tracking id has no redirect to log a click. The click is
+// recorded the first time the id comes back: the opt-in page beacon
+// (/vidrev.js), an opt-in, a purchase. Afterwards every lookup by tid works
+// exactly as for redirect clicks. Returns how many clicks were recorded.
+export async function claimDirectTids(
+  db: Db,
+  accountId: string | null,
+  tids: readonly string[],
+  input: { userAgent?: string | null; referer?: string | null; country?: string | null } = {},
+  now = new Date(),
+): Promise<number> {
+  const wanted = [...new Set(tids.filter((t) => /^[A-Za-z0-9]{10}$/.test(t)))];
+  if (!wanted.length) return 0;
+  const uaClass = classifyUserAgent(input.userAgent ?? null);
+  if (uaClass === "bot") return 0;
+  const match = inArray(links.directTid, wanted);
+  const rows = await db
+    .select({ link: links, contactId: replies.contactId, status: accounts.status })
+    .from(links)
+    .innerJoin(accounts, eq(accounts.id, links.accountId))
+    .leftJoin(replies, eq(replies.id, links.replyId))
+    .where(accountId ? and(match, eq(links.accountId, accountId)) : match);
+  const measured = rows.filter((r) => r.status === "active" && r.link.directTid);
+  if (!measured.length) return 0;
+  const inserted = await db
+    .insert(clicks)
+    .values(
+      measured.map(({ link, contactId }) => ({
+        tid: link.directTid!,
+        accountId: link.accountId,
+        linkId: link.id,
+        replyId: link.replyId,
+        contactId: contactId ?? null,
+        campaignId: link.campaignId,
+        youtubeVideoId: link.youtubeVideoId,
+        keyword: link.keyword,
+        host: hostOf(link.destinationUrl) ?? link.host,
+        userAgent: input.userAgent?.slice(0, 400) ?? null,
+        userAgentClass: uaClass,
+        isBot: false,
+        country: input.country?.slice(0, 2) ?? null,
+        referrerHost: refererHost(input.referer ?? null),
+        createdAt: now,
+      })),
+    )
+    .onConflictDoNothing()
+    .returning({ id: clicks.id });
+  return inserted.length;
 }
 
 export interface ClickInput {

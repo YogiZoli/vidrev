@@ -2,6 +2,7 @@ import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import { accounts, clicks, comments, purchases, replies, subscribers } from "@/db/schema";
 import { attachClickToContact, contactForTouch, resolveContact } from "./contacts";
+import { claimDirectTids } from "./links";
 
 // Builds Contacts for rows written before Contacts existed (DECISIONS section
 // 13.10). Only rows without a contact_id are touched, and the resolver never
@@ -100,6 +101,7 @@ async function backfillAccount(db: Db, accountId: string): Promise<BackfillResul
   for (const p of buys) {
     let anchor: string | null = null;
     if (p.tid) {
+      await claimDirectTids(db, accountId, [p.tid]);
       const [click] = await db
         .select({ id: clicks.id, replyId: clicks.replyId })
         .from(clicks)

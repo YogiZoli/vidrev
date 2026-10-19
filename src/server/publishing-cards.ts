@@ -2,14 +2,14 @@ import { and, asc, eq, isNull, notInArray, sql } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import { accounts, campaigns, channels, type CardKeywordState, links, publishingCardKeywords, publishingCards, users } from "@/db/schema";
 import { catalogKeyword, misspellings } from "@/lib/keyword-catalog";
-import { linkUrl, newSlug } from "@/lib/links";
+import { hostOf, newSlug, newTid, publicLinkUrl } from "@/lib/links";
 import { errorFields, log } from "@/lib/log";
 import type { CardSummary } from "@/lib/publishing-card";
 import type { SendEmailJob } from "@/jobs/queues";
 import { type DbOrTx, writeAudit } from "./accounts";
 import { overlaps } from "./campaigns";
 import { cardArmedEmail } from "./email/templates";
-import { linkHostFor } from "./links";
+import { ownLinkHost } from "./links";
 import { isOwnHost, ownHosts } from "./own-hosts";
 
 // Video Publishing Cards from PDT (DECISIONS A-31 to A-34). A card becomes a
@@ -63,8 +63,8 @@ export async function saveCard(
   if (summary.landingUrl && isOwnHost(summary.landingUrl, hosts)) {
     return { ok: false, status: 422, error: "landingUrl is on vidrev's own link or app domain, so viewers would land on an error page. Use the opt-in page instead." };
   }
-  const host = await linkHostFor(db, account.id, options.fallbackHost);
-  if (!host) return { ok: false, status: 503, error: "Tracked links are not set up on this vidrev server yet. Try again later." };
+  // No live link domain: card links carry the creator's own page (A-38).
+  const own = await ownLinkHost(db, account.id);
   const targets = new Map<string, string>();
   for (const call of summary.calls) {
     const target = await pickTarget(db, { accountId: account.id, keyword: call.keyword, landingUrl: summary.landingUrl, defaultTargetUrl: account.defaultTargetUrl, hosts });
@@ -92,17 +92,18 @@ export async function saveCard(
           .set({ gets: call.gets, ...(pending ? { intent: call.temperature } : {}), updatedAt: now })
           .where(eq(publishingCardKeywords.id, row.id));
         if (pending) await tx.update(links).set({ destinationUrl, intent: call.temperature, updatedAt: now }).where(eq(links.id, row.linkId));
-        const [link] = await tx.select({ host: links.host, slug: links.slug }).from(links).where(eq(links.id, row.linkId));
-        out.push({ keyword: call.keyword, url: linkUrl(link!.host, link!.slug) });
+        const [link] = await tx.select().from(links).where(eq(links.id, row.linkId));
+        out.push({ keyword: call.keyword, url: publicLinkUrl(link!) });
         continue;
       }
-      let link: { id: string; host: string; slug: string } | undefined;
+      const host = own ?? options.fallbackHost ?? hostOf(destinationUrl) ?? "";
+      let link: typeof links.$inferSelect | undefined;
       for (let attempt = 0; attempt < 5 && !link; attempt += 1) {
         [link] = await tx
           .insert(links)
-          .values({ accountId: account.id, kind: "card", slug: newSlug(), host, keyword: call.keyword, intent: call.temperature, destinationUrl, publishedAt: now, createdAt: now, updatedAt: now })
+          .values({ accountId: account.id, kind: "card", slug: newSlug(), host, directTid: own ? null : newTid(), keyword: call.keyword, intent: call.temperature, destinationUrl, publishedAt: now, createdAt: now, updatedAt: now })
           .onConflictDoNothing()
-          .returning({ id: links.id, host: links.host, slug: links.slug });
+          .returning();
       }
       if (!link) throw new Error("could not allocate a link slug");
       await tx.insert(publishingCardKeywords).values({
@@ -115,7 +116,7 @@ export async function saveCard(
         createdAt: now,
         updatedAt: now,
       });
-      out.push({ keyword: call.keyword, url: linkUrl(link.host, link.slug) });
+      out.push({ keyword: call.keyword, url: publicLinkUrl(link) });
     }
     // A keyword taken out of a resent card stops waiting. Its link keeps
     // redirecting (links never die); a keyword already live stays live.

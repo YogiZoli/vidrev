@@ -33,6 +33,21 @@ export function linkUrl(host: string, slug: string): string {
   return `https://${host}/${slug}`;
 }
 
+// The address a link is shown and posted with (A-38): a short link on the
+// creator's live link domain, or, without one, the creator's own destination
+// page carrying the pre-issued tracking id, so a reply never shows our domain.
+export function publicLinkUrl(link: { host: string; slug: string; directTid?: string | null; destinationUrl: string; keyword: string }): string {
+  return link.directTid ? destinationWithTid(link.destinationUrl, { tid: link.directTid, keyword: link.keyword }) : linkUrl(link.host, link.slug);
+}
+
+export function hostOf(url: string): string | null {
+  try {
+    return new URL(url).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
 // The destination with the click id and UTM parameters appended (CC-07
 // layer 1 and 2). Existing query parameters are kept; ours win on a clash.
 export function destinationWithTid(destination: string, input: { tid: string | null; keyword: string }): string {
@@ -136,12 +151,18 @@ const PLATFORM_DOMAINS = new Set([
   "substack.com", "podia.com", "lemonsqueezy.com", "thrivecart.com", "google.com", "youtube.com",
 ]);
 
-// Suggests go.<registrable domain> from the campaign destination (D-38).
-export function suggestHostname(destinationUrl: string | null | undefined): string | null {
+// Suggests a free link subdomain of the campaign destination's domain (D-38).
+// A subdomain already serving the creator's pages (often go.<domain> on
+// GoHighLevel) is never suggested: pointing it at us would take those pages
+// down. `taken` adds hosts known to be in use (e.g. the verified funnel host).
+export function suggestHostname(destinationUrl: string | null | undefined, taken: readonly (string | null | undefined)[] = []): string | null {
   if (!destinationUrl) return null;
   try {
-    const registrable = cookieDomain(new URL(destinationUrl).hostname);
-    return registrable && !PLATFORM_DOMAINS.has(registrable) ? `go.${registrable}` : null;
+    const host = new URL(destinationUrl).hostname.toLowerCase();
+    const registrable = cookieDomain(host);
+    if (!registrable || PLATFORM_DOMAINS.has(registrable)) return null;
+    const used = new Set([host, ...taken.filter((t): t is string => Boolean(t)).map((t) => t.toLowerCase())]);
+    return ["go", "link", "get"].map((label) => `${label}.${registrable}`).find((candidate) => !used.has(candidate)) ?? null;
   } catch {
     return null;
   }

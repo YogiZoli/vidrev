@@ -598,11 +598,16 @@ export const links = pgTable(
     destinationUrl: text("destination_url").notNull(),
     // Set once the reply carrying the link is posted; host and campaign freeze.
     publishedAt: timestamp("published_at", { withTimezone: true }),
+    // Direct branded link (A-38): while the account has no live link domain,
+    // the reply carries the destination itself (the creator's own page) with
+    // this pre-issued tracking id instead of a short link on the fallback host.
+    directTid: text("direct_tid"),
     createdAt: createdAt(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     uniqueIndex("links_slug_uq").on(t.slug),
+    uniqueIndex("links_direct_tid_uq").on(t.directTid).where(sql`direct_tid is not null`),
     uniqueIndex("links_reply_uq").on(t.replyId),
     uniqueIndex("links_static_uq").on(t.campaignId, t.youtubeVideoId).where(sql`kind = 'static'`),
     index("links_account_idx").on(t.accountId),

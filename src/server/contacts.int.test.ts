@@ -88,7 +88,7 @@ async function liveContacts(accountId: string) {
 
 async function clickThrough(replyId: string) {
   const link = await ensureReplyLink(db(), replyId, { fallbackHost: "go.vidrev.app" }, now);
-  const slug = new URL(link!.url).pathname.slice(1);
+  const slug = link!.slug;
   const result = await resolveClick(
     db(),
     { slug, host: "go.vidrev.app", ip: "203.0.113.9", userAgent: browser, country: "US", referer: null, ipSecret: "s", fallbackHost: "go.vidrev.app" },
@@ -217,7 +217,7 @@ describe.skipIf(!hasDb)("contacts (integration)", () => {
   it("ties a static link click to the Contact whose opt-in carried its tid", async () => {
     const s = await setup();
     const link = await ensureStaticLink(db(), { accountId: s.account.id, campaignId: s.campaign.id, youtubeVideoId: null, fallbackHost: "go.vidrev.app" }, now);
-    const slug = new URL(link!.url).pathname.slice(1);
+    const slug = link!.slug;
     const result = await resolveClick(
       db(),
       { slug, host: "go.vidrev.app", ip: "203.0.113.9", userAgent: browser, country: "US", referer: null, ipSecret: "s", fallbackHost: "go.vidrev.app" },

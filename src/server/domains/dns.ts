@@ -33,6 +33,26 @@ export interface DnsProvider {
   where: string;
   help?: string;
   note?: string;
+  // Direct address of the DNS screen; {domain} is the registrable domain.
+  open?: string;
+  // Click-by-click guide; {domain}, {name} and {target} are filled in.
+  steps?: string[];
+}
+
+// The generic guide when a provider has no own steps.
+const GENERIC_STEPS = [
+  "Sign in where your domain's DNS is managed ({where}).",
+  "Open the DNS settings of {domain} and choose to add a new record.",
+  "Type: choose CNAME.",
+  "Name (or Host): paste {name}",
+  "Value (or Target, Points to): paste {target}",
+  "TTL: leave the default. Save.",
+];
+
+export function guideSteps(provider: DnsProvider | null, values: { domain: string; name: string; target: string }): { open: string | null; steps: string[] } {
+  const fill = (s: string) =>
+    s.replaceAll("{domain}", values.domain).replaceAll("{name}", values.name).replaceAll("{target}", values.target).replaceAll("{where}", provider?.where ?? "your domain provider");
+  return { open: provider?.open ? fill(provider.open) : null, steps: (provider?.steps ?? GENERIC_STEPS).map(fill) };
 }
 
 const PROVIDERS: { pattern: RegExp; provider: DnsProvider }[] = [
@@ -44,6 +64,16 @@ const PROVIDERS: { pattern: RegExp; provider: DnsProvider }[] = [
       where: "Cloudflare dashboard > your domain > DNS > Records > Add record",
       help: "https://developers.cloudflare.com/dns/manage-dns-records/how-to/create-dns-records/",
       note: "Set Proxy status to DNS only (grey cloud).",
+      open: "https://dash.cloudflare.com/?to=/:account/{domain}/dns/records",
+      steps: [
+        "Click Open Cloudflare DNS above and sign in. You land on the DNS records of {domain}.",
+        "Click the blue + Add record button.",
+        "Type: choose CNAME from the list.",
+        "Name: paste {name}",
+        "Target: paste {target}",
+        "Proxy status: click the orange cloud switch once, so it turns grey and says DNS only.",
+        "Click Save. Done: we check it automatically and email you when it is live.",
+      ],
     },
   },
   {
@@ -53,6 +83,15 @@ const PROVIDERS: { pattern: RegExp; provider: DnsProvider }[] = [
       name: "GoDaddy",
       where: "GoDaddy > My Products > your domain > DNS > Add New Record",
       help: "https://www.godaddy.com/help/add-a-cname-record-19236",
+      open: "https://dcc.godaddy.com/control/dnsmanagement?domainName={domain}",
+      steps: [
+        "Click Open GoDaddy DNS above and sign in. You land on the DNS records of {domain}.",
+        "Click Add New Record.",
+        "Type: choose CNAME.",
+        "Name: paste {name}",
+        "Value: paste {target}",
+        "TTL: leave the default. Click Save.",
+      ],
     },
   },
   {
@@ -62,6 +101,15 @@ const PROVIDERS: { pattern: RegExp; provider: DnsProvider }[] = [
       name: "Namecheap",
       where: "Namecheap > Domain List > Manage > Advanced DNS > Add New Record",
       help: "https://www.namecheap.com/support/knowledgebase/article.aspx/9646/2237/how-to-create-a-cname-record-for-your-domain/",
+      open: "https://ap.www.namecheap.com/Domains/DomainControlPanel/{domain}/advancedns",
+      steps: [
+        "Click Open Namecheap DNS above and sign in. You land on Advanced DNS of {domain}.",
+        "Under Host Records, click Add New Record.",
+        "Type: choose CNAME Record.",
+        "Host: paste {name}",
+        "Value: paste {target}",
+        "TTL: leave Automatic. Click the green check mark to save.",
+      ],
     },
   },
   {

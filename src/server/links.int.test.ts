@@ -9,7 +9,8 @@ import { createAccountWithUser } from "@/server/accounts";
 import { approveReply, markSentManually, switchMatch } from "@/server/approval";
 import type { EngineDeps } from "@/worker/polling";
 import { sendReply } from "@/worker/sending";
-import { ensureReplyLink, ensureStaticLink, resolveClick } from "./links";
+import { resolveTid } from "@/server/integrations/inbound";
+import { claimDirectTids, ensureReplyLink, ensureStaticLink, resolveClick } from "./links";
 
 const hasDb = Boolean(process.env.DATABASE_URL);
 const key = randomBytes(32).toString("base64");
@@ -69,10 +70,6 @@ function click(slug: string, host = FALLBACK, userAgent = browser) {
   );
 }
 
-function slugOf(url: string) {
-  return new URL(url).pathname.slice(1);
-}
-
 describe.skipIf(!hasDb)("tracked links (integration)", () => {
   beforeAll(async () => {
     await runMigrations(process.env.DATABASE_URL!);
@@ -86,15 +83,42 @@ describe.skipIf(!hasDb)("tracked links (integration)", () => {
     await closeDb();
   });
 
-  it("returns null without any link host", async () => {
+  it("links straight to the creator's page without a live link domain (A-38)", async () => {
     const { reply } = await setup();
-    expect(await ensureReplyLink(getDb(), reply.id, { fallbackHost: null }, now)).toBeNull();
+    const link = await ensureReplyLink(getDb(), reply.id, { fallbackHost: null }, now);
+    expect(link!.url).toMatch(/^https:\/\/coach\.com\/optin\?ref=yt&vidrev_tid=[A-Za-z0-9]{10}&utm_source=vidrev/);
+  });
+
+  it("records a direct link's click the first time its tid comes back, once", async () => {
+    const { account, guide, reply } = await setup();
+    const link = await ensureReplyLink(getDb(), reply.id, { fallbackHost: FALLBACK }, now);
+    const tid = new URL(link!.url).searchParams.get("vidrev_tid")!;
+    expect(await claimDirectTids(getDb(), account.id, [tid], { userAgent: "Googlebot/2.1" })).toBe(0);
+    expect(await claimDirectTids(getDb(), randomUUID(), [tid])).toBe(0);
+    expect(await claimDirectTids(getDb(), null, [tid], { userAgent: "Mozilla/5.0 (iPhone)" }, now)).toBe(1);
+    expect(await claimDirectTids(getDb(), account.id, [tid])).toBe(0);
+    const touch = await resolveTid(getDb(), account.id, tid);
+    expect(touch).toMatchObject({ linkId: link!.id, replyId: reply.id, campaignId: guide.id, keyword: "guide" });
+    const [row] = await getDb().select().from(clicks).where(eq(clicks.tid, tid));
+    expect(row).toMatchObject({ host: "coach.com", isBot: false });
+  });
+
+  it("switches an unposted direct link to the domain once it is live", async () => {
+    const { account, reply } = await setup();
+    const direct = await ensureReplyLink(getDb(), reply.id, { fallbackHost: FALLBACK }, now);
+    expect(direct!.url.startsWith("https://coach.com/")).toBe(true);
+    const host = `link.${randomUUID().slice(0, 8)}.com`;
+    await getDb().insert(customDomains).values({ accountId: account.id, hostname: host, status: "active" });
+    const live = await ensureReplyLink(getDb(), reply.id, { fallbackHost: FALLBACK }, now);
+    expect(live!.url).toBe(`https://${host}/${direct!.slug}`);
+    const [row] = await getDb().select().from(links).where(eq(links.id, direct!.id));
+    expect(row!.directTid).toBeNull();
   });
 
   it("mints one link per reply that follows a keyword switch until posted", async () => {
     const { account, call, reply } = await setup();
     const first = await ensureReplyLink(getDb(), reply.id, { fallbackHost: FALLBACK }, now);
-    expect(first!.url).toMatch(/^https:\/\/go\.vidrev\.app\/[2-9a-zA-Z]{7}$/);
+    expect(first!.url).toMatch(/^https:\/\/coach\.com\/optin\?ref=yt&vidrev_tid=[A-Za-z0-9]{10}/);
     expect((await ensureReplyLink(getDb(), reply.id, { fallbackHost: FALLBACK }, now))!.url).toBe(first!.url);
 
     expect(await switchMatch(getDb(), account.id, reply.id, call.id)).toBe(true);
@@ -134,8 +158,9 @@ describe.skipIf(!hasDb)("tracked links (integration)", () => {
     };
     await sendReply(deps, reply.id);
     const text = JSON.parse(posts[0]!).snippet.textOriginal as string;
-    expect(text).toMatch(/^Here: https:\/\/go\.vidrev\.app\/[2-9a-zA-Z]{7}$/);
-    const [row] = await getDb().select().from(links).where(eq(links.slug, slugOf(text.slice(6))));
+    expect(text).toMatch(/^Here: https:\/\/coach\.com\/optin\?ref=yt&vidrev_tid=[A-Za-z0-9]{10}/);
+    const [row] = await getDb().select().from(links).where(eq(links.replyId, reply.id));
+    expect(text).toContain(`vidrev_tid=${row!.directTid}`);
     expect(row!.publishedAt).toEqual(now);
     expect(row!.replyId).toBe(reply.id);
   });
@@ -145,7 +170,7 @@ describe.skipIf(!hasDb)("tracked links (integration)", () => {
     const host = `go.${randomUUID().slice(0, 8)}.com`;
     await getDb().insert(customDomains).values({ accountId: account.id, hostname: host, status: "active" });
     const link = await ensureReplyLink(getDb(), reply.id, { fallbackHost: FALLBACK }, now);
-    const result = await click(slugOf(link!.url), host);
+    const result = await click(link!.slug, host);
     expect(result.kind).toBe("redirect");
     if (result.kind !== "redirect") return;
     const target = new URL(result.location);
@@ -180,7 +205,7 @@ describe.skipIf(!hasDb)("tracked links (integration)", () => {
   it("gives bots no tid, sets no cookie on the fallback host, keeps redirecting when suspended without measuring", async () => {
     const { account, reply } = await setup();
     const link = await ensureReplyLink(getDb(), reply.id, { fallbackHost: FALLBACK }, now);
-    const slug = slugOf(link!.url);
+    const slug = link!.slug;
 
     const bot = await click(slug, FALLBACK, "Googlebot/2.1");
     expect(bot).toMatchObject({ kind: "redirect", setCookie: null, clicked: null });
@@ -202,8 +227,8 @@ describe.skipIf(!hasDb)("tracked links (integration)", () => {
     const { account, reply } = await setup();
     const link = await ensureReplyLink(getDb(), reply.id, { fallbackHost: FALLBACK }, now);
     await getDb().update(accounts).set({ fallbackLinksBlocked: true }).where(eq(accounts.id, account.id));
-    expect(await click(slugOf(link!.url))).toEqual({ kind: "blocked" });
-    expect((await click(slugOf(link!.url), "go.other.com")).kind).toBe("redirect");
+    expect(await click(link!.slug)).toEqual({ kind: "blocked" });
+    expect((await click(link!.slug, "go.other.com")).kind).toBe("redirect");
     expect(await click("zzzzzzz")).toEqual({ kind: "not_found" });
     expect(await click("../etc")).toEqual({ kind: "not_found" });
   });
@@ -220,8 +245,8 @@ describe.skipIf(!hasDb)("tracked links (integration)", () => {
     const link = await ensureReplyLink(getDb(), reply.id, { fallbackHost: FALLBACK }, now);
     await markSentManually(getDb(), account.id, reply.id, undefined, now);
     await getDb().delete(campaigns).where(eq(campaigns.id, guide.id));
-    for (const url of [link!.url, staticLink!.url]) {
-      const result = await click(slugOf(url));
+    for (const slug of [link!.slug, staticLink!.slug]) {
+      const result = await click(slug);
       expect(result.kind).toBe("redirect");
       if (result.kind === "redirect") expect(result.location.startsWith("https://coach.com/optin?ref=yt&vidrev_tid=")).toBe(true);
     }

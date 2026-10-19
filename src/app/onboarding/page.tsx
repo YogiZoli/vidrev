@@ -235,8 +235,8 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
               label="Opt-in page URL"
               hint={
                 suggested
-                  ? "Filled in from your GoHighLevel Sub-account website. Change it to the exact page where viewers opt in. Links run on go.vidrev.app; your own link domain is optional, later in Settings."
-                  : "Links run on go.vidrev.app. Your own link domain is optional, later in Settings."
+                  ? "Filled in from your GoHighLevel Sub-account website. Change it to the exact page where viewers opt in. Replies link straight to that page; a link domain for click counts is optional, later in Settings."
+                  : "Replies link straight to your page. A link domain for click counts is optional, later in Settings."
               }
             >
               <Input name="url" type="url" required placeholder="https://yoursite.com/guide" defaultValue={state.defaultTargetUrl ?? suggested ?? ""} className="font-mono" />
